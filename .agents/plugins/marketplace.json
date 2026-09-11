@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "stitch",
+      "name": "stitch-design",
       "source": {
         "source": "url",
         "url": "https://github.com/partme-ai/codex-stitch-plugin.git",

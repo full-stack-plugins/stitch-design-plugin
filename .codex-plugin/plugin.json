@@ -1,6 +1,6 @@
 {
-  "name": "stitch",
-  "version": "0.2.0",
+  "name": "stitch-design",
+  "version": "0.3.0",
   "description": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
   "author": {
     "name": "Full Stack Skills / PartMe.AI",
@@ -18,7 +18,7 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Stitch",
+    "displayName": "Stitch Design",
     "shortDescription": "Design and build with Google Stitch",
     "longDescription": "Operate Google Stitch from Codex: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
     "developerName": "Full Stack Skills / PartMe.AI",

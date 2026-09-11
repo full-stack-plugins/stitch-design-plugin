@@ -1,6 +1,6 @@
-# Stitch for Codex
+# Stitch Design for Codex
 
-`stitch` v0.2.0 封装 Google Stitch 远程 MCP 与 39 个设计、设计系统、代码导入和设计转前端 Skills。插件仓库：[partme-ai/codex-stitch-plugin](https://github.com/partme-ai/codex-stitch-plugin)；技能主干来源：[Full Stack Skills / PartMe.AI](https://github.com/full-stack-skills/stitch-skills)。
+`stitch-design` v0.3.0 封装 Google Stitch 远程 MCP 与 39 个设计、设计系统、代码导入和设计转前端 Skills。Codex 展示名称为 **Stitch Design**。插件仓库：[partme-ai/codex-stitch-plugin](https://github.com/partme-ai/codex-stitch-plugin)；技能主干来源：[Full Stack Skills / PartMe.AI](https://github.com/full-stack-skills/stitch-skills)。
 
 ## 从 GitHub 安装
 
@@ -8,14 +8,14 @@
 
 ```bash
 codex plugin marketplace add partme-ai/codex-stitch-plugin --ref main
-codex plugin add stitch@partme-ai-stitch
+codex plugin add stitch-design@partme-ai-stitch
 ```
 
 升级仓库 marketplace 后重新安装插件，并在新的 Codex 任务中验证：
 
 ```bash
 codex plugin marketplace upgrade partme-ai-stitch
-codex plugin add stitch@partme-ai-stitch
+codex plugin add stitch-design@partme-ai-stitch
 ```
 
 仓库发布版使用稳定 SemVer。个人 marketplace 开发时产生的 `+codex.<cachebuster>` 仅用于刷新本地安装缓存，不属于 GitHub 发布版本。

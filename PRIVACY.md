@@ -1,6 +1,6 @@
 # Privacy
 
-Stitch for Codex does not collect, store, sell, or independently transmit user data. It packages local Agent Skills and configures a connection from the user's Codex client to Google Stitch.
+Stitch Design for Codex does not collect, store, sell, or independently transmit user data. It packages local Agent Skills and configures a connection from the user's Codex client to Google Stitch.
 
 When a user invokes Stitch MCP tools, prompts, project identifiers, uploaded assets, and generated design data may be sent directly to Google Stitch under the user's account and Google's applicable terms and privacy policy. The plugin authors do not receive that traffic.
 

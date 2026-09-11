@@ -24,7 +24,7 @@ class DistributionContractTests(unittest.TestCase):
         marketplace = json.loads(
             (ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8")
         )
-        entry = next(plugin for plugin in marketplace["plugins"] if plugin["name"] == "stitch")
+        entry = next(plugin for plugin in marketplace["plugins"] if plugin["name"] == "stitch-design")
 
         self.assertEqual(entry["source"]["source"], "url")
         self.assertEqual(
@@ -34,6 +34,15 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(entry["source"]["ref"], "main")
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_INSTALL")
+
+    def test_breaking_identity_uses_stitch_design_everywhere(self) -> None:
+        manifest = json.loads(
+            (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(manifest["name"], "stitch-design")
+        self.assertEqual(manifest["version"], "0.3.0")
+        self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
         self.assertFalse((ROOT / "plugin.json").exists())

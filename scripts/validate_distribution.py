@@ -36,15 +36,15 @@ def validate(root: Path) -> list[str]:
     mcp = load_json(root / ".mcp.json")
     marketplace = load_json(root / ".agents" / "plugins" / "marketplace.json")
 
-    if manifest.get("name") != "stitch":
-        errors.append("manifest name must be stitch")
-    if manifest.get("version") != "0.2.0":
-        errors.append("manifest version must be 0.2.0")
+    if manifest.get("name") != "stitch-design":
+        errors.append("manifest name must be stitch-design")
+    if manifest.get("version") != "0.3.0":
+        errors.append("manifest version must be 0.3.0")
     if manifest.get("repository") != EXPECTED_REPOSITORY:
         errors.append("manifest repository mismatch")
     interface = manifest.get("interface", {})
-    if interface.get("displayName") != "Stitch":
-        errors.append("display name must be Stitch")
+    if interface.get("displayName") != "Stitch Design":
+        errors.append("display name must be Stitch Design")
     for field in ("privacyPolicyURL", "termsOfServiceURL"):
         value = interface.get(field, "")
         if not value.startswith(EXPECTED_REPOSITORY + "/blob/main/"):
@@ -58,9 +58,9 @@ def validate(root: Path) -> list[str]:
     if "headers" in server or "http_headers" in server:
         errors.append("literal MCP headers are forbidden")
 
-    entries = [item for item in marketplace.get("plugins", []) if item.get("name") == "stitch"]
+    entries = [item for item in marketplace.get("plugins", []) if item.get("name") == "stitch-design"]
     if len(entries) != 1:
-        errors.append("repository marketplace must contain one stitch entry")
+        errors.append("repository marketplace must contain one stitch-design entry")
     else:
         entry = entries[0]
         expected_source = {
@@ -108,7 +108,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.2.0")
+    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.3.0")
     return 0
 
 
