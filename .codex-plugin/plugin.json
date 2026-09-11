@@ -1,0 +1,41 @@
+{
+  "name": "stitch",
+  "version": "0.1.0",
+  "description": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
+  "author": {
+    "name": "Full Stack Skills / PartMe.AI",
+    "url": "https://github.com/partme-ai/codex-stitch-plugin"
+  },
+  "homepage": "https://github.com/partme-ai/codex-stitch-plugin",
+  "repository": "https://github.com/partme-ai/codex-stitch-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "stitch",
+    "design",
+    "mcp",
+    "design-to-code",
+    "ui-generation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Stitch",
+    "shortDescription": "Design and build with Google Stitch",
+    "longDescription": "Operate Google Stitch from Codex: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
+    "developerName": "Full Stack Skills / PartMe.AI",
+    "category": "Creativity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://stitch.withgoogle.com",
+    "defaultPrompt": [
+      "Create a responsive product screen in Stitch",
+      "Edit my Stitch screen and preserve its design system",
+      "Turn this Stitch design into production components"
+    ],
+    "brandColor": "#1A73E8",
+    "screenshots": []
+  },
+  "mcpServers": "./.mcp.json"
+}
