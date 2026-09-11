@@ -1,6 +1,24 @@
 # Stitch for Codex
 
-`stitch` v0.1.0 封装 Google Stitch 远程 MCP 与 39 个设计、设计系统、代码导入和设计转前端 Skills。插件仓库：[partme-ai/codex-stitch-plugin](https://github.com/partme-ai/codex-stitch-plugin)；技能主干来源：[Full Stack Skills / PartMe.AI](https://github.com/full-stack-skills/stitch-skills)。
+`stitch` v0.2.0 封装 Google Stitch 远程 MCP 与 39 个设计、设计系统、代码导入和设计转前端 Skills。插件仓库：[partme-ai/codex-stitch-plugin](https://github.com/partme-ai/codex-stitch-plugin)；技能主干来源：[Full Stack Skills / PartMe.AI](https://github.com/full-stack-skills/stitch-skills)。
+
+## 从 GitHub 安装
+
+将仓库 marketplace 添加到 Codex，然后安装插件：
+
+```bash
+codex plugin marketplace add partme-ai/codex-stitch-plugin --ref main
+codex plugin add stitch@partme-ai-stitch
+```
+
+升级仓库 marketplace 后重新安装插件，并在新的 Codex 任务中验证：
+
+```bash
+codex plugin marketplace upgrade partme-ai-stitch
+codex plugin add stitch@partme-ai-stitch
+```
+
+仓库发布版使用稳定 SemVer。个人 marketplace 开发时产生的 `+codex.<cachebuster>` 仅用于刷新本地安装缓存，不属于 GitHub 发布版本。
 
 ## 凭据与启动
 
@@ -46,3 +64,5 @@ test -n "$STITCH_API_KEY" && echo "STITCH_API_KEY is set" || echo "STITCH_API_KE
 上游官方来源：[google-labs-code/stitch-skills](https://github.com/google-labs-code/stitch-skills/tree/0337446dadde6f8c94210444e2aa9d546126480f)，固定 SHA：`0337446dadde6f8c94210444e2aa9d546126480f`。本插件含官方适配内容及 Full Stack Skills / PartMe.AI 补充技能，并非 Google 官方发布插件。
 
 完整 Apache 2.0 主许可见 [LICENSE](LICENSE)，归属说明见 [NOTICE](NOTICE)。原有第三方通知与许可正文完整保留于 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)，相关组件仍遵循各自许可。这三份文件均来自同一技能仓库快照。共享插件前检查文件内没有凭据、账号数据、私密素材或临时缓存；远程服务可用性和权限仍取决于接收者自己的 Stitch 账号与运行环境。
+
+本插件仍采用 OpenAI 支持的 Codex compatibility layout。由于 Agent Plugins 1.0 不允许远程 header 环境变量展开，当前不会启用可能破坏 `STITCH_API_KEY` 鉴权的根级 portable manifests。迁移门禁见 [Portable Agent Plugin migration](docs/portable-migration.md)。隐私说明见 [PRIVACY.md](PRIVACY.md)，使用条款见 [TERMS.md](TERMS.md)。

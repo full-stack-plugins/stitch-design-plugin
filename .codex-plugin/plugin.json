@@ -1,6 +1,6 @@
 {
   "name": "stitch",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
   "author": {
     "name": "Full Stack Skills / PartMe.AI",
@@ -29,6 +29,8 @@
       "Write"
     ],
     "websiteURL": "https://stitch.withgoogle.com",
+    "privacyPolicyURL": "https://github.com/partme-ai/codex-stitch-plugin/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/partme-ai/codex-stitch-plugin/blob/main/TERMS.md",
     "defaultPrompt": [
       "Create a responsive product screen in Stitch",
       "Edit my Stitch screen and preserve its design system",

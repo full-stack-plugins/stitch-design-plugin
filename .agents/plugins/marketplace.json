@@ -1,0 +1,21 @@
+{
+  "name": "partme-ai-stitch",
+  "interface": {
+    "displayName": "PartMe.AI Stitch"
+  },
+  "plugins": [
+    {
+      "name": "stitch",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/partme-ai/codex-stitch-plugin.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Creativity"
+    }
+  ]
+}
