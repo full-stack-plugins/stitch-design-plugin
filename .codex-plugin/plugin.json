@@ -37,6 +37,9 @@
       "Turn this Stitch design into production components"
     ],
     "brandColor": "#1A73E8",
+    "composerIcon": "./assets/composer-icon.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png",
     "screenshots": []
   },
   "mcpServers": "./.mcp.json"
