@@ -15,10 +15,24 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def fake_codex_command(platform_name: str) -> tuple[str, str]:
+    if platform_name == "nt":
+        return (
+            "codex.cmd",
+            "@echo off\r\n"
+            "if defined STITCH_API_KEY echo key:set args:%*\r\n",
+        )
+    return (
+        "codex",
+        "#!/bin/sh\n"
+        "test -n \"$STITCH_API_KEY\" && printf 'key:set args:%s\\n' \"$*\"\n",
+    )
+
+
 class DistributionContractTests(unittest.TestCase):
-    def test_release_uses_053_across_active_surfaces(self) -> None:
+    def test_release_uses_054_across_active_surfaces(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.5.3")
+        self.assertEqual(manifest["version"], "0.5.4")
 
         validator = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate_distribution.py"), str(ROOT)],
@@ -27,7 +41,7 @@ class DistributionContractTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(validator.returncode, 0, validator.stdout + validator.stderr)
-        self.assertIn("compatibility distribution 0.5.3", validator.stdout)
+        self.assertIn("compatibility distribution 0.5.4", validator.stdout)
 
         active_version_surfaces = (
             ROOT / "README.md",
@@ -42,14 +56,14 @@ class DistributionContractTests(unittest.TestCase):
         for path in active_version_surfaces:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.relative_to(ROOT)):
-                self.assertIn("0.5.3", text)
+                self.assertIn("0.5.4", text)
 
         self.assertIn(
-            "Published release target | [v0.5.3]",
+            "Published release target | [v0.5.4]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "已发布目标版本 | [v0.5.3]",
+            "已发布目标版本 | [v0.5.4]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 
@@ -210,7 +224,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(manifest["name"], "stitch-design")
-        self.assertEqual(manifest["version"], "0.5.3")
+        self.assertEqual(manifest["version"], "0.5.4")
         self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
@@ -267,13 +281,13 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("Only HTTP 401", privacy)
         self.assertIn("HTTP 403 is permission denied and is not refreshed or replayed", privacy)
 
-    def test_manifest_and_readmes_remain_truthful_at_053(self) -> None:
+    def test_manifest_and_readmes_remain_truthful_at_054(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.5.3")
+        self.assertEqual(manifest["version"], "0.5.4")
         for path in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.5.3", text)
+                self.assertIn("0.5.4", text)
 
     def test_stitch_setup_check_never_prints_the_key(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
@@ -296,23 +310,27 @@ class DistributionContractTests(unittest.TestCase):
     def test_stitch_setup_cli_forwards_the_key_without_printing_it(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
         shell = shutil.which("sh")
-        if shell is None:
-            self.skipTest("POSIX-compatible shell is not available")
+        self.assertIsNotNone(shell, "POSIX-compatible shell is required for the wrapper test")
+        assert shell is not None
         secret = "test-secret-must-not-appear"
         with tempfile.TemporaryDirectory() as directory:
-            fake_codex = Path(directory) / "codex"
-            fake_codex.write_text(
-                "#!/bin/sh\n"
-                "test -n \"$STITCH_API_KEY\" && printf 'key:set args:%s\\n' \"$*\"\n",
-                encoding="utf-8",
-            )
-            fake_codex.chmod(0o755)
+            command_name, command_body = fake_codex_command(os.name)
+            fake_codex = Path(directory) / command_name
+            fake_codex.write_text(command_body, encoding="utf-8")
+            if os.name != "nt":
+                fake_codex.chmod(0o755)
+            environment = {
+                "PATH": os.pathsep.join((directory, os.environ.get("PATH", ""))),
+                "STITCH_API_KEY": secret,
+            }
+            if os.name == "nt":
+                environment["PATHEXT"] = os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD")
+                for variable in ("SystemRoot", "WINDIR", "COMSPEC", "TEMP", "TMP"):
+                    if variable in os.environ:
+                        environment[variable] = os.environ[variable]
             result = subprocess.run(
                 [shell, str(script), "cli", "--", "resume"],
-                env={
-                    "PATH": os.pathsep.join((directory, os.environ.get("PATH", ""))),
-                    "STITCH_API_KEY": secret,
-                },
+                env=environment,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -321,6 +339,18 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("key:set args:resume", result.stdout)
         self.assertNotIn(secret, result.stdout + result.stderr)
+
+    def test_fake_codex_command_covers_posix_and_windows_lookup_contracts(self) -> None:
+        posix_name, posix_body = fake_codex_command("posix")
+        windows_name, windows_body = fake_codex_command("nt")
+
+        self.assertEqual(posix_name, "codex")
+        self.assertTrue(posix_body.startswith("#!/bin/sh\n"))
+        self.assertEqual(windows_name, "codex.cmd")
+        self.assertTrue(windows_body.startswith("@echo off\r\n"))
+        for body in (posix_body, windows_body):
+            self.assertIn("STITCH_API_KEY", body)
+            self.assertNotIn("test-secret-must-not-appear", body)
 
     def test_first_use_skill_routes_missing_credentials_to_local_setup(self) -> None:
         skill = (ROOT / "skills" / "stitch-local-setup" / "SKILL.md").read_text(encoding="utf-8")
@@ -358,7 +388,7 @@ class DistributionContractTests(unittest.TestCase):
         for path in paths:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.5.3", text)
+                self.assertIn("0.5.4", text)
                 self.assertIn("stdio", text)
                 self.assertIn("Harness", text)
                 self.assertNotIn("env_http_headers", text)
@@ -366,7 +396,7 @@ class DistributionContractTests(unittest.TestCase):
         architecture = paths[0].read_text(encoding="utf-8")
         self.assertNotIn("environment or system store found", architecture)
         self.assertIn("environment or restricted user config found", architecture)
-        self.assertIn("stitch-design 0.5.3", architecture)
+        self.assertIn("stitch-design 0.5.4", architecture)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"

@@ -9,7 +9,7 @@
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Published release target | [v0.5.3](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.3) — immediate |
+| Published release target | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) — immediate |
 | Host layout | Codex compatibility plugin |
 | Skills | 43 |
 | MCP endpoint | `https://stitch.googleapis.com/mcp` |
@@ -135,7 +135,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-The immediate 0.5.3 release target contains 43 Skills, the hardened stdio proxy, Delivery Harness, and cross-platform validation workflow. GitHub-hosted matrix results and live Windows/Linux installed-host acceptance remain separate evidence.
+The immediate 0.5.4 release target contains 43 Skills, the hardened stdio proxy, Delivery Harness, and cross-platform validation workflow. GitHub-hosted matrix results and live Windows/Linux installed-host acceptance remain separate evidence.
 
 ## Troubleshooting
 

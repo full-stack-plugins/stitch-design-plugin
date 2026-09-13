@@ -66,3 +66,13 @@
 - README 将 v0.5.3 标为立即发布目标；架构与技术方案使用“立即发布目标”状态，避免在 tag、Release 与安装验证前宣称发布证据完成。
 - TDD：先把版本、公开状态和 preflight fixture 期望改为 0.5.3，观察 manifest 仍为 0.5.2 的 RED；完成元数据/文档升级后，distribution + preflight 聚焦测试 38 tests PASS，分发器报告 43 Skills / 0.5.3。
 - 活跃源码、测试和公开状态文档中已无 0.5.2；历史失败与旧版本事实仅保留在规格/任务报告等历史记录中。
+
+## 0.5.4 Windows fixture 修复
+
+- GitHub Actions run `34781881533` 的唯一失败来自测试 fixture：Windows `shutil.which("codex")` 无法把无扩展名 Unix shell 文件当作可执行命令。
+- `test_stitch_setup_cli_forwards_the_key_without_printing_it` 现在按平台生成 fixture：POSIX 使用可执行 `codex` shell 脚本；Windows 使用 `codex.cmd`，并为最小子进程环境保留 `PATHEXT`、`SystemRoot`、`WINDIR`、`COMSPEC`、`TEMP`、`TMP`。测试仍要求布尔 key 存在信号与参数输出正确，并验证真实 secret 从不打印。
+- 新增平台构造测试同时固定 POSIX 与 Windows command 文件名/内容契约，不增加 skip；本地 POSIX 路径继续做真实 wrapper 集成执行。
+- v0.5.3 标签已固定在 `945a8c8`，因此本修复的 manifest、校验器、preflight clientInfo、根路由、中英文 README/架构/技术方案和版本测试全部升级为 0.5.4，公开状态标记为立即发布目标。
+- TDD：0.5.4 版本测试先以 manifest 仍为 0.5.3 进入 RED；实现后 distribution/preflight 聚焦 39 tests PASS，完整套件 146 tests PASS。
+- 完整离线门禁：0.5.4 分发、43 Skills、Markdown 链接、秘密扫描、compileall、配置清单 Python 3.13/proxy smoke、actionlint、ShellCheck、`git diff --check` 全部 PASS。
+- 仍待外部证据：推送后重跑 Windows Python 3.11/3.13 CI，并完成 v0.5.4 tag、Release、Marketplace 与安装来源等价性验证。
