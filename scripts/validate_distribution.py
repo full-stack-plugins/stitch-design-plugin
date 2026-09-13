@@ -10,7 +10,6 @@ from pathlib import Path
 
 
 EXPECTED_REPOSITORY = "https://github.com/partme-ai/codex-stitch-plugin"
-EXPECTED_MCP_URL = "https://stitch.googleapis.com/mcp"
 EXPECTED_SKILLS = 40
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SECRET_PATTERNS = (
@@ -51,12 +50,14 @@ def validate(root: Path) -> list[str]:
             errors.append(f"invalid interface {field}")
 
     server = mcp.get("mcpServers", {}).get("stitch", {})
-    if server.get("type") != "http" or server.get("url") != EXPECTED_MCP_URL:
-        errors.append("compatibility Stitch MCP endpoint mismatch")
-    if server.get("env_http_headers") != {"X-Goog-Api-Key": "STITCH_API_KEY"}:
-        errors.append("Stitch MCP must use the STITCH_API_KEY environment mapping")
-    if "headers" in server or "http_headers" in server:
-        errors.append("literal MCP headers are forbidden")
+    expected_server = {
+        "type": "stdio",
+        "command": "python3",
+        "args": ["scripts/stitch_mcp_proxy.py"],
+        "cwd": ".",
+    }
+    if server != expected_server:
+        errors.append("Stitch MCP must use the bundled secret-safe stdio proxy")
 
     entries = [item for item in marketplace.get("plugins", []) if item.get("name") == "stitch-design"]
     if len(entries) != 1:
@@ -88,7 +89,7 @@ def validate(root: Path) -> list[str]:
         if name != skill_dir.name or NAME_PATTERN.fullmatch(name) is None:
             errors.append(f"invalid skill identity: {skill_dir.name} -> {name}")
 
-    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh"):
+    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh", "scripts/stitch_mcp_proxy.py", "stitch_harness/mcp_proxy.py"):
         if not (root / required).is_file():
             errors.append(f"missing required file: {required}")
 

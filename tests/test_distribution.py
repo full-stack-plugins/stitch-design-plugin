@@ -53,6 +53,20 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_USE")
 
+    def test_plugin_uses_bundled_secret_safe_stdio_proxy(self) -> None:
+        config = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
+        server = config["mcpServers"]["stitch"]
+
+        self.assertEqual(
+            server,
+            {
+                "type": "stdio",
+                "command": "python3",
+                "args": ["scripts/stitch_mcp_proxy.py"],
+                "cwd": ".",
+            },
+        )
+
     def test_breaking_identity_uses_stitch_design_everywhere(self) -> None:
         manifest = json.loads(
             (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
