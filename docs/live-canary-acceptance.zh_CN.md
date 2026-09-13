@@ -31,7 +31,7 @@ flowchart LR
 
 Opaque ID 仅保存在 runner 内 `0600` 私有文件且不上传。公开 evidence 使用精确 schema，仅包含布尔值、验收所需正数计数、一个聚合 SHA-256 和 UTC 时间戳。schema 校验与 acceptance 校验相互独立：结构合法的部分 evidence 不等于 smoke 已验收。
 
-最后一个 `always()` 步骤是唯一删除入口。它在调用前记录 `delete_attempted` 且不重放。无论删除成功、失败还是结果不明，都必须重新调用 `list_projects`，证明精确项目资源不存在；无法证明时保留 `project_absent: false` 并让验收失败。
+最后一个 `always()` 步骤是唯一删除入口。如果尚未落盘 `project_name`，清理会使用私有唯一 `project_title`，以两秒退避最多执行三次只读对账。只有精确一个合法匹配才先落盘身份再执行一次删除；零个或多个匹配都保持 unknown 并失败关闭。删除尝试先落盘且不重放。无论删除成功、失败还是结果不明，都用有界的新 `list_projects` 探针证明精确项目资源不存在；无法证明时保留 `project_absent: false` 并让验收失败。
 
 `actions/checkout@v4` 与 `actions/setup-python@v5` 仍是可移动 major-version 引用，因为本次仓库准备没有独立核验其不可变 commit SHA。checkout 已设置 `persist-credentials: false`；控制器应在把 action 来源作为发布证据前，将其固定到独立核验的 SHA。
 
@@ -45,7 +45,7 @@ provider smoke 通过后，从已安装的 0.6.0 候选执行[本地 Harness 控
 |:---|:---|:---|
 | 仅手动触发与 Secret 范围 | 已完成离线准备 | workflow 测试 + actionlint |
 | MCP 生命周期与精确 17 工具目录 | recording fake 已准备 | 真实匹配响应 |
-| Provider 生成/读取/编辑/单一变体 | 待真实 smoke | 全部布尔值 true；屏幕计数为正 |
+| Provider 生成/读取/编辑/单一变体 | 待真实 smoke | 一个同项目且不同于源屏幕身份的变体 |
 | 设计系统创建/更新/列出/应用 | 待真实 smoke | 身份绑定结果；计数为正 |
 | 本地上传/下载 | 待真实 smoke | 正数计数 + 下载清单哈希 |
 | 删除并证明不存在 | 待真实 smoke | `delete_requested` 与 `project_absent` 均为 true |

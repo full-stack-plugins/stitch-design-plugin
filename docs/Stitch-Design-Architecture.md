@@ -310,7 +310,7 @@ Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 
 
 ### 10.1 Controlled 0.6.0 provider + asset smoke boundary
 
-The manual live-canary workflow validates MCP lifecycle/catalog behavior plus provider and local-asset operations. It separates public evidence from the private cleanup state: only runner-private `0600` state holds project/screen/design-system identifiers. The final `always()` step checkpoints a single delete attempt and performs a read-only absence check even after an unknown delete result. This workflow is not Delivery Harness acceptance and creates no user-approval receipt; the real Harness uses the separate [interactive controller](live-harness-controller.md). See the [acceptance register](live-canary-acceptance.md). Neither path has been executed remotely in this repository-preparation task.
+The manual live-canary workflow validates MCP lifecycle/catalog behavior plus provider and local-asset operations. It separates public evidence from private `0600` cleanup state. If a create response was interrupted before identity checkpointing, cleanup uses the private unique title for bounded read-only reconciliation; only one exact match may proceed to one delete. Bounded absence probes run even after an unknown delete. The variant gate requires one same-project identity different from the source. This workflow is not Delivery Harness acceptance and creates no user-approval receipt; the real Harness uses the separate [interactive controller](live-harness-controller.md). See the [acceptance register](live-canary-acceptance.md).
 
 ---
 

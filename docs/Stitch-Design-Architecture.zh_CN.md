@@ -303,7 +303,7 @@ flowchart LR
 
 ### 10.1 受控 0.6.0 provider + asset smoke 边界
 
-手动 live-canary workflow 验证 MCP 生命周期/目录以及 provider、本地资产操作，并分离公开证据与清理私有状态：只有 runner 内 `0600` 状态保存项目、屏幕和设计系统 ID。最后一个 `always()` 步骤先登记单次删除尝试，即使删除结果不明也继续只读确认不存在。该 workflow 不是 Delivery Harness 验收，也不生成用户批准 receipt；真实 Harness 走独立的[交互式控制器](live-harness-controller.zh_CN.md)。详见 [验收台账](live-canary-acceptance.zh_CN.md)。本次仓库准备未执行任一路径的真实运行。
+手动 live-canary workflow 验证 MCP 生命周期/目录以及 provider、本地资产操作，并分离公开证据与 `0600` 清理私有状态。创建响应在身份落盘前中断时，清理使用私有唯一标题做有界只读对账，只有一个精确匹配才执行一次删除；删除结果不明后仍做有界不存在性探针。变体门禁要求同项目内唯一且不同于源屏幕的身份。该 workflow 不是 Delivery Harness 验收，也不生成用户批准 receipt；真实 Harness 走独立的[交互式控制器](live-harness-controller.zh_CN.md)。详见 [验收台账](live-canary-acceptance.zh_CN.md)。
 
 ---
 

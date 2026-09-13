@@ -48,6 +48,8 @@ jobs:
         run: |
           python scripts/live_canary.py cleanup \
             --state "$RUNNER_TEMP/stitch-live-canary/private-state.json" \
-            --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"
+            --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json" \
+            --reconciliation-attempts 3 \
+            --reconciliation-backoff-seconds 2
           python scripts/live_canary.py validate-acceptance \
             --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"

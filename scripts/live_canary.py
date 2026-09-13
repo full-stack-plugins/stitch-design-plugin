@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -331,6 +332,8 @@ class StitchBackend:
                 self._call("generate_variants", {"selectedScreenInstances": [self._selected(context)]}),
                 context["project_id"], exact_count=1,
             )
+            if identities[0][0] == context["screen_name"] or identities[0][1] == context["screen_id"]:
+                raise ProxyError("variant result must be different from the exact source screen identity")
             return {"variant_count": len(identities)}
         if stage == "design_system_create":
             result = self._call("create_design_system", {"projectId": context["project_id"]})
@@ -407,6 +410,19 @@ class StitchBackend:
         projects = self._list_projects()
         return context["project_name"] not in {identity[0] for identity in projects}
 
+    def find_project_by_title(self, title: str) -> dict[str, str] | None:
+        """Resolve exactly one valid project identity from a private unique title."""
+
+        if not isinstance(title, str) or not title:
+            raise ProxyError("cleanup project title is invalid")
+        matches = [identity for identity in self._list_projects() if identity[2] == title]
+        if len(matches) > 1:
+            raise ProxyError("cleanup project title matches multiple projects")
+        if not matches:
+            return None
+        name, project_id, _ = matches[0]
+        return {"project_name": name, "project_id": project_id}
+
 
 def _mark_stage(evidence: dict[str, Any], stage: str, result: dict[str, Any]) -> None:
     mapping = {
@@ -462,13 +478,61 @@ def run_canary(backend: Any, state_path: Path, evidence_path: Path, workspace: P
     return evidence
 
 
-def cleanup_canary(backend: Any, state_path: Path, evidence_path: Path, *, now: Callable[[], datetime] = _utc_now) -> dict[str, Any]:
+def cleanup_canary(
+    backend: Any,
+    state_path: Path,
+    evidence_path: Path,
+    *,
+    now: Callable[[], datetime] = _utc_now,
+    reconciliation_attempts: int = 3,
+    backoff_seconds: float = 1.0,
+    sleeper: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
     """Attempt deletion once and always perform an independent absence read probe."""
 
+    if (
+        isinstance(reconciliation_attempts, bool)
+        or not isinstance(reconciliation_attempts, int)
+        or not 1 <= reconciliation_attempts <= 5
+    ):
+        raise ValueError("reconciliation attempts must be between 1 and 5")
+    if (
+        isinstance(backoff_seconds, bool)
+        or not isinstance(backoff_seconds, (int, float))
+        or not 0 <= backoff_seconds <= 10
+    ):
+        raise ValueError("reconciliation backoff must be between 0 and 10 seconds")
     state = json.loads(Path(state_path).read_text(encoding="utf-8"))
     evidence = json.loads(Path(evidence_path).read_text(encoding="utf-8"))
     delete_error: Exception | None = None
     read_error: Exception | None = None
+    if not state.get("project_name"):
+        title = state.get("project_title")
+        if not isinstance(title, str) or not title:
+            evidence["cleanup"]["project_absent"] = False
+            evidence["finished_at"] = _timestamp(now())
+            _write_public_evidence(Path(evidence_path), evidence)
+            raise ProxyError("cleanup has no private project title for identity reconciliation")
+        for attempt in range(reconciliation_attempts):
+            identity = backend.find_project_by_title(title)
+            if identity is not None:
+                if set(identity) != {"project_name", "project_id"}:
+                    raise ProxyError("cleanup title reconciliation returned an invalid identity")
+                name = identity["project_name"]
+                project_id = identity["project_id"]
+                match = PROJECT_PATTERN.fullmatch(name) if isinstance(name, str) else None
+                if match is None or match.group(1) != project_id:
+                    raise ProxyError("cleanup title reconciliation returned an invalid identity")
+                state.update(identity)
+                _atomic_private_json(Path(state_path), state)
+                break
+            if attempt + 1 < reconciliation_attempts:
+                sleeper(float(backoff_seconds))
+        if not state.get("project_name"):
+            evidence["cleanup"]["project_absent"] = False
+            evidence["finished_at"] = _timestamp(now())
+            _write_public_evidence(Path(evidence_path), evidence)
+            raise ProxyError("cleanup project identity remains unknown after title reconciliation")
     if state.get("project_name"):
         if not state.get("delete_attempted", False):
             state["delete_attempted"] = True
@@ -481,14 +545,17 @@ def cleanup_canary(backend: Any, state_path: Path, evidence_path: Path, *, now: 
                 delete_error = error
         else:
             evidence["cleanup"]["delete_requested"] = True
-        try:
-            evidence["cleanup"]["project_absent"] = backend.project_absent(state) is True
-        except Exception as error:
-            evidence["cleanup"]["project_absent"] = False
-            read_error = error
-    else:
-        evidence["cleanup"]["project_absent"] = False
-        read_error = ProxyError("cleanup has no confirmed project identity to reconcile")
+        for attempt in range(reconciliation_attempts):
+            try:
+                evidence["cleanup"]["project_absent"] = backend.project_absent(state) is True
+                read_error = None
+            except Exception as error:
+                evidence["cleanup"]["project_absent"] = False
+                read_error = error
+            if evidence["cleanup"]["project_absent"]:
+                break
+            if attempt + 1 < reconciliation_attempts:
+                sleeper(float(backoff_seconds))
     evidence["finished_at"] = _timestamp(now())
     _write_public_evidence(Path(evidence_path), evidence)
     if read_error is not None:
@@ -507,6 +574,9 @@ def _parser() -> argparse.ArgumentParser:
         child.add_argument("--evidence", required=True, type=Path)
         if name == "run":
             child.add_argument("--workspace", required=True, type=Path)
+        if name == "cleanup":
+            child.add_argument("--reconciliation-attempts", type=int, default=3)
+            child.add_argument("--reconciliation-backoff-seconds", type=float, default=1.0)
     return parser
 
 
@@ -526,7 +596,13 @@ def main(arguments: list[str] | None = None) -> int:
         if args.command == "run":
             evidence = run_canary(backend, args.state, args.evidence, args.workspace)
         else:
-            evidence = cleanup_canary(backend, args.state, args.evidence)
+            evidence = cleanup_canary(
+                backend,
+                args.state,
+                args.evidence,
+                reconciliation_attempts=args.reconciliation_attempts,
+                backoff_seconds=args.reconciliation_backoff_seconds,
+            )
             print(json.dumps(evidence, sort_keys=True, separators=(",", ":")))
             return 0
         print(json.dumps(evidence, sort_keys=True, separators=(",", ":")))

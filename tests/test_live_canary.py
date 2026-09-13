@@ -61,6 +61,10 @@ class FakeBackend:
         self.calls.append("project_absent")
         return self.deleted
 
+    def find_project_by_title(self, title: str):
+        self.calls.append("find_project_by_title")
+        return None
+
 
 class LiveCanaryTests(unittest.TestCase):
     def test_bilingual_docs_keep_060_as_candidate_until_live_controller_evidence_exists(self) -> None:
@@ -211,13 +215,71 @@ class LiveCanaryTests(unittest.TestCase):
         self.assertEqual(backend.calls[-2:], ["delete_project", "project_absent"])
         self.assertTrue(cleanup["cleanup"]["project_absent"])
 
+    def test_cleanup_reconciles_private_title_before_single_delete_when_identity_was_not_checkpointed(self) -> None:
+        module = load_module()
+
+        class EventuallyVisibleBackend(FakeBackend):
+            def __init__(self):
+                super().__init__()
+                self.lookups = 0
+
+            def find_project_by_title(self, title: str):
+                self.calls.append("find_project_by_title")
+                self.lookups += 1
+                if self.lookups == 1:
+                    return None
+                return {"project_name": "projects/123456", "project_id": "123456"}
+
+        backend = EventuallyVisibleBackend()
+        sleeps: list[float] = []
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state = root / "state.json"
+            evidence = root / "evidence.json"
+            module._atomic_private_json(state, {
+                "project_title": "codex-stitch-canary-private-title", "delete_attempted": False,
+            })
+            module._write_public_evidence(evidence, module._public_template("2026-09-14T08:00:00Z"))
+            cleanup = module.cleanup_canary(
+                backend, state, evidence,
+                reconciliation_attempts=3, backoff_seconds=0.25, sleeper=sleeps.append,
+            )
+            checkpoint = json.loads(state.read_text(encoding="utf-8"))
+        self.assertEqual(backend.calls.count("find_project_by_title"), 2)
+        self.assertEqual(backend.calls.count("delete_project"), 1)
+        self.assertEqual(backend.calls[-1], "project_absent")
+        self.assertEqual(checkpoint["project_name"], "projects/123456")
+        self.assertTrue(checkpoint["delete_attempted"])
+        self.assertEqual(sleeps, [0.25])
+        self.assertTrue(cleanup["cleanup"]["project_absent"])
+
+    def test_cleanup_zero_title_matches_stays_unknown_and_never_deletes(self) -> None:
+        module = load_module()
+        backend = FakeBackend()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state = root / "state.json"
+            evidence = root / "evidence.json"
+            module._atomic_private_json(state, {"project_title": "private-title", "delete_attempted": False})
+            module._write_public_evidence(evidence, module._public_template("2026-09-14T08:00:00Z"))
+            with self.assertRaisesRegex(ProxyError, "identity"):
+                module.cleanup_canary(
+                    backend, state, evidence,
+                    reconciliation_attempts=2, backoff_seconds=0, sleeper=lambda _delay: None,
+                )
+            public = json.loads(evidence.read_text(encoding="utf-8"))
+        self.assertEqual(backend.calls.count("find_project_by_title"), 2)
+        self.assertNotIn("delete_project", backend.calls)
+        self.assertFalse(public["cleanup"]["project_absent"])
+
 
 class RecordingSession:
-    def __init__(self, tools: list[dict], *, create_unknown: bool = False, delete_unknown: bool = False, response_mutator=None):
+    def __init__(self, tools: list[dict], *, create_unknown: bool = False, delete_unknown: bool = False, variant_same_source: bool = False, response_mutator=None):
         split = len(tools) // 2
         self.pages = (tools[:split], tools[split:])
         self.create_unknown = create_unknown
         self.delete_unknown = delete_unknown
+        self.variant_same_source = variant_same_source
         self.deleted = False
         self.response_mutator = response_mutator
         self.requests: list[dict] = []
@@ -252,7 +314,12 @@ class RecordingSession:
                 "list_screens": {"screens": [self._screen(project_id)]},
                 "get_screen": {"htmlCode": {"mimeType": "text/html"}, "screenshot": {"mimeType": "image/png"}},
                 "edit_screens": {"screens": [self._screen("123456")]},
-                "generate_variants": {"screens": [self._screen("123456")]},
+                "generate_variants": {"screens": [
+                    self._screen("123456") if self.variant_same_source else {
+                        "id": "instance-variant",
+                        "sourceScreen": "projects/123456/screens/" + "c" * 32,
+                    }
+                ]},
                 "create_design_system": {"assetId": "asset-1"},
                 "update_design_system": {"assetId": "asset-1"},
                 "list_design_systems": {"designSystems": [{"assetId": "asset-1"}]},
@@ -433,9 +500,9 @@ class StitchBackendProtocolTests(unittest.TestCase):
             })
             module._write_public_evidence(evidence, module._public_template("2026-09-14T08:00:00Z"))
             with self.assertRaisesRegex(ProxyError, "definitive failure"):
-                module.cleanup_canary(backend, state, evidence)
+                module.cleanup_canary(backend, state, evidence, backoff_seconds=0)
             public = json.loads(evidence.read_text(encoding="utf-8"))
-        self.assertEqual(backend.calls, ["delete_project", "project_absent"])
+        self.assertEqual(backend.calls, ["delete_project", "project_absent", "project_absent", "project_absent"])
         self.assertFalse(public["cleanup"]["project_absent"])
 
     def test_recording_session_exercises_full_real_backend_smoke_contract(self) -> None:
@@ -452,6 +519,15 @@ class StitchBackendProtocolTests(unittest.TestCase):
         self.assertEqual(context["upload_count"], 1)
         self.assertEqual(context["count"], 1)
         self.assertRegex(context["manifest_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_variant_rejects_the_source_screen_identity(self) -> None:
+        backend = self.module.StitchBackend(session=RecordingSession(self.tools, variant_same_source=True))
+        context = {
+            "project_id": "123456", "project_name": "projects/123456",
+            "screen_id": "instance-1", "screen_name": "projects/123456/screens/" + "a" * 32,
+        }
+        with self.assertRaisesRegex(ProxyError, "different"):
+            backend.execute("variant", context, Path("."))
 
 
 if __name__ == "__main__":

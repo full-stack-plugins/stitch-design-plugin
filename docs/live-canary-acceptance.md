@@ -31,7 +31,7 @@ The live backend requires matching JSON-RPC IDs, no JSON-RPC error, `isError != 
 
 Opaque identities remain in a runner-private `0600` file and are not uploaded. Public evidence has an exact schema containing only booleans, positive acceptance counts, one aggregate SHA-256, and UTC timestamps. Schema validation and acceptance validation are separate: schema-valid partial evidence is not an accepted smoke.
 
-The final `always()` step is the sole delete site. It checkpoints `delete_attempted` before the call and never replays it. Whether delete succeeds, fails, or has an unknown result, a fresh `list_projects` probe must prove the exact project resource absent. Failure to prove absence leaves `project_absent: false` and fails acceptance.
+The final `always()` step is the sole delete site. If `project_name` was not checkpointed, cleanup uses the private unique `project_title` for up to three read-only reconciliation attempts with a two-second backoff. Exactly one valid match is checkpointed before one delete; zero or multiple matches remain unknown and fail closed. The delete attempt is checkpointed and never replayed. Whether delete succeeds, fails, or has an unknown result, bounded fresh `list_projects` probes must prove the exact project resource absent. Failure to prove absence leaves `project_absent: false` and fails acceptance.
 
 `actions/checkout@v4` and `actions/setup-python@v5` remain moving major-version references because their immutable commit SHAs were not independently verified in this repository-preparation task. Checkout uses `persist-credentials: false`; the controller should pin independently verified SHAs before treating action provenance as release evidence.
 
@@ -45,7 +45,7 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 |:---|:---|:---|
 | Manual-only workflow and secret scope | Prepared offline | workflow tests + actionlint |
 | MCP lifecycle and exact 17-tool catalog | Prepared with recording fake | live matching responses |
-| Provider generate/read/edit/one variant | Pending live smoke | all booleans true; positive screen counts |
+| Provider generate/read/edit/one variant | Pending live smoke | one same-project variant identity different from its source |
 | Design-system create/update/list/apply | Pending live smoke | bound identity results; positive count |
 | Local upload/download | Pending live smoke | positive counts + download manifest hash |
 | Delete and prove absence | Pending live smoke | `delete_requested` and `project_absent` true |
