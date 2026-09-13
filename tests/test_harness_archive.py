@@ -191,6 +191,17 @@ class ArchiveTests(unittest.TestCase):
         self.assertEqual(state, RunState.ARCHIVED)
         self.assertEqual(recovered_destination.resolve(), destination.resolve())
 
+    def test_archive_recovery_rejects_published_spec_that_differs_from_source(self):
+        run = self.approved_run()
+        result = self.manager.archive(run, self.spec)
+        published_spec = result.destination / "spec.json"
+        payload = json.loads(published_spec.read_text(encoding="utf-8"))
+        payload["title"] = "tampered archive title"
+        published_spec.write_text(json.dumps(payload), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "spec|archive"):
+            _archive_or_recover(Harness(), self.project, run.run_id)
+
 
 if __name__ == "__main__":
     unittest.main()

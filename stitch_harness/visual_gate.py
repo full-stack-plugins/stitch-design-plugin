@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
+import tempfile
 
 from .contracts import PageSpec
 from .evidence import ExternalEvidence
@@ -40,25 +42,36 @@ def compare_images(stitch_path: Path, art_path: Path, output_dir: Path) -> Compa
         art = art_source.convert("RGB")
     if stitch.size != art.size:
         raise DimensionMismatch(f"image dimensions differ: {stitch.size} != {art.size}")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise FileExistsError("comparison output directory must be empty")
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}-", dir=output_dir.parent))
     side_by_side = Image.new("RGB", (stitch.width * 2, stitch.height), "white")
     side_by_side.paste(stitch, (0, 0))
     side_by_side.paste(art, (stitch.width, 0))
     overlay = Image.blend(stitch, art, 0.5)
     difference = ImageChops.difference(stitch, art)
     heatmap = ImageEnhance.Contrast(difference).enhance(4.0)
-    files = (
-        output_dir / "side-by-side.png",
-        output_dir / "overlay.png",
-        output_dir / "diff-heatmap.png",
+    staged_files = (
+        stage / "side-by-side.png",
+        stage / "overlay.png",
+        stage / "diff-heatmap.png",
     )
-    side_by_side.save(files[0], format="PNG")
-    overlay.save(files[1], format="PNG")
-    heatmap.save(files[2], format="PNG")
-    first_edges = stitch.convert("L").filter(ImageFilter.FIND_EDGES)
-    second_edges = art.convert("L").filter(ImageFilter.FIND_EDGES)
-    edge_difference = ImageChops.difference(first_edges, second_edges)
-    mean_absolute_error = ImageStat.Stat(edge_difference).mean[0] / 255.0
+    try:
+        side_by_side.save(staged_files[0], format="PNG")
+        overlay.save(staged_files[1], format="PNG")
+        heatmap.save(staged_files[2], format="PNG")
+        first_edges = stitch.convert("L").filter(ImageFilter.FIND_EDGES)
+        second_edges = art.convert("L").filter(ImageFilter.FIND_EDGES)
+        edge_difference = ImageChops.difference(first_edges, second_edges)
+        mean_absolute_error = ImageStat.Stat(edge_difference).mean[0] / 255.0
+        if output_dir.exists():
+            output_dir.rmdir()
+        stage.replace(output_dir)
+    except Exception:
+        shutil.rmtree(stage, ignore_errors=True)
+        raise
+    files = tuple(output_dir / path.name for path in staged_files)
     return ComparisonResult(files, round(max(0.0, 1.0 - mean_absolute_error), 6))
 
 
@@ -75,4 +88,3 @@ def validate_visual_scores(spec: PageSpec, evidence: ExternalEvidence) -> Visual
         elif score < spec.comparison.visual_quality_score_min:
             failures.append(f"{name} score {score} is below {spec.comparison.visual_quality_score_min}")
     return VisualGateResult(tuple(failures))
-

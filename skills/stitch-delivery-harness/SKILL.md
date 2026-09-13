@@ -16,7 +16,7 @@ license: Apache-2.0
 
 适合需要可交付设计的产品、设计和前端团队；只想查询 Stitch 项目或做一次轻量编辑时使用对应单操作 Skill。
 
-## 能力边界
+## 能力边界说明
 
 ### ✅ 擅长
 
@@ -49,11 +49,11 @@ license: Apache-2.0
 3. `spec init` 只创建不存在的 starter spec，绝不覆盖现有规格；用户确认后再 `start`。
 4. 已有运行使用 `status` 或 `resume`，不得重新创建 run。
 5. 只执行 Harness 返回的 `next_action`；调用真实 Stitch、ImageGen、OCR 或视觉评估工具后，用 `stitch_harness.evidence_writer.EvidenceWriter` 的对应类型方法生成 evidence，再调用 `resume --evidence`。
-6. 双图比较执行 `python scripts/setup_harness_runtime.py run compare ...`；它只在隔离 Pillow runtime 内生成三张比较图与布局证据。
+6. 双图比较执行 `python scripts/setup_harness_runtime.py run compare ...`；输入只能从当前 run 的 imagegen 与 roundtrip receipts 派生，它只在隔离 Pillow runtime 内生成三张比较图与布局证据。
 
 ## 硬门禁
 
-- Stitch 写入超时或回执未知：进入 `RECONCILING`，只用项目/屏幕读取工具对账，不直接重发；三次仍未知转为 `BLOCKED`。
+- Stitch 写入超时或回执未知：进入 `RECONCILING`，只用项目/屏幕读取工具对账，不直接重发；读探针形成 evidence 后执行 `reconcile --evidence`，三次仍未知转为 `BLOCKED`。
 - `BLOCKED` 只有明确原因的 `recover --reason "..."` 能恢复；普通 `resume` 不得绕过。
 - 尺寸取页面规格的内容画布，不取浏览器外框或设备像素比。
 - 回灌后必须重新下载 HTML 和渲染图，并完成探针编辑与恢复。

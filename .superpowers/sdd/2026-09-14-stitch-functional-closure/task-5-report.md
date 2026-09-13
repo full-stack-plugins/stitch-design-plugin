@@ -41,3 +41,20 @@
 - Task 5 代码、单测、Skill 与本地分发候选：完成。
 - 独立审查：待控制器。
 - Task 6 live Canary、push/tag/Release/Marketplace/installed-source equality：未开始。
+
+## Review Fix Round 1
+
+- Critical 1：新增 `UnknownAssetWriteResult`。本地上传的 HTTP 408/5xx、断连、超时、截断、非 JSON/未知结构/重复 ID 均进入未知写入；MCP 转换为既有 `UnknownWriteResult`，stdio 返回 JSON-RPC `-32001`，notification 不返回响应。
+- Critical 2：上传拒绝最终文件或任一祖先目录 symlink；支持 `dir_fd`/`O_NOFOLLOW` 的平台逐组件安全打开，否则先做完整 `lstat` 检查。文件只通过同一 descriptor 的 `fstat`/`read` 读取，限制 10 MiB 并检测读取期间大小变化。
+- Critical 3：editability evidence 固定为 before/edited/restored HTML 与 before/edited/restored render 六个唯一 `semantic_role`，限定 MIME，result 哈希必须逐项等于已验证 artifact 哈希；edited 必须变化且 restored 必须与 before 完全相同。
+- Critical 4：`compare` 不再接受 `--stitch`/`--art`。输入只从当前 run 已验证的 imagegen 与 stitch.roundtrip receipts 派生；visual evidence `source_artifacts` 和 visual receipt `inputs` 同时绑定两张源图。
+- Important：新增 `reconcile --evidence`，支持三次上限前确认 `not_applied` 恢复原状态，或以完整 evidence 确认 `applied` 并推进门禁；local download 标记为本地写；所有 evidence 远程 URL 禁止 query/fragment；recovery/reconciliation reason 限长、单行并拒绝敏感内容；notification 成功/失败均静默；PageSpec 与 JSON Schema 对 additional properties、bool/int、非空 theme 及 archive 路径做差分对齐；archive 初次发布与中断恢复共用 source/published identity、spec、latest chain 和 approval-set verifier。
+- Minor hardening：下载最多 100 screens/500 files，校验 PNG/JPEG/WEBP/SVG 内容魔数/结构；上传响应限制 JSON 与 100 results；三张 comparison 图片先写同文件系统私有 staging 目录，再整体原子发布。
+
+### Review Fix TDD 与验证
+
+- 第一批 RED 覆盖未知上传分类/`-32001`、symlink/safe-fd、本地写 annotations、图片魔数/数量上限和 notification；实现后 13/13 GREEN。
+- 第二批 RED 覆盖六语义 editability、receipt-bound compare、reconciliation success、reason/URL、PageSpec/Schema、archive shared verifier 和 atomic comparison；实现后 13/13 GREEN。
+- 完整回归：178 tests，PASS。
+- 离线门禁：distribution 0.6.0、43 Skills、Markdown links、secret scan、compileall、Pillow 12.3.0 runtime、ShellCheck、actionlint、`git diff --check` 均 PASS。
+- TRACE 复核：Trust 5.0、Reliability 5.0、Adaptability 5.0、Convention 5.0、Effectiveness 5.0；Skill 保持中文边界、安全/隐私、显式异常恢复、三层 references、6 项主 FAQ、10 项深度 FAQ、10 项反模式和可复制命令。

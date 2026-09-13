@@ -377,6 +377,18 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("stitch-delivery-harness", loop)
         self.assertIn("不能以工具成功文本标记完成", loop)
 
+    def test_delivery_harness_documents_receipt_bound_compare_and_reconciliation(self) -> None:
+        skill_root = ROOT / "skills" / "stitch-delivery-harness"
+        skill = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+        workflow = (skill_root / "references" / "workflow.md").read_text(encoding="utf-8")
+        combined = skill + workflow
+
+        self.assertIn("reconcile --project", combined)
+        self.assertIn("--evidence", combined)
+        self.assertIn("从 receipts", combined)
+        self.assertNotIn("--stitch /absolute", combined)
+        self.assertNotIn("--art /absolute", combined)
+
     def test_architecture_documents_describe_secure_harness_boundaries(self) -> None:
         paths = [
             ROOT / "docs" / "Stitch-Design-Architecture.md",

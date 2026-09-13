@@ -71,6 +71,13 @@ class ExternalEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(EvidenceError, "allowlist"):
             ExternalEvidence.from_dict(payload, "../../outside")
 
+    def test_remote_url_query_or_fragment_is_rejected_anywhere_in_evidence(self):
+        for remote in ("https://example.com/file?cache=1", "https://example.com/file#part"):
+            payload = self.payload()
+            payload["result"]["remote"] = remote
+            with self.subTest(remote=remote), self.assertRaisesRegex(EvidenceError, "query or fragment"):
+                ExternalEvidence.from_dict(payload, "imagegen")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from stitch_harness.contracts import PageSpec
 from stitch_harness.evidence import ExternalEvidence
@@ -27,6 +28,26 @@ class VisualGateTests(unittest.TestCase):
                 {"side-by-side.png", "overlay.png", "diff-heatmap.png"},
             )
             self.assertTrue(all(path.is_file() for path in result.review_files))
+
+    def test_comparison_failure_publishes_no_partial_review_images(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory).resolve() / "comparison"
+            original = Image.Image.save
+            calls = 0
+
+            def fail_second(image, path, *args, **kwargs):
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    raise OSError("simulated image write failure")
+                return original(image, path, *args, **kwargs)
+
+            with mock.patch.object(Image.Image, "save", new=fail_second), self.assertRaisesRegex(OSError, "failure"):
+                compare_images(FIXTURES / "images/stitch.png", FIXTURES / "images/art.png", output)
+
+            self.assertFalse(any(output.glob("*.png")))
 
     def test_mismatched_dimensions_fail_before_scoring(self):
         with tempfile.TemporaryDirectory() as directory, self.assertRaises(DimensionMismatch):

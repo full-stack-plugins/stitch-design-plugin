@@ -50,10 +50,10 @@ class FakeResponse:
         for key, value in (headers or {}).items():
             self.headers[key] = value
 
-    def read(self):
+    def read(self, size=-1):
         if self._read_error is not None:
             raise self._read_error
-        return self._body
+        return self._body if size < 0 else self._body[:size]
 
     def __enter__(self):
         return self
@@ -270,7 +270,7 @@ class McpHttpSessionTests(unittest.TestCase):
         import tempfile
 
         with tempfile.TemporaryDirectory() as folder:
-            source = Path(folder) / "screen.html"
+            source = Path(folder).resolve() / "screen.html"
             source.write_text("<main>demo</main>", encoding="utf-8")
             result_body = json.dumps({"results": [{"screen": {"name": "projects/123/screens/" + "a" * 32}}]}).encode()
             transport_calls = []
@@ -293,6 +293,56 @@ class McpHttpSessionTests(unittest.TestCase):
             self.assertEqual(messages[0]["result"]["structuredContent"]["screens"][0]["name"], "projects/123/screens/" + "a" * 32)
             self.assertEqual(len(transport_calls), 1)
             self.assertEqual(provider_opener.requests, [])
+
+    def test_local_unknown_upload_maps_to_unknown_write_result(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder).resolve() / "screen.html"
+            source.write_text("<main>demo</main>", encoding="utf-8")
+            failure = urllib.error.HTTPError("https://stitch.googleapis.com", 503, "unavailable", Message(), io.BytesIO())
+            session = mcp_proxy.McpHttpSession(
+                provider=RotatingSecretProvider(["test-secret"]),
+                opener=FakeOpener([]),
+                asset_transport=lambda *_args, **_kwargs: (_ for _ in ()).throw(failure),
+            )
+            request = {
+                "jsonrpc": "2.0", "id": 9, "method": "tools/call",
+                "params": {"name": "stitch_local_upload_asset", "arguments": {"projectId": "123", "filePath": str(source)}},
+            }
+            with self.assertRaises(mcp_proxy.UnknownWriteResult):
+                session.send(request)
+
+            output = io.StringIO()
+            mcp_proxy.serve_stdio(io.StringIO(json.dumps(request) + "\n"), output, session)
+            self.assertEqual(json.loads(output.getvalue())["error"]["code"], -32001)
+
+    def test_local_tool_notification_emits_no_response(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder).resolve() / "screen.html"
+            source.write_text("<main>demo</main>", encoding="utf-8")
+            body = json.dumps({"results": [{"screen": {"name": "projects/123/screens/" + "a" * 32}}]}).encode()
+            session = mcp_proxy.McpHttpSession(
+                provider=RotatingSecretProvider(["test-secret"]),
+                opener=FakeOpener([]),
+                asset_transport=lambda *_args, **_kwargs: FakeResponse(200, body),
+            )
+            notification = {
+                "jsonrpc": "2.0", "method": "tools/call",
+                "params": {"name": "stitch_local_upload_asset", "arguments": {"projectId": "123", "filePath": str(source)}},
+            }
+            self.assertEqual(session.send(notification), [])
+
+            failing = mcp_proxy.McpHttpSession(
+                provider=RotatingSecretProvider(["test-secret"]),
+                opener=FakeOpener([]),
+                asset_transport=lambda *_args, **_kwargs: (_ for _ in ()).throw(urllib.error.URLError("offline")),
+            )
+            output = io.StringIO()
+            mcp_proxy.serve_stdio(io.StringIO(json.dumps(notification) + "\n"), output, failing)
+            self.assertEqual(output.getvalue(), "")
 
     def test_tools_list_repairs_missing_definitions_before_forwarding(self):
         body = json.dumps(

@@ -346,6 +346,29 @@ class RunStore:
         required.extend(visual_by_path[path] for path in COMPARISON_ARTIFACTS)
         return {str(item["path"]): str(item["sha256"]) for item in required}
 
+    def required_comparison_artifacts(self, run: Run) -> tuple[ArtifactRecord, ArtifactRecord]:
+        """Return the accepted art render and final Stitch render bound by receipts."""
+
+        verification = self.verify_chain(run)
+        if not verification.valid:
+            raise ValueError("cannot derive comparison sources from an invalid receipt chain")
+        outputs_by_step: dict[str, list[dict[str, Any]]] = {}
+        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            outputs_by_step[payload["step"]] = list(payload.get("outputs", []))
+        art = [item for item in outputs_by_step.get("imagegen", []) if str(item.get("mime", "")).startswith("image/")]
+        stitch = [item for item in outputs_by_step.get("stitch.roundtrip", []) if str(item.get("mime", "")).startswith("image/")]
+        if len(art) != 1 or len(stitch) != 1:
+            raise ValueError("comparison requires exactly one accepted art render and one final Stitch render")
+
+        def record(item: dict[str, Any]) -> ArtifactRecord:
+            return ArtifactRecord(
+                str(item["path"]), str(item["sha256"]), str(item["mime"]),
+                item.get("width"), item.get("height"),
+            )
+
+        return record(art[0]), record(stitch[0])
+
     def verify_approval(self, run: Run) -> ChainVerification:
         """Verify the receipt chain and that approval binds the current review set."""
 

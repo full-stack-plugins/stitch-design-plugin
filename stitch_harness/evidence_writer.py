@@ -8,7 +8,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import parse_qsl, urlsplit
+from urllib.parse import urlsplit
 
 from .storage import sha256_file
 
@@ -27,9 +27,9 @@ def _reject_sensitive(value: Any) -> None:
         for child in value:
             _reject_sensitive(child)
     elif isinstance(value, str) and value.startswith(("https://", "http://")):
-        query_names = {name.lower() for name, _ in parse_qsl(urlsplit(value).query, keep_blank_values=True)}
-        if any("signature" in name or name in {"key", "token", "credential"} for name in query_names):
-            raise ValueError("evidence metadata must not contain a signed URL")
+        parsed = urlsplit(value)
+        if parsed.query or parsed.fragment:
+            raise ValueError("evidence remote URL must not contain a query or fragment")
 
 
 class EvidenceWriter:
@@ -38,7 +38,7 @@ class EvidenceWriter:
     def __init__(self, run_root: Path):
         self.run_root = Path(run_root).resolve()
 
-    def _artifact(self, path: Path, mime: str | None = None, *, width: int | None = None, height: int | None = None) -> dict[str, Any]:
+    def _artifact(self, path: Path, mime: str | None = None, *, width: int | None = None, height: int | None = None, semantic_role: str | None = None) -> dict[str, Any]:
         resolved = Path(path).resolve()
         try:
             relative = resolved.relative_to(self.run_root)
@@ -55,16 +55,30 @@ class EvidenceWriter:
             artifact["width"] = width
         if height is not None:
             artifact["height"] = height
+        if semantic_role is not None:
+            artifact["semantic_role"] = semantic_role
         return artifact
 
-    def _write(self, step: str, tool: str, artifacts: Iterable[Path], result: dict[str, Any], *, sources: Iterable[Path] = (), provider: str = "local-harness", model: str = "deterministic", dimensions: tuple[int, int] | None = None) -> Path:
+    def _write(self, step: str, tool: str, artifacts: Iterable[Path], result: dict[str, Any], *, sources: Iterable[Path] = (), provider: str = "local-harness", model: str = "deterministic", dimensions: tuple[int, int] | None = None, semantic_roles: Iterable[str] | None = None) -> Path:
         _reject_sensitive(result)
+        artifact_paths = tuple(artifacts)
+        roles = tuple(semantic_roles) if semantic_roles is not None else (None,) * len(artifact_paths)
+        if len(roles) != len(artifact_paths):
+            raise ValueError("semantic roles must match evidence artifacts")
         payload = {
             "schema_version": 1, "step": step,
             "provider": {"name": provider, "tool": tool, "model": model},
             "invoked_at": datetime.now(UTC).isoformat(),
             "source_artifacts": [self._artifact(path) for path in sources],
-            "artifacts": [self._artifact(path, width=dimensions[0], height=dimensions[1]) if dimensions and Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} else self._artifact(path) for path in artifacts],
+            "artifacts": [
+                self._artifact(
+                    path,
+                    width=dimensions[0] if dimensions and Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} else None,
+                    height=dimensions[1] if dimensions and Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} else None,
+                    semantic_role=role,
+                )
+                for path, role in zip(artifact_paths, roles)
+            ],
             "result": result,
         }
         evidence_dir = self.run_root / "evidence"
@@ -99,7 +113,8 @@ class EvidenceWriter:
 
     def editability(self, before_html: Path, edited_html: Path, restored_html: Path, before_render: Path, edited_render: Path, restored_render: Path) -> Path:
         paths = (before_html, edited_html, restored_html, before_render, edited_render, restored_render)
-        artifacts = [self._artifact(path) for path in paths]
+        roles = ("before_html", "edited_html", "restored_html", "before_render", "edited_render", "restored_render")
+        artifacts = [self._artifact(path, semantic_role=role) for path, role in zip(paths, roles)]
         result = {
             "editable": artifacts[0]["sha256"] != artifacts[1]["sha256"] and artifacts[3]["sha256"] != artifacts[4]["sha256"],
             "restored": artifacts[0]["sha256"] == artifacts[2]["sha256"] and artifacts[3]["sha256"] == artifacts[5]["sha256"],
@@ -110,7 +125,7 @@ class EvidenceWriter:
         }
         if not result["editable"] or not result["restored"]:
             raise ValueError("editability requires a changed edit and exact restore hash parity")
-        return self._write("editability", "edit-restore-probe", paths, result, sources=(before_html, before_render), provider="google-stitch", model="server")
+        return self._write("editability", "edit-restore-probe", paths, result, semantic_roles=roles, provider="google-stitch", model="server")
 
-    def visual_review(self, *, artifact_paths: Iterable[Path], layout_score: float, scores: dict[str, Any]) -> Path:
-        return self._write("visual-judge", "compare", artifact_paths, {"layout_score": layout_score, "scores": scores})
+    def visual_review(self, *, artifact_paths: Iterable[Path], source_artifact_paths: Iterable[Path], layout_score: float, scores: dict[str, Any]) -> Path:
+        return self._write("visual-judge", "compare", artifact_paths, {"layout_score": layout_score, "scores": scores}, sources=source_artifact_paths)

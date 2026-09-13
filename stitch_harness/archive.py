@@ -50,6 +50,31 @@ class ArchiveManager:
             raise ValueError("archive destination must be contained under the project root") from error
         return destination
 
+    def verify_published_copy(self, source: Run, published_path: Path) -> Run:
+        """Verify identity, spec, chain and approval parity for an archive copy."""
+
+        published = self.store.load_from_path(published_path, source.run_id)
+        if (
+            published.run_id != source.run_id
+            or published.page_id != source.page_id
+            or published.state != source.state
+            or published.latest_receipt_sha256 != source.latest_receipt_sha256
+        ):
+            raise ValueError("archive copy manifest does not match the approved source run")
+        source_spec = source.path / "spec.json"
+        published_spec = published.path / "spec.json"
+        if not source_spec.is_file() or not published_spec.is_file() or sha256_file(source_spec) != sha256_file(published_spec):
+            raise ValueError("archive copy spec does not match the approved source run")
+        source_chain = self.store.verify_chain(source)
+        published_chain = self.store.verify_chain(published)
+        source_approval = self.store.verify_approval(source)
+        published_approval = self.store.verify_approval(published)
+        if not source_chain.valid or not published_chain.valid or not source_approval.valid or not published_approval.valid:
+            raise ValueError("archive copy failed source/published receipt or approval verification")
+        if self.store.required_approval_artifacts(source) != self.store.required_approval_artifacts(published):
+            raise ValueError("archive copy approval set does not match the approved source run")
+        return published
+
     def archive(self, run: Run, spec: PageSpec) -> ArchiveResult:
         if run.state != RunState.APPROVED:
             raise InvalidTransition("only an approved run can be archived")
@@ -76,28 +101,16 @@ class ArchiveManager:
                 f"# {spec.title}\n\n- Run: `{run.run_id}`\n- Canvas: {spec.canvas.width}×{spec.canvas.height}\n- Theme: `{spec.theme}`\n",
                 encoding="utf-8",
             )
-            archived_run = self.store.load_from_path(temporary, run.run_id)
-            if (
-                archived_run.page_id != run.page_id
-                or archived_run.state != run.state
-                or archived_run.latest_receipt_sha256 != run.latest_receipt_sha256
-            ):
-                raise ValueError("archive copy manifest does not match the approved run")
-            archived_chain = self.store.verify_chain(archived_run)
-            archived_approval = self.store.verify_approval(archived_run)
-            if not archived_chain.valid or not archived_approval.valid:
-                raise ValueError("archive copy failed receipt or approval verification")
+            self.verify_published_copy(run, temporary)
             for relative, digest in approved_hashes.items():
                 if sha256_file(temporary / relative) != digest:
                     raise ValueError(f"archive copy hash mismatch: {relative}")
             temporary.replace(destination)
             try:
-                published_run = self.store.load_from_path(destination, run.run_id)
-                if not self.store.verify_chain(published_run).valid or not self.store.verify_approval(published_run).valid:
-                    raise ValueError("published archive failed receipt or approval verification")
-            except Exception:
+                self.verify_published_copy(run, destination)
+            except Exception as error:
                 destination.replace(temporary)
-                raise
+                raise ValueError("published archive failed source/copy verification") from error
         finally:
             if temporary.exists():
                 shutil.rmtree(temporary)

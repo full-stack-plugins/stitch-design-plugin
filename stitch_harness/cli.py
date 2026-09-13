@@ -28,15 +28,13 @@ def _parser() -> argparse.ArgumentParser:
     compare = subparsers.add_parser("compare")
     compare.add_argument("--project", required=True, type=Path)
     compare.add_argument("--run", required=True)
-    compare.add_argument("--stitch", required=True, type=Path)
-    compare.add_argument("--art", required=True, type=Path)
     compare.add_argument("--scores", type=Path)
-    for command in ("preflight", "start", "resume", "status", "approve", "archive", "recover"):
+    for command in ("preflight", "start", "resume", "status", "approve", "archive", "recover", "reconcile"):
         child = subparsers.add_parser(command)
         child.add_argument("--project", required=True, type=Path)
         if command == "start":
             child.add_argument("--spec", required=True)
-        if command in {"resume", "status", "approve", "archive", "recover"}:
+        if command in {"resume", "status", "approve", "archive", "recover", "reconcile"}:
             child.add_argument("--run", required=True)
         if command == "resume":
             child.add_argument("--evidence", type=Path)
@@ -44,6 +42,8 @@ def _parser() -> argparse.ArgumentParser:
             child.add_argument("--confirmation", required=True, type=Path)
         if command == "recover":
             child.add_argument("--reason", required=True)
+        if command == "reconcile":
+            child.add_argument("--evidence", required=True, type=Path)
     return parser
 
 
@@ -66,12 +66,10 @@ def _spec_init(project: Path, page_id: str, title: str | None) -> Path:
 def _archive_or_recover(harness: Harness, project: Path, run_id: str) -> tuple[RunState, Path]:
     run = harness.store.load(project, run_id)
     spec = PageSpec.load(run.path / "spec.json")
-    manager = ArchiveManager(project)
+    manager = ArchiveManager(project, store=harness.store)
     destination = manager._archive_destination(spec.archive, run.run_id)
     if destination.exists() and run.state == RunState.APPROVED:
-        published = harness.store.load_from_path(destination, run.run_id)
-        if not harness.store.verify_chain(published).valid or not harness.store.verify_approval(published).valid:
-            raise ValueError("existing archive cannot be recovered because verification failed")
+        manager.verify_published_copy(run, destination)
     else:
         destination = manager.archive(run, spec).destination
     run = harness.store.update_state(run, RunState.ARCHIVED)
@@ -92,10 +90,14 @@ def main(arguments: list[str] | None = None) -> int:
             return 0
         if args.command == "compare":
             run = harness.store.load(args.project, args.run)
-            comparison = compare_images(args.stitch, args.art, run.path / "comparison")
+            if run.state != RunState.EDITABILITY_VERIFIED:
+                raise ValueError("compare requires the current run to be EDITABILITY_VERIFIED")
+            art, stitch = harness.store.required_comparison_artifacts(run)
+            comparison = compare_images(run.path / stitch.path, run.path / art.path, run.path / "comparison")
             scores = json.loads(args.scores.read_text(encoding="utf-8")) if args.scores else {}
             evidence = EvidenceWriter(run.path).visual_review(
                 artifact_paths=comparison.review_files,
+                source_artifact_paths=(run.path / art.path, run.path / stitch.path),
                 layout_score=comparison.layout_score,
                 scores=scores,
             )
@@ -121,6 +123,8 @@ def main(arguments: list[str] | None = None) -> int:
             )
         elif args.command == "recover":
             status = harness.recover(args.project, args.run, args.reason)
+        elif args.command == "reconcile":
+            status = harness.reconcile(args.project, args.run, args.evidence)
         else:
             state, destination = _archive_or_recover(harness, args.project, args.run)
             print(json.dumps({"run_id": args.run, "state": state.value, "archive": str(destination)}, ensure_ascii=False, separators=(",", ":")))

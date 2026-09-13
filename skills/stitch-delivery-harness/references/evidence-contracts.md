@@ -18,4 +18,4 @@ Stitch、ImageGen、OCR和视觉评估由真实工具执行；本地 Harness 只
 
 OCR 的 `result.texts` 保存识别文本数组；视觉评估的 `result.scores` 必须包含 `hierarchy`、`density`、`color`、`component_quality`、`completion`，并携带 `layout_score`。未知写入只保存 `schema_version`、`step` 和 `result: "unknown"`，不得伪造资源 ID。
 
-使用 `EvidenceWriter` 的 `stitch_generation`、`imagegen`、`ocr`、`roundtrip`、`editability` 和 `visual_review` 方法生成类型化 envelope。`imagegen` 必须传真实 `width`/`height`。`editability` 必须输入 before/edited/restored HTML 与 render 六个文件；任一恢复哈希不等于 before，writer 直接失败且不写 evidence。
+使用 `EvidenceWriter` 的 `stitch_generation`、`imagegen`、`ocr`、`roundtrip`、`editability` 和 `visual_review` 方法生成类型化 envelope。`imagegen` 必须传真实 `width`/`height`。`editability` 必须输入 before/edited/restored HTML 与 render 六个文件，写出六个唯一 `semantic_role`；任一 result 哈希不等于实际 artifact 哈希、edited 未变化或 restored 不等于 before，Harness 均拒绝。`visual_review` 的 source artifacts 只能来自当前 run 的 imagegen/roundtrip receipts。

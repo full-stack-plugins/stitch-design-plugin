@@ -5,10 +5,12 @@ from __future__ import annotations
 import base64
 import hashlib
 import html
+import http.client
 import json
 import os
 import re
 import shutil
+import stat
 import tempfile
 import urllib.error
 import urllib.request
@@ -21,6 +23,8 @@ UPLOAD_ORIGIN = "https://stitch.googleapis.com"
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024
 MAX_EXPORT_BYTES = 100 * 1024 * 1024
+MAX_SCREENS = 100
+MAX_EXPORT_FILES = 500
 UPLOAD_MIMES = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
     ".webp": "image/webp", ".html": "text/html", ".htm": "text/html",
@@ -39,6 +43,10 @@ REFERENCE_URL_PATTERN = re.compile(r'''(?:src|href)=["'](https://[^"']+)["']''',
 
 class AssetError(ValueError):
     """A local asset request is unsafe or has an ambiguous remote result."""
+
+
+class UnknownAssetWriteResult(AssetError):
+    """A local upload may have reached Stitch without a definitive response."""
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -86,7 +94,7 @@ def local_tool_definitions() -> list[dict[str, Any]]:
                 "assetsSubdir": {"type": "string", "default": "assets"},
             }, ["projectId", "outputDir"]),
             "outputSchema": download_output,
-            "annotations": {"readOnlyHint": True, "openWorldHint": True, "idempotentHint": True, "destructiveHint": False},
+            "annotations": {"readOnlyHint": False, "openWorldHint": True, "idempotentHint": False, "destructiveHint": False},
         },
     ]
 
@@ -113,10 +121,7 @@ def _read_limited(response, limit: int) -> bytes:
                 raise AssetError("download exceeds maximum size")
         except ValueError as error:
             raise AssetError("download Content-Length is invalid") from error
-    try:
-        body = response.read(limit + 1)
-    except TypeError:
-        body = response.read()
+    body = response.read(limit + 1)
     if len(body) > limit:
         raise AssetError("download exceeds maximum size")
     return body
@@ -128,6 +133,91 @@ def _download_url_allowed(url: str) -> bool:
     return parsed.scheme == "https" and not parsed.username and not parsed.password and any(
         host == suffix or host.endswith("." + suffix) for suffix in ALLOWED_DOWNLOAD_HOSTS
     )
+
+
+def _read_regular_file(path: Path, limit: int) -> bytes:
+    """Read one absolute non-symlink file through the descriptor that was checked."""
+
+    current = path
+    while current != current.parent:
+        try:
+            if stat.S_ISLNK(current.lstat().st_mode):
+                raise AssetError("filePath must not contain a symlink component")
+        except FileNotFoundError as error:
+            raise AssetError("filePath must identify an existing regular file") from error
+        current = current.parent
+    flags = os.O_RDONLY
+    if hasattr(os, "O_CLOEXEC"):
+        flags |= os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    directory_descriptor: int | None = None
+    try:
+        supports_safe_walk = (
+            hasattr(os, "O_DIRECTORY")
+            and hasattr(os, "O_NOFOLLOW")
+            and os.open in os.supports_dir_fd
+        )
+        if supports_safe_walk:
+            directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+            if hasattr(os, "O_CLOEXEC"):
+                directory_flags |= os.O_CLOEXEC
+            directory_descriptor = os.open(path.anchor, directory_flags)
+            for component in path.parts[1:-1]:
+                next_descriptor = os.open(component, directory_flags, dir_fd=directory_descriptor)
+                os.close(directory_descriptor)
+                directory_descriptor = next_descriptor
+            descriptor = os.open(path.name, flags, dir_fd=directory_descriptor)
+        else:
+            descriptor = os.open(path, flags)
+    except OSError as error:
+        raise AssetError("filePath could not be opened safely") from error
+    finally:
+        if directory_descriptor is not None:
+            os.close(directory_descriptor)
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise AssetError("filePath must be a regular file")
+        if metadata.st_size < 1 or metadata.st_size > limit:
+            raise AssetError("upload file size is outside the allowed range")
+        chunks: list[bytes] = []
+        remaining = limit + 1
+        while remaining:
+            chunk = os.read(descriptor, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+        if len(data) != metadata.st_size or len(data) > limit:
+            raise AssetError("upload file changed while it was being read")
+        return data
+    finally:
+        os.close(descriptor)
+
+
+def _validate_file_content(mime: str, body: bytes, *, upload: bool = False) -> None:
+    if mime == "image/png" and not body.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise AssetError("file content does not match PNG type")
+    if mime == "image/jpeg" and not body.startswith(b"\xff\xd8\xff"):
+        raise AssetError("file content does not match JPEG type")
+    if mime == "image/webp" and not (body.startswith(b"RIFF") and body[8:12] == b"WEBP"):
+        raise AssetError("file content does not match WEBP type")
+    if mime == "image/svg+xml":
+        try:
+            svg = body.decode("utf-8").lstrip("\ufeff\t\r\n ")
+        except UnicodeDecodeError as error:
+            raise AssetError("file content does not match SVG type") from error
+        if not (svg.startswith("<svg") or (svg.startswith("<?xml") and "<svg" in svg[:1024])):
+            raise AssetError("file content does not match SVG type")
+    if upload and mime == "text/html":
+        try:
+            text = body.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise AssetError("HTML upload must be valid UTF-8") from error
+        if "<" not in text or ">" not in text:
+            raise AssetError("file content does not look like HTML")
 
 
 class LocalAssetManager:
@@ -142,25 +232,15 @@ class LocalAssetManager:
         path = Path(file_path)
         if not path.is_absolute():
             raise AssetError("filePath must be an absolute path")
-        if path.is_symlink() or not path.is_file():
-            raise AssetError("filePath must be a regular file and not a symlink")
         mime = UPLOAD_MIMES.get(path.suffix.lower())
         if mime is None:
             raise AssetError("unsupported upload file type")
-        size = path.stat().st_size
-        if size < 1 or size > MAX_UPLOAD_BYTES:
-            raise AssetError("upload file size is outside the allowed range")
         if title is not None and (not isinstance(title, str) or not title.strip() or len(title) > 256):
             raise AssetError("title must be a non-empty string up to 256 characters")
         if not isinstance(create_screen_instances, bool):
             raise AssetError("createScreenInstances must be boolean")
-        raw = path.read_bytes()
-        if mime == "image/png" and not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-            raise AssetError("upload content does not match PNG type")
-        if mime == "image/jpeg" and not raw.startswith(b"\xff\xd8\xff"):
-            raise AssetError("upload content does not match JPEG type")
-        if mime == "image/webp" and not (raw.startswith(b"RIFF") and raw[8:12] == b"WEBP"):
-            raise AssetError("upload content does not match WEBP type")
+        raw = _read_regular_file(path, MAX_UPLOAD_BYTES)
+        _validate_file_content(mime, raw, upload=True)
         secret = self.secret_provider()
         if not secret:
             raise AssetError("Stitch credential is not configured")
@@ -179,20 +259,37 @@ class LocalAssetManager:
         )
         try:
             with self.transport(request, timeout=120) as response:
-                if getattr(response, "status", 200) != 200:
-                    raise AssetError(f"upload returned HTTP {response.status}")
-                result = json.loads(_read_limited(response, 1024 * 1024).decode("utf-8"))
-        except (urllib.error.URLError, OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
-            raise AssetError("upload result is unknown; reconcile with read tools before retrying") from error
+                status_code = getattr(response, "status", 200)
+                if status_code == 408 or 500 <= status_code <= 599:
+                    raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying")
+                if status_code != 200:
+                    raise AssetError(f"upload returned HTTP {status_code}")
+                if response.headers.get_content_type().lower() != "application/json":
+                    raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying")
+                try:
+                    response_body = _read_limited(response, 1024 * 1024)
+                except AssetError as error:
+                    raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying") from error
+                result = json.loads(response_body.decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            if error.code == 408 or 500 <= error.code <= 599:
+                raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying") from error
+            raise AssetError(f"upload returned HTTP {error.code}") from error
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.IncompleteRead, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying") from error
         results = result.get("results") if isinstance(result, dict) else None
-        if not isinstance(results, list) or not results:
-            raise AssetError("upload result is unknown; reconcile with read tools before retrying")
+        if not isinstance(results, list) or not results or len(results) > MAX_SCREENS:
+            raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying")
         names: list[dict[str, str]] = []
+        seen_names: set[str] = set()
         for item in results:
             name = item.get("screen", {}).get("name") if isinstance(item, dict) else None
             match = SCREEN_PATTERN.fullmatch(name) if isinstance(name, str) else None
             if match is None or match.group(1) != project_id:
-                raise AssetError("upload result is unknown; reconcile with read tools before retrying")
+                raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying")
+            if name in seen_names:
+                raise UnknownAssetWriteResult("upload result is unknown; reconcile with read tools before retrying")
+            seen_names.add(name)
             names.append({"name": name})
         return {"screens": names}
 
@@ -210,13 +307,16 @@ class LocalAssetManager:
             raise AssetError("output path must be contained under outputDir") from error
         if destination.exists():
             raise AssetError("asset destination already exists")
+        materialized_screens = list(screens)
+        if len(materialized_screens) > MAX_SCREENS:
+            raise AssetError(f"asset export supports at most {MAX_SCREENS} screens")
         output.mkdir(mode=0o700, parents=True, exist_ok=True)
         stage = Path(tempfile.mkdtemp(prefix=".stitch-assets-", dir=output))
         records: list[dict[str, Any]] = []
         total = 0
         referenced_urls: list[str] = []
         try:
-            for index, screen in enumerate(screens):
+            for index, screen in enumerate(materialized_screens):
                 if not isinstance(screen, dict):
                     raise AssetError("screen metadata must be an object")
                 name = screen.get("name")
@@ -241,6 +341,7 @@ class LocalAssetManager:
                             if extension is None:
                                 raise AssetError("download Content-Type is not allowed")
                             body = _read_limited(response, MAX_DOWNLOAD_BYTES)
+                            _validate_file_content(mime, body)
                     except (urllib.error.URLError, OSError) as error:
                         raise AssetError("asset download failed") from error
                     total += len(body)
@@ -263,6 +364,8 @@ class LocalAssetManager:
                             reference = html.unescape(reference)
                             if reference not in referenced_urls:
                                 referenced_urls.append(reference)
+                                if len(records) + len(referenced_urls) > MAX_EXPORT_FILES:
+                                    raise AssetError(f"asset export supports at most {MAX_EXPORT_FILES} files")
             for index, url in enumerate(referenced_urls):
                 if not _download_url_allowed(url):
                     raise AssetError("referenced asset URL must use HTTPS on an allowlisted Google host")
@@ -276,6 +379,7 @@ class LocalAssetManager:
                         if extension is None or mime == "text/html":
                             raise AssetError("referenced asset Content-Type is not allowed")
                         body = _read_limited(response, MAX_DOWNLOAD_BYTES)
+                        _validate_file_content(mime, body)
                 except (urllib.error.URLError, OSError) as error:
                     raise AssetError("referenced asset download failed") from error
                 total += len(body)

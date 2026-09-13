@@ -277,6 +277,39 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(status.state, RunState.ROUNDTRIPPED)
         self.assertEqual(status.exit_code, 1)
 
+    def test_editability_result_hashes_must_match_six_verified_semantic_artifacts(self):
+        run = self.run_at_state(RunState.ROUNDTRIPPED)
+        roles = {
+            "before_html": ("before.html", b"before", "text/html"),
+            "edited_html": ("edited.html", b"edited", "text/html"),
+            "restored_html": ("restored.html", b"before", "text/html"),
+            "before_render": ("before.png", b"before-render", "image/png"),
+            "edited_render": ("edited.png", b"edited-render", "image/png"),
+            "restored_render": ("restored.png", b"before-render", "image/png"),
+        }
+        artifacts = []
+        hashes = {}
+        for role, (name, body, mime) in roles.items():
+            path = run.path / "artifacts" / name
+            path.write_bytes(body)
+            digest = hashlib.sha256(body).hexdigest()
+            hashes[role] = digest
+            artifacts.append({"path": f"artifacts/{name}", "sha256": digest, "mime": mime, "semantic_role": role})
+        hashes["before_html"] = hashes["restored_html"] = "0" * 64
+        evidence = self.project / "editability-tampered.json"
+        evidence.write_text(json.dumps({
+            "schema_version": 1, "step": "editability",
+            "provider": {"name": "google-stitch", "tool": "edit-restore-probe", "model": "server"},
+            "invoked_at": "2026-09-14T00:00:01Z", "source_artifacts": [], "artifacts": artifacts,
+            "result": {"editable": True, "restored": True, "hashes": hashes},
+        }), encoding="utf-8")
+
+        status = self.harness.resume(self.project, run.run_id, evidence)
+
+        self.assertEqual(status.state, RunState.ROUNDTRIPPED)
+        self.assertEqual(status.exit_code, 1)
+        self.assertIn("artifact hashes", " ".join(status.errors))
+
     def test_flattened_roundtrip_does_not_advance(self):
         run = self.run_at_state(RunState.ART_ACCEPTED)
         html = run.path / "artifacts" / "roundtrip.html"

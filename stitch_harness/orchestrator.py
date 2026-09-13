@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlsplit
 
 from .contracts import PageSpec
 from .evidence import ExternalEvidence
@@ -94,6 +96,42 @@ class Harness:
     def _attempts(cls, run: Run) -> int:
         value = cls._manifest(run).get("reconciliation_attempts", 0)
         return value if isinstance(value, int) and value >= 0 else 0
+
+    @staticmethod
+    def _sanitize_reason(reason: str) -> str:
+        if not isinstance(reason, str):
+            raise ValueError("reason must be a string")
+        normalized = reason.strip()
+        lowered = normalized.lower()
+        if (
+            not normalized
+            or len(normalized) > 500
+            or any(ord(character) < 32 or ord(character) == 127 for character in normalized)
+            or any(marker in lowered for marker in ("authorization", "password", "secret", "token=", "api_key", "api-key", "cookie", "credential", "base64", "header"))
+        ):
+            raise ValueError("reason must be one sanitized line without sensitive content")
+        for remote in re.findall(r"https?://[^\s]+", normalized):
+            if remote:
+                parsed = urlsplit(remote.rstrip(").,;"))
+                if parsed.query or parsed.fragment:
+                    raise ValueError("reason must not contain a remote URL query or fragment")
+        return normalized
+
+    def _restore_reconciliation(self, run: Run, manifest: dict, reason: str, outcome: str) -> Run:
+        try:
+            target = RunState(manifest.get("reconciliation_from"))
+        except (TypeError, ValueError) as error:
+            raise InvalidTransition("reconciliation has no valid source state") from error
+        if target in {RunState.BLOCKED, RunState.RECONCILING, RunState.ARCHIVED}:
+            raise InvalidTransition("reconciliation source state is invalid")
+        manifest.update({
+            "state": target.value,
+            "reconciliation_attempts": 0,
+            "last_reconciliation_outcome": outcome,
+            "last_reconciliation_reason": reason,
+        })
+        _atomic_json(run.path / "manifest.json", manifest)
+        return replace(run, state=target)
 
     def start(self, project_root: Path, page_id: str, *, now: datetime | None = None) -> RunStatus:
         spec = PageSpec.load(project_root / ".stitch" / "specs" / f"{page_id}.json")
@@ -205,16 +243,30 @@ class Harness:
             if not gate.passed:
                 return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], gate.failures)
         elif run.state == RunState.ROUNDTRIPPED:
+            expected_mimes = {
+                "before_html": "text/html", "edited_html": "text/html", "restored_html": "text/html",
+                "before_render": "image/png", "edited_render": "image/png", "restored_render": "image/png",
+            }
+            by_role = {item.semantic_role: item for item in evidence.artifacts if item.semantic_role is not None}
+            artifact_hashes = {role: item.sha256 for role, item in by_role.items()}
             hashes = evidence.result.get("hashes")
-            parity = isinstance(hashes, dict) and hashes.get("before_html") == hashes.get("restored_html") and hashes.get("before_render") == hashes.get("restored_render")
-            changed = isinstance(hashes, dict) and hashes.get("before_html") != hashes.get("edited_html") and hashes.get("before_render") != hashes.get("edited_render")
+            correct_shape = (
+                len(evidence.artifacts) == 6
+                and not evidence.source_artifacts
+                and len({item.path for item in evidence.artifacts}) == 6
+                and set(by_role) == set(expected_mimes)
+                and all(by_role[role].mime == mime for role, mime in expected_mimes.items())
+                and hashes == artifact_hashes
+            )
+            parity = correct_shape and hashes["before_html"] == hashes["restored_html"] and hashes["before_render"] == hashes["restored_render"]
+            changed = correct_shape and hashes["before_html"] != hashes["edited_html"] and hashes["before_render"] != hashes["edited_render"]
             if evidence.result.get("editable") is not True or evidence.result.get("restored") is not True or not parity or not changed:
                 return RunStatus(
                     run_id,
                     run.state,
                     1,
                     _ACTIONS[run.state],
-                    ("editability probe requires changed edit hashes and exact HTML/render restoration parity",),
+                    ("editability artifact hashes require six unique semantic HTML/render artifacts, changed edits, and exact restoration parity",),
                 )
         elif run.state == RunState.EDITABILITY_VERIFIED:
             gate = validate_visual_scores(spec, evidence)
@@ -224,6 +276,18 @@ class Harness:
                 failures.append(f"layout score must be at least {spec.comparison.layout_score_min}")
             if failures:
                 return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], tuple(failures))
+            expected_sources = self.store.required_comparison_artifacts(run)
+            expected_source_set = {(item.path, item.sha256, item.mime) for item in expected_sources}
+            actual_source_set = {(item.path, item.sha256, item.mime) for item in evidence.source_artifacts}
+            if len(evidence.source_artifacts) != 2 or actual_source_set != expected_source_set:
+                return RunStatus(
+                    run_id, run.state, 1, _ACTIONS[run.state],
+                    ("visual evidence must bind the accepted art and final Stitch receipt artifacts",),
+                )
+        receipt_inputs = [
+            ArtifactRecord(item.path, item.sha256, item.mime or "application/octet-stream", item.width, item.height)
+            for item in evidence.source_artifacts
+        ]
         receipt = Receipt.passed(
             run.run_id,
             run.page_id,
@@ -232,6 +296,7 @@ class Harness:
                 ArtifactRecord(item.path, item.sha256, item.mime or "application/octet-stream", item.width, item.height)
                 for item in evidence.artifacts
             ],
+            inputs=receipt_inputs,
         )
         resource_ids = evidence.result.get("provider_resource_ids", [])
         if isinstance(resource_ids, list) and all(isinstance(item, str) for item in resource_ids):
@@ -263,12 +328,10 @@ class Harness:
     def recover(self, project_root: Path, run_id: str, reason: str) -> RunStatus:
         """Resume an exhausted reconciliation only after an explicit recorded reason."""
 
+        reason = self._sanitize_reason(reason)
         run = self.store.load(project_root, run_id)
         if run.state != RunState.BLOCKED:
             raise InvalidTransition("only a blocked run can be recovered")
-        reason = reason.strip()
-        if not reason:
-            raise ValueError("recovery requires a non-empty reason")
         manifest = self._manifest(run)
         source = manifest.get("reconciliation_from")
         try:
@@ -281,6 +344,50 @@ class Harness:
         _atomic_json(run.path / "manifest.json", manifest)
         recovered = replace(run, state=target)
         return RunStatus(run_id, target, 0, _ACTIONS[target], reconciliation_attempts=0)
+
+    def reconcile(self, project_root: Path, run_id: str, evidence_path: Path) -> RunStatus:
+        """Resolve an unknown write from the required read probes before exhaustion."""
+
+        run = self.store.load(project_root, run_id)
+        if run.state != RunState.RECONCILING:
+            raise InvalidTransition("only a reconciling run accepts reconciliation evidence")
+        verification = self.store.verify_chain(run)
+        if not verification.valid:
+            return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], verification.errors, self._attempts(run))
+        raw = json.loads(evidence_path.read_text(encoding="utf-8"))
+        manifest = self._manifest(run)
+        if raw.get("schema_version") != 1 or raw.get("step") != manifest.get("reconciliation_step"):
+            raise ValueError("reconciliation evidence does not match the unknown write step")
+        reconciliation = raw.get("reconciliation")
+        if not isinstance(reconciliation, dict):
+            raise ValueError("reconciliation evidence requires a reconciliation object")
+        outcome = reconciliation.get("outcome")
+        if outcome not in {"not_applied", "applied"}:
+            raise ValueError("reconciliation outcome must be not_applied or applied")
+        probes = reconciliation.get("read_probes")
+        if not isinstance(probes, list) or len(probes) != 3 or set(probes) != {"get_project", "list_screens", "get_screen"}:
+            raise ValueError("reconciliation requires get_project, list_screens, and get_screen")
+        reason = self._sanitize_reason(reconciliation.get("reason"))
+        if outcome == "not_applied":
+            restored = self._restore_reconciliation(run, manifest, reason, outcome)
+            return RunStatus(run_id, restored.state, 0, _ACTIONS[restored.state])
+
+        expected = manifest["reconciliation_step"]
+        evidence = ExternalEvidence.from_dict(raw, expected)
+        errors = evidence.verify_artifacts(run.path)
+        if errors:
+            return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], errors, self._attempts(run))
+        restored = self._restore_reconciliation(run, manifest, reason, outcome)
+        status = self.resume(project_root, restored.run_id, evidence_path)
+        if status.exit_code != 0:
+            current = self.store.load(project_root, run_id)
+            if current.state != RunState.BLOCKED:
+                current = self.store.update_state(current, RunState.BLOCKED)
+            blocked_manifest = self._manifest(current)
+            blocked_manifest["blocked_reason"] = "reconciled applied write failed its evidence gate"
+            _atomic_json(current.path / "manifest.json", blocked_manifest)
+            return RunStatus(run_id, RunState.BLOCKED, 1, _ACTIONS[RunState.BLOCKED], status.errors)
+        return status
 
     def approve(self, project_root: Path, run_id: str, decision: ApprovalDecision) -> RunStatus:
         run = self.store.load(project_root, run_id)

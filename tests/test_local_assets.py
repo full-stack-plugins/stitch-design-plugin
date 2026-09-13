@@ -1,11 +1,15 @@
 import io
+import http.client
 import json
+import os
 import tempfile
+import urllib.error
 import unittest
 from email.message import Message
 from pathlib import Path
+from unittest import mock
 
-from stitch_harness.assets import AssetError, LocalAssetManager, local_tool_definitions
+from stitch_harness.assets import AssetError, LocalAssetManager, UnknownAssetWriteResult, local_tool_definitions
 
 
 class Response(io.BytesIO):
@@ -26,7 +30,7 @@ class Response(io.BytesIO):
 class LocalAssetTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
 
     def tearDown(self):
         self.temp.cleanup()
@@ -42,6 +46,9 @@ class LocalAssetTests(unittest.TestCase):
             self.assertEqual(tool["outputSchema"]["type"], "object")
             self.assertIsInstance(tool["annotations"]["readOnlyHint"], bool)
             self.assertIsInstance(tool["annotations"]["openWorldHint"], bool)
+        download = next(tool for tool in tools if tool["name"] == "stitch_local_download_assets")
+        self.assertFalse(download["annotations"]["readOnlyHint"])
+        self.assertFalse(download["annotations"]["idempotentHint"])
 
     def test_upload_rejects_unsupported_symlink_and_oversize_before_transport(self):
         target = self.root / "payload.exe"
@@ -76,6 +83,53 @@ class LocalAssetTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertTrue(calls[0][0].full_url.startswith("https://stitch.googleapis.com/"))
         self.assertNotIn("secret", json.dumps(result))
+
+    def test_upload_ambiguous_failures_are_unknown_writes(self):
+        source = self.root / "screen.html"
+        source.write_text("<main>demo</main>", encoding="utf-8")
+        failures = (
+            urllib.error.HTTPError("https://stitch.googleapis.com", 408, "timeout", {}, io.BytesIO()),
+            urllib.error.HTTPError("https://stitch.googleapis.com", 503, "unavailable", {}, io.BytesIO()),
+            urllib.error.URLError("disconnected"),
+            http.client.IncompleteRead(b"partial"),
+        )
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                manager = LocalAssetManager(
+                    secret_provider=lambda: "secret",
+                    transport=lambda *_args, failure=failure, **_kwargs: (_ for _ in ()).throw(failure),
+                )
+                with self.assertRaises(UnknownAssetWriteResult):
+                    manager.upload_asset("123", source)
+        manager = LocalAssetManager(
+            secret_provider=lambda: "secret",
+            transport=lambda *_args, **_kwargs: Response(b"{}", "application/json"),
+        )
+        with self.assertRaises(UnknownAssetWriteResult):
+            manager.upload_asset("123", source)
+
+    @unittest.skipIf(os.name == "nt", "Windows symlink creation requires privileges")
+    def test_upload_rejects_a_symlink_in_any_path_component(self):
+        real = self.root / "real"
+        real.mkdir()
+        source = real / "screen.html"
+        source.write_text("<main>demo</main>", encoding="utf-8")
+        linked = self.root / "linked"
+        linked.symlink_to(real, target_is_directory=True)
+        manager = LocalAssetManager(secret_provider=lambda: "secret", transport=lambda *_a, **_k: None)
+        with self.assertRaisesRegex(AssetError, "symlink"):
+            manager.upload_asset("123", linked / "screen.html")
+
+    def test_upload_reads_through_safe_descriptor_not_path_read_bytes(self):
+        source = self.root / "screen.html"
+        source.write_text("<main>demo</main>", encoding="utf-8")
+        body = {"results": [{"screen": {"name": "projects/123/screens/" + "a" * 32}}]}
+        manager = LocalAssetManager(
+            secret_provider=lambda: "secret",
+            transport=lambda *_args, **_kwargs: Response(json.dumps(body).encode(), "application/json"),
+        )
+        with mock.patch.object(Path, "read_bytes", side_effect=AssertionError("unsafe path read")):
+            self.assertEqual(len(manager.upload_asset("123", source)["screens"]), 1)
 
     def test_download_enforces_https_host_type_size_and_atomic_publication(self):
         output = self.root / "export"
@@ -136,6 +190,20 @@ class LocalAssetTests(unittest.TestCase):
 
         self.assertEqual(result["count"], 2)
         self.assertTrue(any("referenced" in item["path"] for item in result["files"]))
+
+    def test_download_rejects_bad_image_magic_and_excessive_screen_count(self):
+        screen = {
+            "name": "projects/123/screens/" + "a" * 32,
+            "screenshot": {"downloadUrl": "https://lh3.googleusercontent.com/image"},
+        }
+        manager = LocalAssetManager(
+            secret_provider=lambda: "secret",
+            transport=lambda *_args, **_kwargs: Response(b"not-png", "image/png"),
+        )
+        with self.assertRaisesRegex(AssetError, "content"):
+            manager.download_assets("123", self.root / "bad-magic", screens=[screen])
+        with self.assertRaisesRegex(AssetError, "screens"):
+            manager.download_assets("123", self.root / "too-many", screens=[screen] * 101)
 
 
 if __name__ == "__main__":

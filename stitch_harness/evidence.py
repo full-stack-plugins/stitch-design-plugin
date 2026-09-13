@@ -7,11 +7,16 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from .storage import RECEIPT_STEP_SLUGS, sha256_file
 
 
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+EDITABILITY_ROLES = frozenset({
+    "before_html", "edited_html", "restored_html",
+    "before_render", "edited_render", "restored_render",
+})
 
 
 class EvidenceError(ValueError):
@@ -25,6 +30,7 @@ class EvidenceArtifact:
     mime: str | None = None
     width: int | None = None
     height: int | None = None
+    semantic_role: str | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "EvidenceArtifact":
@@ -39,13 +45,29 @@ class EvidenceArtifact:
         mime = payload.get("mime")
         width = payload.get("width")
         height = payload.get("height")
+        semantic_role = payload.get("semantic_role")
         if mime is not None and not isinstance(mime, str):
             raise EvidenceError("artifact mime must be a string")
-        if width is not None and (not isinstance(width, int) or width < 1):
+        if width is not None and (isinstance(width, bool) or not isinstance(width, int) or width < 1):
             raise EvidenceError("artifact width must be positive")
-        if height is not None and (not isinstance(height, int) or height < 1):
+        if height is not None and (isinstance(height, bool) or not isinstance(height, int) or height < 1):
             raise EvidenceError("artifact height must be positive")
-        return cls(path, digest, mime, width, height)
+        if semantic_role is not None and (not isinstance(semantic_role, str) or semantic_role not in EDITABILITY_ROLES):
+            raise EvidenceError("artifact semantic_role is not recognized")
+        return cls(path, digest, mime, width, height, semantic_role)
+
+
+def _reject_remote_url_state(value: Any) -> None:
+    if isinstance(value, dict):
+        for child in value.values():
+            _reject_remote_url_state(child)
+    elif isinstance(value, list):
+        for child in value:
+            _reject_remote_url_state(child)
+    elif isinstance(value, str) and value.startswith(("https://", "http://")):
+        parsed = urlsplit(value)
+        if parsed.query or parsed.fragment:
+            raise EvidenceError("evidence remote URLs must not contain a query or fragment")
 
 
 @dataclass(frozen=True)
@@ -71,6 +93,7 @@ class ExternalEvidence:
     def from_dict(cls, payload: dict[str, Any], expected_step: str) -> "ExternalEvidence":
         if not isinstance(payload, dict) or payload.get("schema_version") != 1:
             raise EvidenceError("external evidence schema_version must be 1")
+        _reject_remote_url_state(payload)
         step = payload.get("step")
         if step not in RECEIPT_STEP_SLUGS or step in {"preflight", "user-approval"}:
             raise EvidenceError("external evidence step must come from the fixed allowlist")

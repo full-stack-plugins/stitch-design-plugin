@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 
 from .secrets import SecretProvider, SecretStoreError, platform_secret_provider
 from .tool_catalog import ToolCatalog
-from .assets import AssetError, LocalAssetManager, local_tool_definitions
+from .assets import AssetError, LocalAssetManager, UnknownAssetWriteResult, local_tool_definitions
 
 
 STITCH_ENDPOINT = "https://stitch.googleapis.com/mcp"
@@ -208,8 +208,12 @@ class McpHttpSession:
                     assets_subdir=arguments.get("assetsSubdir", "assets"),
                     screens=self._read_project_screens(project_id),
                 )
+        except UnknownAssetWriteResult as error:
+            raise UnknownWriteResult(str(error)) from error
         except (AssetError, SecretStoreError) as error:
             raise ProxyError(str(error)) from error
+        if "id" not in message:
+            return []
         return [{
             "jsonrpc": "2.0", "id": message.get("id"),
             "result": {"content": [{"type": "text", "text": json.dumps(result, separators=(",", ":"))}], "structuredContent": result},
@@ -315,6 +319,7 @@ def serve_stdio(
             _write_messages(output_stream, [_error(None, -32700, "Parse error")])
             continue
         identifier = message.get("id") if isinstance(message, dict) else None
+        has_identifier = isinstance(message, dict) and "id" in message
         if not isinstance(message, dict) or message.get("jsonrpc") != "2.0" or "method" not in message:
             _write_messages(output_stream, [_error(identifier, -32600, "Invalid Request")])
             continue
@@ -323,9 +328,12 @@ def serve_stdio(
         try:
             responses = active_session.send(message)
         except UnknownWriteResult as error:
-            _write_messages(output_stream, [_error(identifier, -32001, str(error))])
+            if has_identifier:
+                _write_messages(output_stream, [_error(identifier, -32001, str(error))])
         except ProxyError as error:
-            _write_messages(output_stream, [_error(identifier, -32000, str(error))])
+            if has_identifier:
+                _write_messages(output_stream, [_error(identifier, -32000, str(error))])
         else:
-            _write_messages(output_stream, responses)
+            if has_identifier:
+                _write_messages(output_stream, responses)
     return 0

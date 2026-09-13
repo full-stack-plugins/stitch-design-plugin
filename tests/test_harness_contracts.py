@@ -3,6 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import jsonschema
+
 from stitch_harness.contracts import ContractError, PageSpec
 
 
@@ -37,6 +39,22 @@ class PageSpecTests(unittest.TestCase):
 
         with self.assertRaises(ContractError):
             PageSpec.from_dict(payload)
+
+    def test_runtime_and_json_schema_reject_the_same_structural_edge_cases(self):
+        schema = json.loads((Path(__file__).parents[1] / "stitch_harness/spec.schema.json").read_text(encoding="utf-8"))
+        base = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        cases = []
+        root_extra = json.loads(json.dumps(base)); root_extra["unexpected"] = True; cases.append(root_extra)
+        canvas_extra = json.loads(json.dumps(base)); canvas_extra["canvas"]["unexpected"] = True; cases.append(canvas_extra)
+        comparison_extra = json.loads(json.dumps(base)); comparison_extra["comparison"]["unexpected"] = True; cases.append(comparison_extra)
+        boolean_width = json.loads(json.dumps(base)); boolean_width["canvas"]["width"] = True; cases.append(boolean_width)
+        boolean_score = json.loads(json.dumps(base)); boolean_score["comparison"]["visual_quality_score_min"] = True; cases.append(boolean_score)
+        blank_theme = json.loads(json.dumps(base)); blank_theme["theme"] = "   "; cases.append(blank_theme)
+        for payload in cases:
+            with self.subTest(payload=payload):
+                self.assertFalse(jsonschema.Draft202012Validator(schema).is_valid(payload))
+                with self.assertRaises(ContractError):
+                    PageSpec.from_dict(payload)
 
 
 if __name__ == "__main__":
