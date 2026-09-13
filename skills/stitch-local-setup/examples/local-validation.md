@@ -22,4 +22,4 @@
 
 输入：“我使用 Windows。”
 
-期望：给出 `py ... stitch_setup.py` 命令和 `APPDATA` 路径，不出现 macOS 专用要求。
+期望：给出 `python ... stitch_setup.py` 命令和 `APPDATA` 路径，说明 PATH `python` 需要 3.11+，不出现 macOS 专用要求。

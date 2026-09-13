@@ -16,6 +16,8 @@ license: Apache-2.0
 
 面向 Windows、macOS、Linux 的本地 Codex 用户。插件已内置本地 stdio MCP 代理；本 Skill 只处理用户凭据缺失和受限的用户级配置。
 
+所有支持宿主的 PATH 中的 `python` 必须解析为 Python 3.11 或更高版本；插件 MCP 和本设置流程使用同一命令。
+
 ## 能力边界说明
 
 ### ✅ 擅长处理
@@ -41,7 +43,7 @@ license: Apache-2.0
 1. 先用配置器做布尔检查；它会检查当前进程和用户配置，但不打印 key：
 
    ```bash
-   python3 /absolute/plugin/root/scripts/stitch_setup.py check
+   python /absolute/plugin/root/scripts/stitch_setup.py check
    ```
 
 2. 检查通过后继续原来的 Stitch 任务。
@@ -51,13 +53,13 @@ license: Apache-2.0
    - Windows：
 
      ```powershell
-     py C:\absolute\plugin\root\scripts\stitch_setup.py ui
+     python C:\absolute\plugin\root\scripts\stitch_setup.py ui
      ```
 
    - macOS / Linux：
 
      ```bash
-     python3 /absolute/plugin/root/scripts/stitch_setup.py ui
+     python /absolute/plugin/root/scripts/stitch_setup.py ui
      ```
 
 5. 用户在同一张卡片中完成“获取 Key → 保存到本机 → 打开 Codex”；高级命令默认折叠。
@@ -65,10 +67,10 @@ license: Apache-2.0
 7. 设置后启动 Codex：
 
    ```bash
-   python3 /absolute/plugin/root/scripts/stitch_setup.py cli
+   python /absolute/plugin/root/scripts/stitch_setup.py cli
    ```
 
-   Windows 使用 `py ... cli`。自定义启动命令使用 `run -- <command>`。
+   Windows 使用同一个 `python ... cli` 命令。自定义启动命令使用 `run -- <command>`。
 8. 新任务先只读调用 `list_projects`。项目列表或明确的空列表都算认证成功；未知或超时不执行写操作。
 
 ## 安全与降级
@@ -76,7 +78,7 @@ license: Apache-2.0
 - 不搜索浏览器、其他客户端配置、shell profile、历史或日志中的 key。
 - 不执行 `echo "$STITCH_API_KEY"`、`printenv STITCH_API_KEY` 或全量 `env`。
 - Key 不进入插件目录、Git 或 Codex 配置；用户配置目录和文件在 Unix 使用 `0700`/`0600`，Windows 继承当前用户 Profile ACL。配置器不修改 `.zshrc`、PowerShell Profile 或系统环境。
-- 缺少 Python 时，提供当前终端的会话级环境变量方案，并说明关闭终端后失效。
+- PATH `python` 缺失或低于 3.11 时，先阻塞插件调用并给出修复说明；会话级环境变量不能修复解释器前置条件。
 
 ## FAQ
 

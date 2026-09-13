@@ -138,6 +138,8 @@ flowchart TB
 | Distribution validator | Manifest, assets, Skill count, secret-like patterns | Live Stitch availability |
 | Google Stitch MCP | Tool schema and design operations | Plugin packaging |
 
+The compatibility manifest remains Python-only. On every supported host, PATH `python` must resolve to Python 3.11 or newer before Codex loads the MCP server.
+
 Dependency direction is manifest → Skills/MCP/setup assets. Skills may call discovered tools but must not embed provider credentials or private project identifiers.
 
 ```mermaid

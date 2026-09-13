@@ -138,6 +138,8 @@ flowchart TB
 | 分发校验器 | 清单、资产、Skill 数量和秘密模式 | Stitch 实时可用性 |
 | Google Stitch MCP | 工具 Schema 与设计操作 | 插件打包 |
 
+Compatibility manifest 保持纯 Python 架构。Codex 加载 MCP Server 前，所有支持宿主的 PATH 的 `python` 必须解析为 Python 3.11 或更高版本。
+
 依赖方向为 manifest → Skills/MCP/设置资产。Skill 可以调用实际发现的工具，但不得内置供应商凭据或私人项目 ID。
 
 ```mermaid

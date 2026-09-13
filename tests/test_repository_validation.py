@@ -1,6 +1,6 @@
-import json
-import os
-import shutil
+import contextlib
+import importlib.util
+import io
 import subprocess
 import sys
 import tempfile
@@ -11,69 +11,43 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class LauncherTests(unittest.TestCase):
-    @unittest.skipUnless(shutil.which("node"), "Node.js is required by the plugin launcher")
-    def test_launcher_selects_platform_specific_python_commands(self) -> None:
-        script = ROOT / "scripts" / "stitch_mcp_launcher.js"
-        program = (
-            f"const launcher=require({json.dumps(str(script))});"
-            "console.log(JSON.stringify({"
-            "win:launcher.pythonCandidates('win32'),"
-            "unix:launcher.pythonCandidates('darwin'),"
-            "normal:launcher.forwardedExitCode(7,null),"
-            "interrupt:launcher.forwardedExitCode(null,'SIGINT'),"
-            "terminate:launcher.forwardedExitCode(null,'SIGTERM')"
-            "}));"
+class PythonEntrypointTests(unittest.TestCase):
+    def test_proxy_entrypoint_rejects_python_below_311_with_diagnostic(self) -> None:
+        script = ROOT / "scripts" / "stitch_mcp_proxy.py"
+        spec = importlib.util.spec_from_file_location("stitch_mcp_proxy_entrypoint", script)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertTrue(
+            hasattr(module, "require_supported_python"),
+            "proxy entrypoint must expose its minimum-version check",
         )
+        errors = io.StringIO()
+
+        with contextlib.redirect_stderr(errors):
+            supported = module.require_supported_python((3, 10)) if hasattr(module, "require_supported_python") else True
+
+        self.assertFalse(supported)
+        self.assertIn("Python 3.11 or newer", errors.getvalue())
+
+    def test_configured_proxy_smoke_verifies_current_python(self) -> None:
+        expected = f"{sys.version_info.major}.{sys.version_info.minor}"
         result = subprocess.run(
-            [shutil.which("node"), "-e", program], capture_output=True, text=True, check=False
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "smoke_mcp_config.py"),
+                "--expected-python",
+                expected,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
-        self.assertEqual(result.returncode, 0, result.stderr)
-        selected = json.loads(result.stdout)
-        self.assertEqual(selected["win"], [["py", ["-3.11"]], ["python", []]])
-        self.assertEqual(selected["unix"], [["python3", []], ["python", []]])
-        self.assertEqual(selected["normal"], 7)
-        self.assertEqual(selected["interrupt"], 130)
-        self.assertEqual(selected["terminate"], 143)
-
-    @unittest.skipUnless(os.name != "nt" and shutil.which("node"), "Unix launcher smoke")
-    def test_launcher_forwards_stdio_without_putting_secret_in_argv(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            fixture = Path(directory)
-            arguments = fixture / "arguments.json"
-            fake_python = fixture / "python3"
-            fake_python.write_text(
-                "#!/bin/sh\n"
-                "\"$REAL_PYTHON\" -c 'import json,os,sys; open(os.environ[\"ARGS_FILE\"], \"w\").write(json.dumps(sys.argv[1:]))' \"$@\"\n"
-                "exec \"$REAL_PYTHON\" \"$@\"\n",
-                encoding="utf-8",
-            )
-            fake_python.chmod(0o755)
-            environment = os.environ.copy()
-            environment.update(
-                {
-                    "ARGS_FILE": str(arguments),
-                    "PATH": os.pathsep.join((directory, os.environ.get("PATH", ""))),
-                    "REAL_PYTHON": sys.executable,
-                    "STITCH_API_KEY": "fixture-secret-must-not-enter-argv",
-                }
-            )
-            result = subprocess.run(
-                [shutil.which("node"), str(ROOT / "scripts" / "stitch_mcp_launcher.js")],
-                input="{invalid-json\n",
-                capture_output=True,
-                text=True,
-                env=environment,
-                check=False,
-            )
-            self.assertTrue(arguments.is_file(), result.stdout + result.stderr)
-            forwarded = json.loads(arguments.read_text(encoding="utf-8")) if arguments.is_file() else []
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('"code":-32700', result.stdout)
-        self.assertEqual(forwarded, [str(ROOT / "scripts" / "stitch_mcp_proxy.py")])
-        self.assertNotIn("fixture-secret-must-not-enter-argv", json.dumps(forwarded))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"configured Python {expected}", result.stdout)
+        self.assertIn("proxy smoke passed", result.stdout)
 
 
 class RepositoryValidatorTests(unittest.TestCase):

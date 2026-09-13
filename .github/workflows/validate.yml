@@ -36,8 +36,8 @@ jobs:
         run: python scripts/scan_secrets.py .
       - name: Compile Python sources
         run: python -m compileall -q scripts stitch_harness skills
-      - name: Validate launcher syntax
-        run: node --check scripts/stitch_mcp_launcher.js
+      - name: Verify configured MCP command
+        run: python scripts/smoke_mcp_config.py --expected-python "${{ matrix.python-version }}"
       - name: Install ShellCheck on Ubuntu
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y shellcheck
@@ -72,19 +72,5 @@ jobs:
         run: python scripts/scan_secrets.py .
       - name: Compile Python sources
         run: python -m compileall -q scripts stitch_harness skills
-      - name: Validate launcher syntax
-        run: node --check scripts/stitch_mcp_launcher.js
-      - name: Smoke-test configured stdio launcher
-        shell: pwsh
-        run: |
-          $config = Get-Content .mcp.json -Raw | ConvertFrom-Json
-          $server = $config.mcpServers.stitch
-          $launcherArgs = @($server.args)
-          Push-Location $server.cwd
-          try {
-            $output = '{invalid-json' | & $server.command @launcherArgs
-            if ($LASTEXITCODE -ne 0) { throw "launcher exited with $LASTEXITCODE" }
-            if ($output -notmatch '"code":-32700') { throw "launcher did not return a JSON-RPC parse error" }
-          } finally {
-            Pop-Location
-          }
+      - name: Verify configured MCP command
+        run: python scripts/smoke_mcp_config.py --expected-python "${{ matrix.python-version }}"

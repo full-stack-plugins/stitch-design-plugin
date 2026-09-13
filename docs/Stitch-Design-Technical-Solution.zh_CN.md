@@ -32,6 +32,8 @@
 | `scripts/validate_distribution.py` | 包合同和秘密模式扫描 |
 | `tests/` | 分发、凭据、HTTP 安全和 UI 结构测试 |
 
+运行时保持纯 Python 架构。所有支持宿主的 PATH 的 `python` 必须解析为 Python 3.11 或更高版本；`.mcp.json`、设置说明与 CI 均使用这一精确命令。
+
 ## 3. 首次设置主链
 
 ```mermaid
@@ -164,15 +166,14 @@ flowchart LR
 ```
 
 ```bash
-python3 -m pip install -r requirements-test.txt
-python3 -m unittest discover -s tests -v
-python3 scripts/validate_distribution.py .
-python3 scripts/validate_skills.py skills
-python3 scripts/validate_markdown_links.py .
-python3 scripts/scan_secrets.py .
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests -v
+python scripts/validate_distribution.py .
+python scripts/validate_skills.py skills
+python scripts/validate_markdown_links.py .
+python scripts/scan_secrets.py .
 find scripts skills -type f -name '*.sh' -exec shellcheck {} +
-python3 -m compileall -q scripts stitch_harness skills
-node --check scripts/stitch_mcp_launcher.js
+python -m compileall -q scripts stitch_harness skills
 actionlint .github/workflows/validate.yml
 git diff --check
 ```

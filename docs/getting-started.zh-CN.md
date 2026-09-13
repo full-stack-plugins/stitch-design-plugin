@@ -34,13 +34,13 @@ Stitch SDK 不会消除凭据要求。官方教程所说的“不需要 MCP 配�
    macOS / Linux：
 
    ```bash
-   python3 /absolute/plugin/root/scripts/stitch_setup.py ui
+   python /absolute/plugin/root/scripts/stitch_setup.py ui
    ```
 
    Windows：
 
    ```powershell
-   py C:\absolute\plugin\root\scripts\stitch_setup.py ui
+   python C:\absolute\plugin\root\scripts\stitch_setup.py ui
    ```
 
    配置器使用隐藏输入，不修改 shell 或 PowerShell Profile。所有平台默认写入当前用户的受限配置文件：Unix 为 `$XDG_CONFIG_HOME/stitch-design/credentials.json`（未设置时使用 `~/.config/...`），Windows 为 `%APPDATA%\stitch-design\credentials.json`。
@@ -48,19 +48,19 @@ Stitch SDK 不会消除凭据要求。官方教程所说的“不需要 MCP 配�
 4. 此后由配置器启动 Codex，它会读取凭据并仅注入子进程：
 
    ```bash
-   python3 /absolute/plugin/root/scripts/stitch_setup.py cli
+   python /absolute/plugin/root/scripts/stitch_setup.py cli
    ```
 
 5. 在新任务中输入：“只读列出我的 Stitch 项目”。空列表也是有效结果，不要为了验证而创建项目。
 
-普通用户不需要克隆插件仓库；首次设置 Skill 会给出已安装插件中的真实脚本路径。Windows 将 `python3` 替换为 `py`。已克隆仓库的开发者也可使用 Unix 包装器 `./scripts/stitch_setup.sh`。
+普通用户不需要克隆插件仓库；首次设置 Skill 会给出已安装插件中的真实脚本路径。Windows 同样使用 `python` 命令。所有支持的宿主都必须确保 PATH 中的 `python` 解析为 Python 3.11 或更高版本。已克隆仓库的开发者也可使用 Unix 包装器 `./scripts/stitch_setup.sh`。
 
 ## 自定义启动命令与桌面端
 
 需要启动其他本地客户端时使用：
 
 ```bash
-python3 /absolute/plugin/root/scripts/stitch_setup.py run -- /path/to/client
+python /absolute/plugin/root/scripts/stitch_setup.py run -- /path/to/client
 ```
 
 macOS 的 `desktop` 快捷命令会启动 `/Applications/ChatGPT.app`。Windows/Linux 的安装位置不固定，因此使用 `run -- <桌面程序路径>`，不猜测路径。
@@ -68,7 +68,7 @@ macOS 的 `desktop` 快捷命令会启动 `/Applications/ChatGPT.app`。Windows/
 ## 自助检查
 
 ```bash
-python3 /absolute/plugin/root/scripts/stitch_setup.py check
+python /absolute/plugin/root/scripts/stitch_setup.py check
 ```
 
 检查只报告 key 是否可由当前环境或用户配置取得，绝不输出 key 的值；同时检查插件包中的 MCP 配置文件。

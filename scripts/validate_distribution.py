@@ -50,12 +50,12 @@ def validate(root: Path) -> list[str]:
     server = mcp.get("mcpServers", {}).get("stitch", {})
     expected_server = {
         "type": "stdio",
-        "command": "node",
-        "args": ["scripts/stitch_mcp_launcher.js"],
+        "command": "python",
+        "args": ["scripts/stitch_mcp_proxy.py"],
         "cwd": ".",
     }
     if server != expected_server:
-        errors.append("Stitch MCP must use the bundled cross-platform stdio launcher")
+        errors.append("Stitch MCP must use the Python-only cross-platform stdio proxy")
 
     entries = [item for item in marketplace.get("plugins", []) if item.get("name") == "stitch-design"]
     if len(entries) != 1:
@@ -87,7 +87,7 @@ def validate(root: Path) -> list[str]:
         if name != skill_dir.name or NAME_PATTERN.fullmatch(name) is None:
             errors.append(f"invalid skill identity: {skill_dir.name} -> {name}")
 
-    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "requirements-test.txt", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh", "scripts/stitch_mcp_launcher.js", "scripts/stitch_mcp_proxy.py", "scripts/validate_skills.py", "scripts/validate_markdown_links.py", "scripts/scan_secrets.py", "stitch_harness/mcp_proxy.py"):
+    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "requirements-test.txt", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh", "scripts/stitch_mcp_proxy.py", "scripts/smoke_mcp_config.py", "scripts/validate_skills.py", "scripts/validate_markdown_links.py", "scripts/scan_secrets.py", "stitch_harness/mcp_proxy.py"):
         if not (root / required).is_file():
             errors.append(f"missing required file: {required}")
 

@@ -2,4 +2,4 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-exec python3 "$SCRIPT_DIR/stitch_setup.py" "$@"
+exec python "$SCRIPT_DIR/stitch_setup.py" "$@"

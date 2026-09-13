@@ -71,7 +71,7 @@ class DistributionContractTests(unittest.TestCase):
             "Scan for secrets",
             "Run ShellCheck",
             "Compile Python sources",
-            "Validate launcher syntax",
+            "Verify configured MCP command",
         ):
             self.assertIn(name, unix_steps)
         self.assertEqual(unix_steps["Run unit tests"], "python -m unittest discover -s tests -v")
@@ -81,7 +81,10 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(unix_steps["Scan for secrets"], "python scripts/scan_secrets.py .")
         self.assertIn("shellcheck", unix_steps["Run ShellCheck"])
         self.assertIn("python -m compileall", unix_steps["Compile Python sources"])
-        self.assertEqual(unix_steps["Validate launcher syntax"], "node --check scripts/stitch_mcp_launcher.js")
+        self.assertEqual(
+            unix_steps["Verify configured MCP command"],
+            'python scripts/smoke_mcp_config.py --expected-python "${{ matrix.python-version }}"',
+        )
 
         windows = jobs["windows-offline"]
         self.assertEqual(windows["runs-on"], "windows-latest")
@@ -94,18 +97,13 @@ class DistributionContractTests(unittest.TestCase):
             "Validate Markdown links",
             "Scan for secrets",
             "Compile Python sources",
-            "Validate launcher syntax",
+            "Verify configured MCP command",
         ):
             self.assertIn(name, windows_steps)
         self.assertEqual(
-            windows_steps["Validate launcher syntax"]["run"],
-            "node --check scripts/stitch_mcp_launcher.js",
+            windows_steps["Verify configured MCP command"]["run"],
+            'python scripts/smoke_mcp_config.py --expected-python "${{ matrix.python-version }}"',
         )
-        smoke = windows_steps["Smoke-test configured stdio launcher"]["run"]
-        self.assertIn("Get-Content .mcp.json", smoke)
-        self.assertIn("$server.command", smoke)
-        self.assertIn("$server.args", smoke)
-        self.assertIn('"code":-32700', smoke)
 
     def test_manifest_declares_official_stitch_brand_assets(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -147,7 +145,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_USE")
 
-    def test_plugin_uses_cross_platform_secret_safe_stdio_launcher(self) -> None:
+    def test_plugin_uses_python_only_secret_safe_stdio_proxy(self) -> None:
         config = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
         server = config["mcpServers"]["stitch"]
 
@@ -155,11 +153,56 @@ class DistributionContractTests(unittest.TestCase):
             server,
             {
                 "type": "stdio",
-                "command": "node",
-                "args": ["scripts/stitch_mcp_launcher.js"],
+                "command": "python",
+                "args": ["scripts/stitch_mcp_proxy.py"],
                 "cwd": ".",
             },
         )
+
+    def test_active_distribution_has_no_node_launcher_dependency(self) -> None:
+        self.assertFalse((ROOT / "scripts" / "stitch_mcp_launcher.js").exists())
+        active_paths = (
+            ROOT / ".mcp.json",
+            ROOT / ".github" / "workflows" / "validate.yml",
+            ROOT / "README.md",
+            ROOT / "README.zh-CN.md",
+            ROOT / "docs" / "Stitch-Design-Architecture.md",
+            ROOT / "docs" / "Stitch-Design-Architecture.zh_CN.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.zh_CN.md",
+            ROOT / "docs" / "getting-started.zh-CN.md",
+            ROOT / "scripts" / "validate_distribution.py",
+        )
+        for path in active_paths:
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(path=path.relative_to(ROOT)):
+                self.assertNotIn("stitch_mcp_launcher.js", text)
+                self.assertNotIn('"command": "node"', text)
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        readme_zh = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+        guide = (ROOT / "docs" / "getting-started.zh-CN.md").read_text(encoding="utf-8")
+        self.assertIn("The `python` command on PATH must resolve to Python 3.11 or newer", readme)
+        self.assertIn("PATH 中的 `python` 命令必须解析为 Python 3.11 或更高版本", readme_zh)
+        self.assertIn("Windows 同样使用 `python` 命令", guide)
+        self.assertNotIn("Windows 将 `python3` 替换为 `py`", guide)
+        setup_skill = (ROOT / "skills" / "stitch-local-setup" / "SKILL.md").read_text(encoding="utf-8")
+        setup_wrapper = (ROOT / "scripts" / "stitch_setup.sh").read_text(encoding="utf-8")
+        self.assertIn("PATH 中的 `python` 必须解析为 Python 3.11 或更高版本", setup_skill)
+        self.assertNotIn("python3 ", setup_skill)
+        self.assertNotIn("py C:", setup_skill)
+        self.assertIn('exec python "$SCRIPT_DIR/stitch_setup.py" "$@"', setup_wrapper)
+        self.assertNotIn("exec python3", setup_wrapper)
+        for path in (
+            ROOT / "docs" / "Stitch-Design-Architecture.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.md",
+        ):
+            self.assertIn("PATH `python` must resolve to Python 3.11 or newer", path.read_text(encoding="utf-8"))
+        for path in (
+            ROOT / "docs" / "Stitch-Design-Architecture.zh_CN.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.zh_CN.md",
+        ):
+            self.assertIn("PATH 的 `python` 必须解析为 Python 3.11 或更高版本", path.read_text(encoding="utf-8"))
 
     def test_breaking_identity_uses_stitch_design_everywhere(self) -> None:
         manifest = json.loads(

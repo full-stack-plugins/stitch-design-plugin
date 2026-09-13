@@ -32,6 +32,8 @@
 | `scripts/validate_distribution.py` | Package contract and secret-like pattern scan |
 | `tests/` | Distribution, credential, HTTP security, and UI structure tests |
 
+The runtime remains Python-only. On every supported host, PATH `python` must resolve to Python 3.11 or newer; `.mcp.json`, setup instructions, and CI all use that exact command.
+
 ## 3. First-use implementation
 
 ```mermaid
@@ -168,15 +170,14 @@ flowchart LR
 ```
 
 ```bash
-python3 -m pip install -r requirements-test.txt
-python3 -m unittest discover -s tests -v
-python3 scripts/validate_distribution.py .
-python3 scripts/validate_skills.py skills
-python3 scripts/validate_markdown_links.py .
-python3 scripts/scan_secrets.py .
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests -v
+python scripts/validate_distribution.py .
+python scripts/validate_skills.py skills
+python scripts/validate_markdown_links.py .
+python scripts/scan_secrets.py .
 find scripts skills -type f -name '*.sh' -exec shellcheck {} +
-python3 -m compileall -q scripts stitch_harness skills
-node --check scripts/stitch_mcp_launcher.js
+python -m compileall -q scripts stitch_harness skills
 actionlint .github/workflows/validate.yml
 git diff --check
 ```

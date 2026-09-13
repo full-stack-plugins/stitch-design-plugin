@@ -64,13 +64,15 @@ Manual launch:
 
 ```bash
 # macOS / Linux
-python3 /path/to/installed/plugin/scripts/stitch_setup.py ui
+python /path/to/installed/plugin/scripts/stitch_setup.py ui
 
 # Windows
-py C:\path\to\installed\plugin\scripts\stitch_setup.py ui
+python C:\path\to\installed\plugin\scripts\stitch_setup.py ui
 ```
 
 The page binds only to `127.0.0.1`, loads no external assets, uses CSRF and Origin checks, never logs the key, and clears the input after every response. It stores the key in a restricted current-user configuration file on every supported platform. See [Getting started](docs/getting-started.zh-CN.md) and [Privacy](PRIVACY.md).
+
+The `python` command on PATH must resolve to Python 3.11 or newer on every supported host. The plugin MCP and Windows setup instructions intentionally use that same command.
 
 ## Example requests
 
@@ -90,8 +92,8 @@ Remote writes require the target project and intended scope. If a write times ou
 ```json
 {
   "type": "stdio",
-  "command": "node",
-  "args": ["scripts/stitch_mcp_launcher.js"],
+  "command": "python",
+  "args": ["scripts/stitch_mcp_proxy.py"],
   "cwd": "."
 }
 ```
@@ -107,7 +109,7 @@ Default locations are `$XDG_CONFIG_HOME/stitch-design/credentials.json` (or `~/.
 Run a secret-free check:
 
 ```bash
-python3 scripts/stitch_setup.py check
+python scripts/stitch_setup.py check
 ```
 
 ## Architecture and security
@@ -123,15 +125,14 @@ Codex owns plugin loading and approvals. Google Stitch owns remote design data a
 ## Development and verification
 
 ```bash
-python3 -m pip install -r requirements-test.txt
-python3 -m unittest discover -s tests -v
-python3 scripts/validate_distribution.py .
-python3 scripts/validate_skills.py skills
-python3 scripts/validate_markdown_links.py .
-python3 scripts/scan_secrets.py .
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests -v
+python scripts/validate_distribution.py .
+python scripts/validate_skills.py skills
+python scripts/validate_markdown_links.py .
+python scripts/scan_secrets.py .
 find scripts skills -type f -name '*.sh' -exec shellcheck {} +
-python3 -m compileall -q scripts stitch_harness skills
-node --check scripts/stitch_mcp_launcher.js
+python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 

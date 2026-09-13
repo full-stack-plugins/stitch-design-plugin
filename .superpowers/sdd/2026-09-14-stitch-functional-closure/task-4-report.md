@@ -40,3 +40,13 @@
 - Review Round 1 TDD：启动器、三个校验器、秘密正反夹具、workflow 结构、文档真实性测试均先观察到目标失败；补充退出/信号码和 Windows Python 回退时也分别完成 RED → GREEN。
 - 最新验证：Python 3.13 隔离环境完整套件 139 tests PASS；0.5.2 分发、43 Skills、Markdown 链接、秘密扫描、compileall、Node syntax、actionlint、ShellCheck、`git diff --check` 全部 PASS。
 - 仍待外部证据：GitHub-hosted Windows/macOS/Ubuntu workflow 实跑、安装宿主 Node/Python launcher smoke、独立审查，以及所有 push/tag/Release/Marketplace/安装等价性门禁。
+
+## Review Round 2 修复
+
+- 本节取代 Review Round 1 的 Node 启动器方案：已删除 `stitch_mcp_launcher.js` 及其运行测试，恢复批准的纯 Python 架构。
+- `.mcp.json` 精确使用 `command: python`、`args: [scripts/stitch_mcp_proxy.py]`、`cwd: .`。代理入口在导入 Harness 前检查 Python 版本；低于 3.11 时以非零状态退出并输出不含秘密的明确诊断。
+- 新增 `scripts/smoke_mcp_config.py`。Ubuntu、macOS、Windows 的每个 3.11/3.13 matrix job 都通过该脚本读取清单 command/args/cwd，先确认 PATH `python` 实际解析到矩阵版本，再用清单中的精确命令和参数执行代理 smoke。
+- README、中英文架构/技术方案、中文首次设置文档、`stitch-local-setup` Skill 与 Unix 设置包装器均明确：所有支持宿主的 PATH `python` 必须为 Python 3.11+；Windows 使用相同 `python` 命令。
+- Review Round 2 TDD：无 Node 依赖、精确清单、低版本诊断、结构化 CI smoke 和统一 setup 命令均先观察到目标失败，再完成 GREEN。
+- 最新验证：Python 3.13 隔离环境完整套件 140 tests PASS；0.5.2 分发、43 Skills、Markdown 链接、秘密扫描、compileall、配置清单 Python 3.13/proxy smoke、actionlint、ShellCheck、`git diff --check` 全部 PASS。
+- 仍待外部证据：GitHub-hosted Python 3.11/3.13 三平台矩阵实跑，以及真实安装宿主 PATH `python`/代理 smoke；未执行 push、tag、Release、Marketplace 或全局 MCP 操作。
