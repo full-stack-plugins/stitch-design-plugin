@@ -23,6 +23,7 @@ RECEIPT_STEP_SLUGS = {
     "stitch.roundtrip": "stitch-roundtrip",
     "editability": "editability",
     "visual-judge": "visual-judge",
+    "reconciliation": "reconciliation",
     "user-approval": "user-approval",
 }
 
@@ -36,6 +37,7 @@ EXPECTED_RECEIPT_STEP = {
     RunState.ROUNDTRIPPED: "editability",
     RunState.EDITABILITY_VERIFIED: "visual-judge",
     RunState.AWAITING_USER_APPROVAL: "user-approval",
+    RunState.RECONCILING: "reconciliation",
 }
 
 COMPARISON_ARTIFACTS = (
@@ -264,13 +266,28 @@ class RunStore:
             latest_receipt,
         )
 
-    def update_state(self, run: Run, target: RunState) -> Run:
-        next_state = transition(run.state, target)
+    def update_states(
+        self,
+        run: Run,
+        targets: Iterable[RunState],
+        *,
+        manifest_updates: dict[str, Any] | None = None,
+    ) -> Run:
+        """Validate a transition sequence and persist its final state atomically."""
+
+        next_state = run.state
+        for target in targets:
+            next_state = transition(next_state, target)
         manifest_path = run.path / "manifest.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         payload["state"] = next_state.value
+        if manifest_updates:
+            payload.update(manifest_updates)
         _atomic_json(manifest_path, payload)
         return replace(run, state=next_state)
+
+    def update_state(self, run: Run, target: RunState) -> Run:
+        return self.update_states(run, (target,))
 
     def verify_chain(self, run: Run) -> ChainVerification:
         errors: list[str] = []
@@ -368,6 +385,26 @@ class RunStore:
             )
 
         return record(art[0]), record(stitch[0])
+
+    def required_roundtrip_artifacts(self, run: Run) -> tuple[ArtifactRecord, ArtifactRecord]:
+        """Return the exact accepted roundtrip HTML and final render."""
+
+        verification = self.verify_chain(run)
+        if not verification.valid:
+            raise ValueError("cannot derive editability sources from an invalid receipt chain")
+        roundtrip: list[dict[str, Any]] = []
+        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if payload.get("step") == "stitch.roundtrip":
+                roundtrip = list(payload.get("outputs", []))
+        html = [item for item in roundtrip if item.get("mime") == "text/html"]
+        render = [item for item in roundtrip if item.get("mime") == "image/png"]
+        if len(html) != 1 or len(render) != 1:
+            raise ValueError("editability requires one accepted roundtrip HTML and PNG render")
+        return (
+            ArtifactRecord(str(html[0]["path"]), str(html[0]["sha256"]), "text/html", html[0].get("width"), html[0].get("height")),
+            ArtifactRecord(str(render[0]["path"]), str(render[0]["sha256"]), "image/png", render[0].get("width"), render[0].get("height")),
+        )
 
     def verify_approval(self, run: Run) -> ChainVerification:
         """Verify the receipt chain and that approval binds the current review set."""

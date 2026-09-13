@@ -93,7 +93,12 @@ def main(arguments: list[str] | None = None) -> int:
             if run.state != RunState.EDITABILITY_VERIFIED:
                 raise ValueError("compare requires the current run to be EDITABILITY_VERIFIED")
             art, stitch = harness.store.required_comparison_artifacts(run)
-            comparison = compare_images(run.path / stitch.path, run.path / art.path, run.path / "comparison")
+            comparison = compare_images(
+                run.path / stitch.path,
+                run.path / art.path,
+                run.path / "comparison",
+                replace_existing=True,
+            )
             scores = json.loads(args.scores.read_text(encoding="utf-8")) if args.scores else {}
             evidence = EvidenceWriter(run.path).visual_review(
                 artifact_paths=comparison.review_files,

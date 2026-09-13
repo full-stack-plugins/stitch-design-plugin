@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Callable
-from urllib.parse import urlsplit
 
 from .contracts import PageSpec
-from .evidence import ExternalEvidence
+from .evidence import EvidenceArtifact, EvidenceError, ExternalEvidence, reject_sensitive_content
 from .html_gate import validate_html
 from .ocr_gate import validate_ocr
 from .preflight import default_preflight
@@ -102,19 +100,16 @@ class Harness:
         if not isinstance(reason, str):
             raise ValueError("reason must be a string")
         normalized = reason.strip()
-        lowered = normalized.lower()
         if (
             not normalized
             or len(normalized) > 500
             or any(ord(character) < 32 or ord(character) == 127 for character in normalized)
-            or any(marker in lowered for marker in ("authorization", "password", "secret", "token=", "api_key", "api-key", "cookie", "credential", "base64", "header"))
         ):
             raise ValueError("reason must be one sanitized line without sensitive content")
-        for remote in re.findall(r"https?://[^\s]+", normalized):
-            if remote:
-                parsed = urlsplit(remote.rstrip(").,;"))
-                if parsed.query or parsed.fragment:
-                    raise ValueError("reason must not contain a remote URL query or fragment")
+        try:
+            reject_sensitive_content({"reason": normalized})
+        except EvidenceError as error:
+            raise ValueError("reason must be sanitized and contain no sensitive content") from error
         return normalized
 
     def _restore_reconciliation(self, run: Run, manifest: dict, reason: str, outcome: str) -> Run:
@@ -132,6 +127,233 @@ class Harness:
         })
         _atomic_json(run.path / "manifest.json", manifest)
         return replace(run, state=target)
+
+    def _validate_evidence_for_state(
+        self,
+        run: Run,
+        state: RunState,
+        evidence: ExternalEvidence,
+    ) -> tuple[str, ...]:
+        spec = PageSpec.load(run.path / "spec.json")
+        if state == RunState.PREFLIGHT_PASSED:
+            html_artifacts = [item for item in evidence.artifacts if item.mime == "text/html"]
+            render_metadata = evidence.result.get("render_metadata")
+            if len(html_artifacts) != 1 or not isinstance(render_metadata, dict):
+                return ("Stitch source evidence requires one HTML artifact and render metadata",)
+            gate = validate_html(spec, run.path / html_artifacts[0].path, render_metadata)
+            return gate.failures
+        if state == RunState.SOURCE_ACCEPTED:
+            images = [item for item in evidence.artifacts if item.mime and item.mime.startswith("image/")]
+            if len(images) != 1 or (images[0].width, images[0].height) != (spec.canvas.width, spec.canvas.height):
+                return (f"ImageGen output must be exactly {spec.canvas.width}x{spec.canvas.height}",)
+            return ()
+        if state == RunState.ART_GENERATED:
+            return validate_ocr(spec, evidence).failures
+        if state == RunState.ART_ACCEPTED:
+            html_artifacts = [item for item in evidence.artifacts if item.mime == "text/html"]
+            render_metadata = evidence.result.get("render_metadata")
+            if len(html_artifacts) != 1 or not isinstance(render_metadata, dict):
+                return ("Stitch roundtrip evidence requires one HTML artifact and render metadata",)
+            return validate_html(spec, run.path / html_artifacts[0].path, render_metadata).failures
+        if state == RunState.ROUNDTRIPPED:
+            expected_mimes = {
+                "before_html": "text/html", "edited_html": "text/html", "restored_html": "text/html",
+                "before_render": "image/png", "edited_render": "image/png", "restored_render": "image/png",
+            }
+            by_role = {item.semantic_role: item for item in evidence.artifacts if item.semantic_role is not None}
+            artifact_hashes = {role: item.sha256 for role, item in by_role.items()}
+            hashes = evidence.result.get("hashes")
+            correct_shape = (
+                len(evidence.artifacts) == 6
+                and len(evidence.source_artifacts) == 2
+                and len({item.path for item in evidence.artifacts}) == 6
+                and set(by_role) == set(expected_mimes)
+                and all(by_role[role].mime == mime for role, mime in expected_mimes.items())
+                and hashes == artifact_hashes
+            )
+            if not correct_shape:
+                return ("editability artifact hashes require six unique typed semantic artifacts and two before sources",)
+            try:
+                expected_before = self.store.required_roundtrip_artifacts(run)
+            except ValueError as error:
+                return (str(error),)
+            expected_before_set = {(item.path, item.sha256, item.mime) for item in expected_before}
+            actual_before_set = {
+                (by_role[role].path, by_role[role].sha256, by_role[role].mime)
+                for role in ("before_html", "before_render")
+                if role in by_role
+            }
+            source_before_set = {(item.path, item.sha256, item.mime) for item in evidence.source_artifacts}
+            roundtrip_bound = actual_before_set == expected_before_set and source_before_set == expected_before_set
+            parity = hashes["before_html"] == hashes["restored_html"] and hashes["before_render"] == hashes["restored_render"]
+            changed = hashes["before_html"] != hashes["edited_html"] and hashes["before_render"] != hashes["edited_render"]
+            if evidence.result.get("editable") is not True or evidence.result.get("restored") is not True or not parity or not changed or not roundtrip_bound:
+                return ("editability artifact hashes require six unique semantic artifacts whose before HTML/render bind the roundtrip receipt",)
+            return ()
+        if state == RunState.EDITABILITY_VERIFIED:
+            failures = list(validate_visual_scores(spec, evidence).failures)
+            layout_score = evidence.result.get("layout_score")
+            if isinstance(layout_score, bool) or not isinstance(layout_score, (int, float)) or layout_score < spec.comparison.layout_score_min:
+                failures.append(f"layout score must be at least {spec.comparison.layout_score_min}")
+            if failures:
+                return tuple(failures)
+            expected_sources = self.store.required_comparison_artifacts(run)
+            expected_source_set = {(item.path, item.sha256, item.mime) for item in expected_sources}
+            actual_source_set = {(item.path, item.sha256, item.mime) for item in evidence.source_artifacts}
+            if len(evidence.source_artifacts) != 2 or actual_source_set != expected_source_set:
+                failures.append("visual evidence must bind the accepted art and final Stitch receipt artifacts")
+            return tuple(failures)
+        return ("unsupported evidence transition",)
+
+    @staticmethod
+    def _target_states(state: RunState) -> tuple[RunState, ...]:
+        return {
+            RunState.PREFLIGHT_PASSED: (RunState.STITCH_GENERATED, RunState.SOURCE_ACCEPTED),
+            RunState.STITCH_GENERATED: (RunState.SOURCE_ACCEPTED,),
+            RunState.SOURCE_ACCEPTED: (RunState.ART_GENERATED,),
+            RunState.ART_GENERATED: (RunState.ART_ACCEPTED,),
+            RunState.ART_ACCEPTED: (RunState.ROUNDTRIPPED,),
+            RunState.ROUNDTRIPPED: (RunState.EDITABILITY_VERIFIED,),
+            RunState.EDITABILITY_VERIFIED: (RunState.COMPARISON_ACCEPTED, RunState.AWAITING_USER_APPROVAL),
+        }.get(state, ())
+
+    @staticmethod
+    def _matching_receipt_hash(
+        run: Run,
+        receipt: Receipt,
+        *,
+        previous_receipt_sha256: str | None = None,
+    ) -> str | None:
+        receipt_paths = sorted((run.path / "receipts").glob("*.json"))
+        for receipt_path in reversed(receipt_paths):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if (
+                payload.get("step") == receipt.step
+                and payload.get("result") == receipt.result
+                and payload.get("inputs") == [item.to_dict() for item in receipt.inputs]
+                and payload.get("outputs") == [item.to_dict() for item in receipt.outputs]
+                and payload.get("checks") == list(receipt.checks)
+                and payload.get("provider_resource_ids") == list(receipt.provider_resource_ids)
+                and (
+                    previous_receipt_sha256 is None
+                    or payload.get("previous_receipt_sha256") == previous_receipt_sha256
+                )
+            ):
+                return sha256_file(receipt_path)
+        return None
+
+    @staticmethod
+    def _latest_unknown_receipt_hash(run: Run, step: str) -> str | None:
+        for receipt_path in reversed(sorted((run.path / "receipts").glob("*.json"))):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if payload.get("step") == step and payload.get("result") == "unknown":
+                return sha256_file(receipt_path)
+        return None
+
+    def _commit_evidence(
+        self,
+        run: Run,
+        effective_state: RunState,
+        evidence: ExternalEvidence,
+        *,
+        manifest_updates: dict | None = None,
+        required_previous_receipt_sha256: str | None = None,
+    ) -> RunStatus:
+        inputs = [
+            ArtifactRecord(item.path, item.sha256, item.mime or "application/octet-stream", item.width, item.height)
+            for item in evidence.source_artifacts
+        ]
+        outputs = [
+            ArtifactRecord(item.path, item.sha256, item.mime or "application/octet-stream", item.width, item.height)
+            for item in evidence.artifacts
+        ]
+        resource_ids = evidence.result.get("provider_resource_ids", [])
+        if not isinstance(resource_ids, list) or not all(isinstance(item, str) for item in resource_ids):
+            resource_ids = []
+        receipt = Receipt.passed(
+            run.run_id, run.page_id, evidence.step,
+            inputs=inputs, outputs=outputs,
+        )
+        receipt = replace(receipt, provider_resource_ids=tuple(resource_ids))
+        shadow = replace(run, state=effective_state)
+        if self._matching_receipt_hash(
+            run,
+            receipt,
+            previous_receipt_sha256=required_previous_receipt_sha256,
+        ) is None:
+            shadow = self.store.append_receipt(shadow, receipt)
+        else:
+            shadow = replace(shadow, latest_receipt_sha256=self.store.load_from_path(run.path, run.run_id).latest_receipt_sha256)
+        targets = self._target_states(effective_state)
+        if not targets:
+            return RunStatus(run.run_id, run.state, 1, _ACTIONS[run.state], ("unsupported evidence transition",))
+        committed = self.store.update_states(shadow, targets, manifest_updates=manifest_updates)
+        return RunStatus(run.run_id, committed.state, 0, _ACTIONS[committed.state])
+
+    def _validate_reconciliation_probes(
+        self,
+        run: Run,
+        probes: object,
+    ) -> tuple[tuple[ArtifactRecord, ...], tuple[dict, ...]]:
+        if not isinstance(probes, list) or len(probes) != 3 or not all(isinstance(item, dict) for item in probes):
+            raise ValueError("reconciliation requires three typed read probe entries")
+        required_keys = {"tool", "invoked_at", "response_id", "status", "result_sha256", "artifact"}
+        tools: list[str] = []
+        response_ids: set[str] = set()
+        paths: set[str] = set()
+        records: list[ArtifactRecord] = []
+        checks: list[dict] = []
+        for probe in probes:
+            if set(probe) != required_keys:
+                raise ValueError("reconciliation probe fields do not match the typed contract")
+            reject_sensitive_content(probe)
+            tool = probe["tool"]
+            tools.append(tool)
+            timestamp = probe["invoked_at"]
+            if not isinstance(timestamp, str):
+                raise ValueError("reconciliation probe requires a timezone timestamp")
+            try:
+                parsed_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            except ValueError as error:
+                raise ValueError("reconciliation probe requires a timezone timestamp") from error
+            if parsed_time.tzinfo is None or parsed_time.utcoffset() is None:
+                raise ValueError("reconciliation probe requires a timezone timestamp")
+            response_id = probe["response_id"]
+            if isinstance(response_id, bool) or not isinstance(response_id, (str, int)) or not str(response_id).strip() or len(str(response_id)) > 128:
+                raise ValueError("reconciliation probe response id is invalid")
+            if str(response_id) in response_ids:
+                raise ValueError("reconciliation probe response ids must be unique")
+            response_ids.add(str(response_id))
+            status = probe["status"]
+            if status not in {"found", "empty", "not_found", "unavailable"}:
+                raise ValueError("reconciliation probe status is invalid")
+            artifact_data = probe["artifact"]
+            if not isinstance(artifact_data, dict) or set(artifact_data) != {"path", "sha256", "mime"}:
+                raise ValueError("reconciliation probe artifact is invalid")
+            artifact = EvidenceArtifact.from_dict(artifact_data)
+            if artifact.mime != "application/json" or not artifact.path.startswith("artifacts/"):
+                raise ValueError("reconciliation probe artifact must be run-local JSON")
+            if artifact.path in paths:
+                raise ValueError("reconciliation probe artifacts must be unique")
+            paths.add(artifact.path)
+            if probe["result_sha256"] != artifact.sha256:
+                raise ValueError("reconciliation result hash must bind its artifact")
+            candidate = run.path / artifact.path
+            if not candidate.is_file() or sha256_file(candidate) != artifact.sha256:
+                raise ValueError("reconciliation probe artifact hash mismatch")
+            try:
+                artifact_payload = json.loads(candidate.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise ValueError("reconciliation probe artifact must be valid UTF-8 JSON") from error
+            reject_sensitive_content(artifact_payload)
+            records.append(ArtifactRecord(artifact.path, artifact.sha256, artifact.mime))
+            checks.append({
+                "tool": tool, "invoked_at": timestamp, "response_id": response_id,
+                "status": status, "result_sha256": artifact.sha256,
+            })
+        if set(tools) != {"get_project", "list_screens", "get_screen"} or len(set(tools)) != 3:
+            raise ValueError("reconciliation requires get_project, list_screens, and get_screen")
+        return tuple(records), tuple(checks)
 
     def start(self, project_root: Path, page_id: str, *, now: datetime | None = None) -> RunStatus:
         spec = PageSpec.load(project_root / ".stitch" / "specs" / f"{page_id}.json")
@@ -199,126 +421,10 @@ class Harness:
         errors = evidence.verify_artifacts(run.path)
         if errors:
             return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], errors)
-        spec = PageSpec.load(run.path / "spec.json")
-        if run.state == RunState.PREFLIGHT_PASSED:
-            html_artifacts = [item for item in evidence.artifacts if item.mime == "text/html"]
-            render_metadata = evidence.result.get("render_metadata")
-            if len(html_artifacts) != 1 or not isinstance(render_metadata, dict):
-                return RunStatus(
-                    run_id,
-                    run.state,
-                    1,
-                    _ACTIONS[run.state],
-                    ("Stitch source evidence requires one HTML artifact and render metadata",),
-                )
-            gate = validate_html(spec, run.path / html_artifacts[0].path, render_metadata)
-            if not gate.passed:
-                return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], gate.failures)
-        elif run.state == RunState.SOURCE_ACCEPTED:
-            images = [item for item in evidence.artifacts if item.mime and item.mime.startswith("image/")]
-            if len(images) != 1 or (images[0].width, images[0].height) != (spec.canvas.width, spec.canvas.height):
-                return RunStatus(
-                    run_id,
-                    run.state,
-                    1,
-                    _ACTIONS[run.state],
-                    (f"ImageGen output must be exactly {spec.canvas.width}x{spec.canvas.height}",),
-                )
-        elif run.state == RunState.ART_GENERATED:
-            gate = validate_ocr(spec, evidence)
-            if not gate.passed:
-                return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], gate.failures)
-        elif run.state == RunState.ART_ACCEPTED:
-            html_artifacts = [item for item in evidence.artifacts if item.mime == "text/html"]
-            render_metadata = evidence.result.get("render_metadata")
-            if len(html_artifacts) != 1 or not isinstance(render_metadata, dict):
-                return RunStatus(
-                    run_id,
-                    run.state,
-                    1,
-                    _ACTIONS[run.state],
-                    ("Stitch roundtrip evidence requires one HTML artifact and render metadata",),
-                )
-            gate = validate_html(spec, run.path / html_artifacts[0].path, render_metadata)
-            if not gate.passed:
-                return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], gate.failures)
-        elif run.state == RunState.ROUNDTRIPPED:
-            expected_mimes = {
-                "before_html": "text/html", "edited_html": "text/html", "restored_html": "text/html",
-                "before_render": "image/png", "edited_render": "image/png", "restored_render": "image/png",
-            }
-            by_role = {item.semantic_role: item for item in evidence.artifacts if item.semantic_role is not None}
-            artifact_hashes = {role: item.sha256 for role, item in by_role.items()}
-            hashes = evidence.result.get("hashes")
-            correct_shape = (
-                len(evidence.artifacts) == 6
-                and not evidence.source_artifacts
-                and len({item.path for item in evidence.artifacts}) == 6
-                and set(by_role) == set(expected_mimes)
-                and all(by_role[role].mime == mime for role, mime in expected_mimes.items())
-                and hashes == artifact_hashes
-            )
-            parity = correct_shape and hashes["before_html"] == hashes["restored_html"] and hashes["before_render"] == hashes["restored_render"]
-            changed = correct_shape and hashes["before_html"] != hashes["edited_html"] and hashes["before_render"] != hashes["edited_render"]
-            if evidence.result.get("editable") is not True or evidence.result.get("restored") is not True or not parity or not changed:
-                return RunStatus(
-                    run_id,
-                    run.state,
-                    1,
-                    _ACTIONS[run.state],
-                    ("editability artifact hashes require six unique semantic HTML/render artifacts, changed edits, and exact restoration parity",),
-                )
-        elif run.state == RunState.EDITABILITY_VERIFIED:
-            gate = validate_visual_scores(spec, evidence)
-            layout_score = evidence.result.get("layout_score")
-            failures = list(gate.failures)
-            if not isinstance(layout_score, (int, float)) or layout_score < spec.comparison.layout_score_min:
-                failures.append(f"layout score must be at least {spec.comparison.layout_score_min}")
-            if failures:
-                return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], tuple(failures))
-            expected_sources = self.store.required_comparison_artifacts(run)
-            expected_source_set = {(item.path, item.sha256, item.mime) for item in expected_sources}
-            actual_source_set = {(item.path, item.sha256, item.mime) for item in evidence.source_artifacts}
-            if len(evidence.source_artifacts) != 2 or actual_source_set != expected_source_set:
-                return RunStatus(
-                    run_id, run.state, 1, _ACTIONS[run.state],
-                    ("visual evidence must bind the accepted art and final Stitch receipt artifacts",),
-                )
-        receipt_inputs = [
-            ArtifactRecord(item.path, item.sha256, item.mime or "application/octet-stream", item.width, item.height)
-            for item in evidence.source_artifacts
-        ]
-        receipt = Receipt.passed(
-            run.run_id,
-            run.page_id,
-            expected,
-            outputs=[
-                ArtifactRecord(item.path, item.sha256, item.mime or "application/octet-stream", item.width, item.height)
-                for item in evidence.artifacts
-            ],
-            inputs=receipt_inputs,
-        )
-        resource_ids = evidence.result.get("provider_resource_ids", [])
-        if isinstance(resource_ids, list) and all(isinstance(item, str) for item in resource_ids):
-            receipt = replace(receipt, provider_resource_ids=tuple(resource_ids))
-        run = self.store.append_receipt(run, receipt)
-        target = {
-            RunState.PREFLIGHT_PASSED: RunState.STITCH_GENERATED,
-            RunState.STITCH_GENERATED: RunState.SOURCE_ACCEPTED,
-            RunState.SOURCE_ACCEPTED: RunState.ART_GENERATED,
-            RunState.ART_GENERATED: RunState.ART_ACCEPTED,
-            RunState.ART_ACCEPTED: RunState.ROUNDTRIPPED,
-            RunState.ROUNDTRIPPED: RunState.EDITABILITY_VERIFIED,
-            RunState.EDITABILITY_VERIFIED: RunState.COMPARISON_ACCEPTED,
-        }.get(run.state)
-        if target is None:
-            return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], ("unsupported evidence transition",))
-        run = self.store.update_state(run, target)
-        if target == RunState.STITCH_GENERATED:
-            run = self.store.update_state(run, RunState.SOURCE_ACCEPTED)
-        if target == RunState.COMPARISON_ACCEPTED:
-            run = self.store.update_state(run, RunState.AWAITING_USER_APPROVAL)
-        return RunStatus(run_id, run.state, 0, _ACTIONS[run.state])
+        gate_errors = self._validate_evidence_for_state(run, run.state, evidence)
+        if gate_errors:
+            return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], gate_errors)
+        return self._commit_evidence(run, run.state, evidence)
 
     def status(self, project_root: Path, run_id: str) -> RunStatus:
         run = self.store.load(project_root, run_id)
@@ -364,11 +470,33 @@ class Harness:
         outcome = reconciliation.get("outcome")
         if outcome not in {"not_applied", "applied"}:
             raise ValueError("reconciliation outcome must be not_applied or applied")
-        probes = reconciliation.get("read_probes")
-        if not isinstance(probes, list) or len(probes) != 3 or set(probes) != {"get_project", "list_screens", "get_screen"}:
-            raise ValueError("reconciliation requires get_project, list_screens, and get_screen")
+        probe_records, probe_checks = self._validate_reconciliation_probes(
+            run, reconciliation.get("read_probes")
+        )
         reason = self._sanitize_reason(reconciliation.get("reason"))
+        reconciliation_receipt = Receipt.passed(
+            run.run_id,
+            run.page_id,
+            "reconciliation",
+            inputs=probe_records,
+            checks=probe_checks,
+            attempt=self._attempts(run),
+        )
+        unknown_receipt_hash = self._latest_unknown_receipt_hash(
+            run, manifest["reconciliation_step"]
+        )
+        if unknown_receipt_hash is None:
+            raise ValueError("reconciliation cannot find the current unknown write receipt")
+        reconciliation_receipt_hash = self._matching_receipt_hash(
+            run,
+            reconciliation_receipt,
+            previous_receipt_sha256=unknown_receipt_hash,
+        )
         if outcome == "not_applied":
+            if reconciliation_receipt_hash is None:
+                run = self.store.append_receipt(run, reconciliation_receipt)
+                reconciliation_receipt_hash = run.latest_receipt_sha256
+                manifest = self._manifest(run)
             restored = self._restore_reconciliation(run, manifest, reason, outcome)
             return RunStatus(run_id, restored.state, 0, _ACTIONS[restored.state])
 
@@ -377,17 +505,27 @@ class Harness:
         errors = evidence.verify_artifacts(run.path)
         if errors:
             return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], errors, self._attempts(run))
-        restored = self._restore_reconciliation(run, manifest, reason, outcome)
-        status = self.resume(project_root, restored.run_id, evidence_path)
-        if status.exit_code != 0:
-            current = self.store.load(project_root, run_id)
-            if current.state != RunState.BLOCKED:
-                current = self.store.update_state(current, RunState.BLOCKED)
-            blocked_manifest = self._manifest(current)
-            blocked_manifest["blocked_reason"] = "reconciled applied write failed its evidence gate"
-            _atomic_json(current.path / "manifest.json", blocked_manifest)
-            return RunStatus(run_id, RunState.BLOCKED, 1, _ACTIONS[RunState.BLOCKED], status.errors)
-        return status
+        try:
+            source_state = RunState(manifest["reconciliation_from"])
+        except (KeyError, ValueError) as error:
+            raise InvalidTransition("reconciliation has no valid source state") from error
+        gate_errors = self._validate_evidence_for_state(run, source_state, evidence)
+        if gate_errors:
+            return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], gate_errors, self._attempts(run))
+        if reconciliation_receipt_hash is None:
+            run = self.store.append_receipt(run, reconciliation_receipt)
+            reconciliation_receipt_hash = run.latest_receipt_sha256
+        return self._commit_evidence(
+            run,
+            source_state,
+            evidence,
+            manifest_updates={
+                "reconciliation_attempts": 0,
+                "last_reconciliation_outcome": outcome,
+                "last_reconciliation_reason": reason,
+            },
+            required_previous_receipt_sha256=reconciliation_receipt_hash,
+        )
 
     def approve(self, project_root: Path, run_id: str, decision: ApprovalDecision) -> RunStatus:
         run = self.store.load(project_root, run_id)

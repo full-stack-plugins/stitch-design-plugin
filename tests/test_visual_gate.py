@@ -49,6 +49,20 @@ class VisualGateTests(unittest.TestCase):
 
             self.assertFalse(any(output.glob("*.png")))
 
+    def test_retry_failure_preserves_previous_complete_comparison(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory).resolve() / "comparison"
+            first = compare_images(FIXTURES / "images/stitch.png", FIXTURES / "images/art.png", output)
+            before = {path.name: path.read_bytes() for path in first.review_files}
+            with mock.patch.object(Image.Image, "save", side_effect=OSError("simulated retry failure")), self.assertRaisesRegex(OSError, "retry failure"):
+                compare_images(
+                    FIXTURES / "images/stitch.png", FIXTURES / "images/art.png", output,
+                    replace_existing=True,
+                )
+            self.assertEqual({path.name: path.read_bytes() for path in output.glob("*.png")}, before)
+
     def test_mismatched_dimensions_fail_before_scoring(self):
         with tempfile.TemporaryDirectory() as directory, self.assertRaises(DimensionMismatch):
             compare_images(

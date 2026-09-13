@@ -58,3 +58,13 @@
 - 完整回归：178 tests，PASS。
 - 离线门禁：distribution 0.6.0、43 Skills、Markdown links、secret scan、compileall、Pillow 12.3.0 runtime、ShellCheck、actionlint、`git diff --check` 均 PASS。
 - TRACE 复核：Trust 5.0、Reliability 5.0、Adaptability 5.0、Convention 5.0、Effectiveness 5.0；Skill 保持中文边界、安全/隐私、显式异常恢复、三层 references、6 项主 FAQ、10 项深度 FAQ、10 项反模式和可复制命令。
+
+## Review Fix Round 2
+
+- Editability before binding：`before_html` 与 `before_render` 同时出现在六语义 artifacts 和 source artifacts，path/SHA/MIME 必须逐项等于已验证 `stitch.roundtrip` receipt 的 HTML/PNG outputs；editability receipt inputs 继续绑定这两项。
+- Applied reconciliation crash consistency：新增原子多状态提交。完整 external evidence、真实 artifact、业务 gate 和三条 typed probes 均在持久化状态仍为 `RECONCILING` 时验证；随后追加 reconciliation/provider receipts，最后一次原子写入最终状态及 reconciliation metadata。若在 receipt 后崩溃，状态仍是 `RECONCILING`，重跑按当前 unknown→reconciliation→provider 相邻哈希链幂等提交，不重复 receipt。
+- Typed read probes：`not_applied`/`applied` 均要求三个对象条目，工具精确为 `get_project`、`list_screens`、`get_screen`；每条包含带时区时间、唯一 response ID、枚举 status、result SHA 和唯一 run-local JSON artifact。artifact 必须存在、哈希相同、可解析且通过敏感检查，并写入 `reconciliation` receipt inputs/checks 后才允许恢复或推进。
+- Sensitive recursion：所有 evidence dict/list 递归检查；键名包含 token/key/secret/password/credential/bearer/signature/sig 及既有 authorization/cookie/header/base64 均拒绝；文本包含 bearer/api-key/access_token/authorization 或任意嵌入 query/fragment URL 均拒绝。recover/reconciliation reason 使用同一 sanitizer，并额外限制单行和 500 字符。
+- Retryable compare：仅 `EDITABILITY_VERIFIED` 且尚无已接受 visual receipt 时允许重跑。新三图先完整写入私有 staging，旧完整目录先原子备份；替换失败恢复旧目录。visual receipt 接受并推进状态后，CLI 在任何写入前拒绝覆盖。
+- Round 2 TDD：首阶段 5 项 RED/GREEN 覆盖 editability receipt binding、敏感递归和 compare rollback；第二阶段 4 项 RED/GREEN 覆盖 typed probes、not_applied、applied 与 receipt 后崩溃；追加跨 unknown receipt 哈希绑定 RED/GREEN，防止误复用旧 reconciliation evidence。
+- Round 2 完整验证：185 tests PASS；distribution 0.6.0、43 Skills、Markdown links、secret scan、compileall、Pillow 12.3.0 runtime、ShellCheck、actionlint 与 `git diff --check` 均 PASS。未执行远程写入或 Task 6 发布动作。

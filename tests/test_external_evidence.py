@@ -78,6 +78,21 @@ class ExternalEvidenceTests(unittest.TestCase):
             with self.subTest(remote=remote), self.assertRaisesRegex(EvidenceError, "query or fragment"):
                 ExternalEvidence.from_dict(payload, "imagegen")
 
+    def test_sensitive_keys_and_embedded_sensitive_text_are_rejected_recursively(self):
+        unsafe_values = (
+            {"nested": {"sessionTokenValue": "private"}},
+            {"nested": {"monkey": "private"}},
+            {"note": "Bearer private-value"},
+            {"note": "use api-key private-value"},
+            {"note": "access_token is private"},
+            {"note": "see prefix(https://example.com/file?cache=1)"},
+        )
+        for unsafe in unsafe_values:
+            payload = self.payload()
+            payload["result"] = unsafe
+            with self.subTest(unsafe=unsafe), self.assertRaisesRegex(EvidenceError, "sensitive|query or fragment"):
+                ExternalEvidence.from_dict(payload, "imagegen")
+
 
 if __name__ == "__main__":
     unittest.main()

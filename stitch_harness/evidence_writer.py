@@ -8,28 +8,9 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import urlsplit
 
+from .evidence import reject_sensitive_content
 from .storage import sha256_file
-
-
-SENSITIVE_KEYS = {"authorization", "cookie", "headers", "api_key", "apikey", "token", "signed_url", "base64"}
-
-
-def _reject_sensitive(value: Any) -> None:
-    if isinstance(value, dict):
-        for key, child in value.items():
-            normalized = str(key).lower().replace("-", "_")
-            if normalized in SENSITIVE_KEYS or any(part in normalized for part in ("password", "secret")):
-                raise ValueError("evidence metadata contains a sensitive field")
-            _reject_sensitive(child)
-    elif isinstance(value, list):
-        for child in value:
-            _reject_sensitive(child)
-    elif isinstance(value, str) and value.startswith(("https://", "http://")):
-        parsed = urlsplit(value)
-        if parsed.query or parsed.fragment:
-            raise ValueError("evidence remote URL must not contain a query or fragment")
 
 
 class EvidenceWriter:
@@ -60,7 +41,7 @@ class EvidenceWriter:
         return artifact
 
     def _write(self, step: str, tool: str, artifacts: Iterable[Path], result: dict[str, Any], *, sources: Iterable[Path] = (), provider: str = "local-harness", model: str = "deterministic", dimensions: tuple[int, int] | None = None, semantic_roles: Iterable[str] | None = None) -> Path:
-        _reject_sensitive(result)
+        reject_sensitive_content(result)
         artifact_paths = tuple(artifacts)
         roles = tuple(semantic_roles) if semantic_roles is not None else (None,) * len(artifact_paths)
         if len(roles) != len(artifact_paths):
@@ -125,7 +106,11 @@ class EvidenceWriter:
         }
         if not result["editable"] or not result["restored"]:
             raise ValueError("editability requires a changed edit and exact restore hash parity")
-        return self._write("editability", "edit-restore-probe", paths, result, semantic_roles=roles, provider="google-stitch", model="server")
+        return self._write(
+            "editability", "edit-restore-probe", paths, result,
+            sources=(before_html, before_render), semantic_roles=roles,
+            provider="google-stitch", model="server",
+        )
 
     def visual_review(self, *, artifact_paths: Iterable[Path], source_artifact_paths: Iterable[Path], layout_score: float, scores: dict[str, Any]) -> Path:
         return self._write("visual-judge", "compare", artifact_paths, {"layout_score": layout_score, "scores": scores}, sources=source_artifact_paths)

@@ -57,17 +57,34 @@ class EvidenceArtifact:
         return cls(path, digest, mime, width, height, semantic_role)
 
 
-def _reject_remote_url_state(value: Any) -> None:
+SENSITIVE_KEY_PARTS = (
+    "token", "key", "secret", "password", "credential", "bearer",
+    "signature", "sig", "authorization", "cookie", "header", "base64",
+)
+SENSITIVE_TEXT_PARTS = ("bearer", "api-key", "api_key", "access_token", "authorization")
+EMBEDDED_URL_PATTERN = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+
+
+def reject_sensitive_content(value: Any) -> None:
+    """Reject recursively embedded credential hints and non-redacted remote URLs."""
+
     if isinstance(value, dict):
-        for child in value.values():
-            _reject_remote_url_state(child)
+        for key, child in value.items():
+            normalized_key = str(key).lower().replace("-", "_")
+            if any(marker in normalized_key for marker in SENSITIVE_KEY_PARTS):
+                raise EvidenceError("evidence contains a sensitive key name")
+            reject_sensitive_content(child)
     elif isinstance(value, list):
         for child in value:
-            _reject_remote_url_state(child)
-    elif isinstance(value, str) and value.startswith(("https://", "http://")):
-        parsed = urlsplit(value)
-        if parsed.query or parsed.fragment:
-            raise EvidenceError("evidence remote URLs must not contain a query or fragment")
+            reject_sensitive_content(child)
+    elif isinstance(value, str):
+        lowered = value.lower()
+        if any(marker in lowered for marker in SENSITIVE_TEXT_PARTS):
+            raise EvidenceError("evidence contains sensitive text")
+        for remote in EMBEDDED_URL_PATTERN.findall(value):
+            parsed = urlsplit(remote.rstrip(").,;"))
+            if parsed.query or parsed.fragment:
+                raise EvidenceError("evidence remote URLs must not contain a query or fragment")
 
 
 @dataclass(frozen=True)
@@ -93,7 +110,7 @@ class ExternalEvidence:
     def from_dict(cls, payload: dict[str, Any], expected_step: str) -> "ExternalEvidence":
         if not isinstance(payload, dict) or payload.get("schema_version") != 1:
             raise EvidenceError("external evidence schema_version must be 1")
-        _reject_remote_url_state(payload)
+        reject_sensitive_content(payload)
         step = payload.get("step")
         if step not in RECEIPT_STEP_SLUGS or step in {"preflight", "user-approval"}:
             raise EvidenceError("external evidence step must come from the fixed allowlist")

@@ -31,7 +31,7 @@ class VisualGateResult:
         return not self.failures
 
 
-def compare_images(stitch_path: Path, art_path: Path, output_dir: Path) -> ComparisonResult:
+def compare_images(stitch_path: Path, art_path: Path, output_dir: Path, *, replace_existing: bool = False) -> ComparisonResult:
     try:
         from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageStat
     except ModuleNotFoundError as error:
@@ -42,7 +42,8 @@ def compare_images(stitch_path: Path, art_path: Path, output_dir: Path) -> Compa
         art = art_source.convert("RGB")
     if stitch.size != art.size:
         raise DimensionMismatch(f"image dimensions differ: {stitch.size} != {art.size}")
-    if output_dir.exists() and any(output_dir.iterdir()):
+    output_has_files = output_dir.exists() and any(output_dir.iterdir())
+    if output_has_files and not replace_existing:
         raise FileExistsError("comparison output directory must be empty")
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}-", dir=output_dir.parent))
@@ -65,9 +66,22 @@ def compare_images(stitch_path: Path, art_path: Path, output_dir: Path) -> Compa
         second_edges = art.convert("L").filter(ImageFilter.FIND_EDGES)
         edge_difference = ImageChops.difference(first_edges, second_edges)
         mean_absolute_error = ImageStat.Stat(edge_difference).mean[0] / 255.0
+        backup: Path | None = None
         if output_dir.exists():
-            output_dir.rmdir()
-        stage.replace(output_dir)
+            if output_has_files:
+                backup = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}-backup-", dir=output_dir.parent))
+                backup.rmdir()
+                output_dir.replace(backup)
+            else:
+                output_dir.rmdir()
+        try:
+            stage.replace(output_dir)
+        except Exception:
+            if backup is not None and backup.exists() and not output_dir.exists():
+                backup.replace(output_dir)
+            raise
+        if backup is not None:
+            shutil.rmtree(backup, ignore_errors=True)
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         raise

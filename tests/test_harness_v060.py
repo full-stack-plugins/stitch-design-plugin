@@ -31,6 +31,11 @@ class Harness060Tests(unittest.TestCase):
         self.temp.cleanup()
 
     def comparison_ready_run(self):
+        harness, run = self.roundtripped_run()
+        run = harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "editability"))
+        return harness, harness.store.update_state(run, RunState.EDITABILITY_VERIFIED)
+
+    def roundtripped_run(self):
         harness = Harness(preflight=lambda _: ())
         started = harness.start(self.project, "login", now=FIXED)
         run = harness.store.load(self.project, started.run_id)
@@ -56,9 +61,41 @@ class Harness060Tests(unittest.TestCase):
                 ArtifactRecord.from_path(run.path, stitch, "image/png"),
             ],
         ))
-        run = harness.store.update_state(run, RunState.ROUNDTRIPPED)
-        run = harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "editability"))
-        return harness, harness.store.update_state(run, RunState.EDITABILITY_VERIFIED)
+        return harness, harness.store.update_state(run, RunState.ROUNDTRIPPED)
+
+    def editability_evidence(self, run, *, before_html=None, before_render=None):
+        accepted_html = run.path / "artifacts/roundtrip.html"
+        accepted_render = run.path / "artifacts/stitch-final.png"
+        before_html = before_html or accepted_html
+        before_render = before_render or accepted_render
+        edited_html = run.path / "artifacts/edited.html"
+        restored_html = run.path / "artifacts/restored.html"
+        edited_render = run.path / "artifacts/edited.png"
+        restored_render = run.path / "artifacts/restored.png"
+        edited_html.write_text("<main>edited</main>", encoding="utf-8")
+        restored_html.write_bytes(before_html.read_bytes())
+        edited_render.write_bytes(b"edited-render")
+        restored_render.write_bytes(before_render.read_bytes())
+        return EvidenceWriter(run.path).editability(
+            before_html, edited_html, restored_html, before_render, edited_render, restored_render
+        )
+
+    def reconciliation_probes(self, run):
+        probes = []
+        statuses = {"get_project": "found", "list_screens": "empty", "get_screen": "unavailable"}
+        for index, tool in enumerate(("get_project", "list_screens", "get_screen"), start=1):
+            artifact = run.path / "artifacts" / f"reconcile-{tool}.json"
+            artifact.write_text(json.dumps({"tool": tool, "status": statuses[tool]}), encoding="utf-8")
+            digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+            probes.append({
+                "tool": tool,
+                "invoked_at": f"2026-09-14T00:00:0{index}+00:00",
+                "response_id": f"probe-{index}",
+                "status": statuses[tool],
+                "result_sha256": digest,
+                "artifact": {"path": f"artifacts/reconcile-{tool}.json", "sha256": digest, "mime": "application/json"},
+            })
+        return probes
 
     def test_spec_init_is_valid_and_never_overwrites(self):
         output = self.project / ".stitch/specs/new-page.json"
@@ -111,7 +148,10 @@ class Harness060Tests(unittest.TestCase):
             before_html, edited_html, restored_html, before_render, edited_render, restored_render
         ).read_text(encoding="utf-8"))
         self.assertTrue(payload["result"]["restored"])
-        self.assertEqual(payload["source_artifacts"], [])
+        self.assertEqual(
+            {item["path"] for item in payload["source_artifacts"]},
+            {"artifacts/before.html", "artifacts/before.png"},
+        )
         self.assertEqual(len(payload["artifacts"]), 6)
         self.assertEqual(
             {item["semantic_role"] for item in payload["artifacts"]},
@@ -141,6 +181,30 @@ class Harness060Tests(unittest.TestCase):
         ).read_text(encoding="utf-8"))
         self.assertEqual((payload["artifacts"][0]["width"], payload["artifacts"][0]["height"]), (1350, 768))
 
+    def test_editability_before_artifacts_bind_exact_roundtrip_receipt_outputs(self):
+        harness, run = self.roundtripped_run()
+        evidence_path = self.editability_evidence(run)
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            {item["path"] for item in evidence["source_artifacts"]},
+            {"artifacts/roundtrip.html", "artifacts/stitch-final.png"},
+        )
+
+        status = harness.resume(self.project, run.run_id, evidence_path)
+
+        self.assertEqual(status.state, RunState.EDITABILITY_VERIFIED)
+
+    def test_editability_rejects_same_hash_before_artifact_at_a_different_path(self):
+        harness, run = self.roundtripped_run()
+        alternate = run.path / "artifacts/copied-before.html"
+        alternate.write_bytes((run.path / "artifacts/roundtrip.html").read_bytes())
+        evidence_path = self.editability_evidence(run, before_html=alternate)
+
+        status = harness.resume(self.project, run.run_id, evidence_path)
+
+        self.assertEqual(status.state, RunState.ROUNDTRIPPED)
+        self.assertIn("roundtrip receipt", " ".join(status.errors))
+
     def test_three_unknown_attempts_block_and_explicit_recovery_records_reason(self):
         harness = Harness(preflight=lambda _: ())
         status = harness.start(self.project, "login", now=FIXED)
@@ -165,6 +229,7 @@ class Harness060Tests(unittest.TestCase):
         unknown = self.project / "unknown.json"
         unknown.write_text(json.dumps({"schema_version": 1, "step": "stitch.generate", "result": "unknown"}), encoding="utf-8")
         status = harness.resume(self.project, status.run_id, unknown)
+        run = harness.store.load(self.project, status.run_id)
         evidence = self.project / "reconciliation.json"
         evidence.write_text(json.dumps({
             "schema_version": 1,
@@ -172,7 +237,7 @@ class Harness060Tests(unittest.TestCase):
             "reconciliation": {
                 "outcome": "not_applied",
                 "reason": "all read probes confirm no matching screen",
-                "read_probes": ["get_project", "list_screens", "get_screen"],
+                "read_probes": self.reconciliation_probes(run),
             },
         }), encoding="utf-8")
 
@@ -182,6 +247,15 @@ class Harness060Tests(unittest.TestCase):
         self.assertEqual(resolved.reconciliation_attempts, 0)
         manifest = json.loads((self.project / ".stitch/runs" / status.run_id / "manifest.json").read_text())
         self.assertEqual(manifest["last_reconciliation_outcome"], "not_applied")
+        receipt = json.loads(sorted((run.path / "receipts").glob("*.json"))[-1].read_text(encoding="utf-8"))
+        self.assertEqual(receipt["step"], "reconciliation")
+        self.assertEqual(len(receipt["inputs"]), 3)
+
+        second_unknown = harness.resume(self.project, status.run_id, unknown)
+        self.assertEqual(second_unknown.state, RunState.RECONCILING)
+        harness.reconcile(self.project, status.run_id, evidence)
+        receipts = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((run.path / "receipts").glob("*.json"))]
+        self.assertEqual(sum(item["step"] == "reconciliation" for item in receipts), 2)
 
     def test_reconciliation_can_accept_applied_write_with_full_evidence(self):
         harness = Harness(preflight=lambda _: ())
@@ -206,7 +280,7 @@ class Harness060Tests(unittest.TestCase):
             "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}},
             "reconciliation": {
                 "outcome": "applied", "reason": "read probes found the unique generated screen",
-                "read_probes": ["get_project", "list_screens", "get_screen"],
+                "read_probes": self.reconciliation_probes(run),
             },
         }), encoding="utf-8")
 
@@ -214,6 +288,77 @@ class Harness060Tests(unittest.TestCase):
 
         self.assertEqual(resolved.state, RunState.SOURCE_ACCEPTED)
         self.assertEqual(resolved.exit_code, 0)
+
+    def test_not_applied_reconciliation_rejects_untyped_or_unbound_probe_evidence(self):
+        harness = Harness(preflight=lambda _: ())
+        status = harness.start(self.project, "login", now=FIXED)
+        unknown = self.project / "unknown.json"
+        unknown.write_text(json.dumps({"schema_version": 1, "step": "stitch.generate", "result": "unknown"}), encoding="utf-8")
+        status = harness.resume(self.project, status.run_id, unknown)
+        run = harness.store.load(self.project, status.run_id)
+        valid = self.reconciliation_probes(run)
+        invalid_sets = []
+        invalid_sets.append(["get_project", "list_screens", "get_screen"])
+        missing_timezone = json.loads(json.dumps(valid)); missing_timezone[0]["invoked_at"] = "2026-09-14T00:00:01"; invalid_sets.append(missing_timezone)
+        duplicate_artifact = json.loads(json.dumps(valid)); duplicate_artifact[1]["artifact"] = duplicate_artifact[0]["artifact"]; duplicate_artifact[1]["result_sha256"] = duplicate_artifact[0]["result_sha256"]; invalid_sets.append(duplicate_artifact)
+        hash_mismatch = json.loads(json.dumps(valid)); hash_mismatch[0]["result_sha256"] = "0" * 64; invalid_sets.append(hash_mismatch)
+        bad_status = json.loads(json.dumps(valid)); bad_status[0]["status"] = "PRIVATE_RESULT"; invalid_sets.append(bad_status)
+        boolean_id = json.loads(json.dumps(valid)); boolean_id[0]["response_id"] = True; invalid_sets.append(boolean_id)
+        for index, probes in enumerate(invalid_sets):
+            evidence = self.project / f"invalid-reconciliation-{index}.json"
+            evidence.write_text(json.dumps({
+                "schema_version": 1, "step": "stitch.generate",
+                "reconciliation": {"outcome": "not_applied", "reason": "read probes found no screen", "read_probes": probes},
+            }), encoding="utf-8")
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                harness.reconcile(self.project, status.run_id, evidence)
+            self.assertEqual(harness.store.load(self.project, status.run_id).state, RunState.RECONCILING)
+
+    def test_applied_reconciliation_keeps_persisted_state_until_provider_receipt_commit(self):
+        harness = Harness(preflight=lambda _: ())
+        status = harness.start(self.project, "login", now=FIXED)
+        unknown = self.project / "unknown.json"
+        unknown.write_text(json.dumps({"schema_version": 1, "step": "stitch.generate", "result": "unknown"}), encoding="utf-8")
+        status = harness.resume(self.project, status.run_id, unknown)
+        run = harness.store.load(self.project, status.run_id)
+        html = run.path / "artifacts/source.html"
+        image = run.path / "artifacts/source.png"
+        shutil.copy2(ROOT / "tests/fixtures/login-valid.html", html)
+        shutil.copy2(ROOT / "tests/fixtures/images/stitch.png", image)
+        evidence = self.project / "crash-applied.json"
+        evidence.write_text(json.dumps({
+            "schema_version": 1, "step": "stitch.generate",
+            "provider": {"name": "google-stitch", "tool": "generate_screen_from_text", "model": "server"},
+            "invoked_at": "2026-09-14T00:00:10+00:00", "source_artifacts": [],
+            "artifacts": [
+                {"path": "artifacts/source.html", "sha256": hashlib.sha256(html.read_bytes()).hexdigest(), "mime": "text/html"},
+                {"path": "artifacts/source.png", "sha256": hashlib.sha256(image.read_bytes()).hexdigest(), "mime": "image/png"},
+            ],
+            "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}},
+            "reconciliation": {"outcome": "applied", "reason": "read probes found one screen", "read_probes": self.reconciliation_probes(run)},
+        }), encoding="utf-8")
+        original_append = harness.store.append_receipt
+
+        def crash_after_provider_receipt(candidate, receipt):
+            persisted = json.loads((candidate.path / "manifest.json").read_text(encoding="utf-8"))["state"]
+            if receipt.step == "stitch.generate" and receipt.result == "passed":
+                self.assertEqual(persisted, RunState.RECONCILING.value)
+                original_append(candidate, receipt)
+                raise OSError("simulated crash after provider receipt")
+            return original_append(candidate, receipt)
+
+        harness.store.append_receipt = crash_after_provider_receipt
+        with self.assertRaisesRegex(OSError, "simulated crash"):
+            harness.reconcile(self.project, status.run_id, evidence)
+        self.assertEqual(harness.store.load(self.project, status.run_id).state, RunState.RECONCILING)
+        harness.store.append_receipt = original_append
+
+        resolved = harness.reconcile(self.project, status.run_id, evidence)
+
+        self.assertEqual(resolved.state, RunState.SOURCE_ACCEPTED)
+        receipts = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((run.path / "receipts").glob("*.json"))]
+        self.assertEqual(sum(item["step"] == "reconciliation" for item in receipts), 1)
+        self.assertEqual(sum(item["step"] == "stitch.generate" and item["result"] == "passed" for item in receipts), 1)
 
     def test_recovery_reason_rejects_control_characters_and_sensitive_content(self):
         harness = Harness(preflight=lambda _: ())
@@ -263,6 +408,28 @@ class Harness060Tests(unittest.TestCase):
                 "--art", str(ROOT / "tests/fixtures/images/art.png"),
             ])
         self.assertEqual(code, 2)
+
+    def test_compare_can_replace_unaccepted_outputs_but_not_accepted_visual_receipt(self):
+        harness, run = self.comparison_ready_run()
+        arguments = ["compare", "--project", str(self.project), "--run", run.run_id]
+        self.assertEqual(main(arguments), 0)
+        first_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in (run.path / "comparison").glob("*.png")}
+        self.assertEqual(main(arguments), 0)
+        second_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in (run.path / "comparison").glob("*.png")}
+        self.assertEqual(second_hashes, first_hashes)
+
+        evidence = run.path / "evidence/visual-judge.json"
+        payload = json.loads(evidence.read_text(encoding="utf-8"))
+        payload["result"]["scores"] = {name: 5 for name in ("hierarchy", "density", "color", "component_quality", "completion")}
+        evidence.write_text(json.dumps(payload), encoding="utf-8")
+        status = harness.resume(self.project, run.run_id, evidence)
+        self.assertEqual(status.state, RunState.AWAITING_USER_APPROVAL)
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(main(arguments), 2)
+        self.assertEqual(
+            {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in (run.path / "comparison").glob("*.png")},
+            second_hashes,
+        )
 
 
 if __name__ == "__main__":
