@@ -14,14 +14,14 @@ license: Apache-2.0
 2. “Stitch 提示缺少 STITCH_API_KEY。”
 3. “帮我配置 Stitch key，但不要写进 shell profile。”
 
-面向 Windows、macOS、Linux 的本地 Codex 用户。插件已内置 MCP URL；本 Skill 只处理用户凭据缺失和启动时环境变量注入。
+面向 Windows、macOS、Linux 的本地 Codex 用户。插件已内置本地 stdio MCP 代理；本 Skill 只处理用户凭据缺失、系统秘密存储和旧凭据显式迁移。
 
 ## 能力边界说明
 
 ### ✅ 擅长处理
 
-- 检查 `STITCH_API_KEY` 是否已在当前进程或插件凭据文件中配置，不输出其值。
-- 指导用户隐藏输入自己的 Stitch API key，并保存到当前用户的受限配置目录。
+- 检查 `STITCH_API_KEY` 是否已在当前进程或系统秘密存储中配置，不输出其值。
+- 指导用户隐藏输入自己的 Stitch API key，并保存到 macOS Keychain、Windows Credential Manager 或 Linux Secret Service。
 - 用保存的凭据启动 Codex CLI，或向用户指定的本地命令注入环境变量。
 
 ### ⚠️ 需要用户完成
@@ -34,7 +34,7 @@ license: Apache-2.0
 
 - ChatGPT 网页插件授权：应由正式 connector/OAuth 处理，不要求用户粘贴 key。
 - 团队共享一个作者 key：每位用户使用独立凭据，或建设租户隔离的认证网关。
-- 声称配置文件等同系统密钥库：它是权限受限的用户文件，不是硬件或系统凭据保险库。
+- 将 Key 写入 Codex 配置、shell profile、项目文件或普通 JSON 文件。
 
 ## 首次使用工作流
 
@@ -61,21 +61,21 @@ license: Apache-2.0
      ```
 
 5. 用户在同一张卡片中完成“获取 Key → 保存到本机 → 打开 Codex”；高级命令默认折叠。
-6. 设置后启动 Codex：
+6. 旧版 JSON 凭据只在用户明确要求迁移时执行 `stitch_setup.py migrate`；写入系统秘密存储并回读验证成功后才脱敏旧文件。
+7. 设置后启动 Codex：
 
    ```bash
    python3 /absolute/plugin/root/scripts/stitch_setup.py cli
    ```
 
    Windows 使用 `py ... cli`。自定义启动命令使用 `run -- <command>`。
-7. 新任务先只读调用 `list_projects`。项目列表或明确的空列表都算认证成功；未知或超时不执行写操作。
+8. 新任务先只读调用 `list_projects`。项目列表或明确的空列表都算认证成功；未知或超时不执行写操作。
 
 ## 安全与降级
 
 - 不搜索浏览器、其他客户端配置、shell profile、历史或日志中的 key。
 - 不执行 `echo "$STITCH_API_KEY"`、`printenv STITCH_API_KEY` 或全量 `env`。
-- 配置文件不进入插件目录或 Git；配置器不修改 `.zshrc`、PowerShell Profile 或系统环境。
-- 如果用户要求系统凭据保险库，说明当前配置器未提供该保证，建议等待官方 Stitch connector/OAuth。
+- Key 不进入插件目录、Git、Codex 配置或普通用户文件；配置器不修改 `.zshrc`、PowerShell Profile 或系统环境。
 - 缺少 Python 时，提供当前终端的会话级环境变量方案，并说明关闭终端后失效。
 
 ## FAQ
@@ -86,7 +86,7 @@ license: Apache-2.0
 
 **Q3：会修改 shell 配置吗？** 不会。配置器使用独立的用户凭据文件。
 
-**Q4：保存在哪里？** Windows 使用 `APPDATA`；macOS/Linux 使用 `XDG_CONFIG_HOME` 或 `~/.config`。
+**Q4：保存在哪里？** macOS 使用 Keychain，Windows 使用 Credential Manager，Linux 使用 Secret Service。
 
 **Q5：如何验证？** 运行 `stitch_setup.py check`，重启后只读调用 `list_projects`。
 

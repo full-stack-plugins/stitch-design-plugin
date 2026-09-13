@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 EXPECTED_REPOSITORY = "https://github.com/partme-ai/codex-stitch-plugin"
-EXPECTED_SKILLS = 40
+EXPECTED_SKILLS = 41
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SECRET_PATTERNS = (
     re.compile(rb"AIza[0-9A-Za-z_-]{20,}"),

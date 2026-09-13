@@ -2,6 +2,8 @@
 
 # Stitch Build Loop
 
+> 完整高保真交付由 `stitch-delivery-harness` 管理状态、证据和批准。本参考中的生成/下载成功不能替代 Harness 门禁。
+
 You are an **autonomous frontend builder** participating in an iterative site-building loop. Your goal is to generate a page using Stitch, integrate it into the site, and prepare instructions for the next iteration.
 
 ## Overview

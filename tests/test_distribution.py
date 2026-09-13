@@ -36,7 +36,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("validated 40 skills", result.stdout)
+        self.assertIn("validated 41 skills", result.stdout)
 
     def test_repository_marketplace_targets_public_root_plugin(self) -> None:
         marketplace = json.loads(
@@ -95,7 +95,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("SDK 仍然需要 `STITCH_API_KEY`", guide)
         self.assertIn("不需要克隆插件仓库", guide)
         self.assertIn("Windows", guide)
-        self.assertNotIn("钥匙串", guide)
+        self.assertIn("Keychain", guide)
         self.assertIn("ChatGPT 网页版", guide)
         self.assertIn("尚未通过端到端验证", guide)
 
@@ -145,7 +145,22 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("scripts/stitch_setup.py ui", skill)
         self.assertIn("不要让用户把 key 粘贴到聊天", skill)
         self.assertIn("Windows", skill)
-        self.assertNotIn("钥匙串", skill)
+        self.assertIn("Keychain", skill)
+
+    def test_delivery_harness_skill_exposes_verified_handoff_contract(self) -> None:
+        skill = (ROOT / "skills" / "stitch-delivery-harness" / "SKILL.md").read_text(encoding="utf-8")
+        workflow = (ROOT / "skills" / "stitch-delivery-harness" / "references" / "workflow.md").read_text(encoding="utf-8")
+
+        self.assertIn("scripts/stitch_harness.py", skill)
+        self.assertIn("AWAITING_USER_APPROVAL", skill)
+        self.assertIn("不能以工具成功文本标记完成", skill)
+        ordered = ["页面规格", "Stitch 生成", "HTML/尺寸/文案", "ImageGen", "OCR/业务", "回灌", "可编辑性", "双图对比", "用户批准", "正式归档"]
+        positions = [workflow.index(value) for value in ordered]
+        self.assertEqual(positions, sorted(positions))
+
+        loop = (ROOT / "skills" / "stitch-loop" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("stitch-delivery-harness", loop)
+        self.assertIn("不能以工具成功文本标记完成", loop)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"
