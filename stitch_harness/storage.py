@@ -15,6 +15,36 @@ from .contracts import PageSpec
 from .state import RunState, transition
 
 
+RECEIPT_STEP_SLUGS = {
+    "preflight": "preflight",
+    "stitch.generate": "stitch-generate",
+    "imagegen": "imagegen",
+    "ocr": "ocr",
+    "stitch.roundtrip": "stitch-roundtrip",
+    "editability": "editability",
+    "visual-judge": "visual-judge",
+    "user-approval": "user-approval",
+}
+
+EXPECTED_RECEIPT_STEP = {
+    RunState.DRAFT: "preflight",
+    RunState.PREFLIGHT_PASSED: "stitch.generate",
+    RunState.STITCH_GENERATED: "stitch.generate",
+    RunState.SOURCE_ACCEPTED: "imagegen",
+    RunState.ART_GENERATED: "ocr",
+    RunState.ART_ACCEPTED: "stitch.roundtrip",
+    RunState.ROUNDTRIPPED: "editability",
+    RunState.EDITABILITY_VERIFIED: "visual-judge",
+    RunState.AWAITING_USER_APPROVAL: "user-approval",
+}
+
+COMPARISON_ARTIFACTS = (
+    "comparison/side-by-side.png",
+    "comparison/overlay.png",
+    "comparison/diff-heatmap.png",
+)
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -97,6 +127,10 @@ class Receipt:
     provider_resource_ids: tuple[str, ...] = ()
     error: str | None = None
     previous_receipt_sha256: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.step not in RECEIPT_STEP_SLUGS:
+            raise ValueError("receipt step must come from the fixed allowlist")
 
     @classmethod
     def passed(
@@ -183,10 +217,13 @@ class RunStore:
     def append_receipt(self, run: Run, receipt: Receipt) -> Run:
         if receipt.run_id != run.run_id or receipt.page_id != run.page_id:
             raise ValueError("receipt identity does not match run")
+        expected_step = EXPECTED_RECEIPT_STEP.get(run.state)
+        if receipt.step != expected_step:
+            raise ValueError(f"state {run.state.value} requires {expected_step!r} receipt evidence")
         receipts_dir = run.path / "receipts"
         sequence = len(list(receipts_dir.glob("*.json"))) + 1
         chained = replace(receipt, previous_receipt_sha256=run.latest_receipt_sha256)
-        receipt_path = receipts_dir / f"{sequence:03d}-{receipt.step}.json"
+        receipt_path = receipts_dir / f"{sequence:03d}-{RECEIPT_STEP_SLUGS[receipt.step]}.json"
         _atomic_json(receipt_path, chained.to_dict())
         receipt_hash = sha256_file(receipt_path)
         manifest_path = run.path / "manifest.json"
@@ -230,6 +267,8 @@ class RunStore:
             except (OSError, json.JSONDecodeError):
                 errors.append(f"invalid receipt: {receipt_path.name}")
                 continue
+            if payload.get("step") not in RECEIPT_STEP_SLUGS:
+                errors.append(f"receipt step is outside the allowlist: {receipt_path.name}")
             if payload.get("previous_receipt_sha256") != previous:
                 errors.append(f"previous receipt hash mismatch: {receipt_path.name}")
             for direction in ("inputs", "outputs"):
@@ -242,10 +281,74 @@ class RunStore:
                         errors.append(f"artifact path escape: {relative}")
                         continue
                     if not candidate.is_file() or sha256_file(candidate) != item.get("sha256"):
-                        errors.append(f"artifact hash mismatch: {relative}")
                         if payload.get("step") == "user-approval":
+                            errors.append(f"approved artifact hash mismatch: {relative}")
                             approval_invalidated = True
+                        else:
+                            errors.append(f"artifact hash mismatch: {relative}")
             previous = sha256_file(receipt_path)
         if run.latest_receipt_sha256 != previous:
             errors.append("manifest latest receipt hash mismatch")
         return ChainVerification(not errors, tuple(errors), approval_invalidated)
+
+    def required_approval_artifacts(self, run: Run) -> dict[str, str]:
+        """Derive the exact review set from accepted producer receipts."""
+
+        verification = self.verify_chain(run)
+        if not verification.valid:
+            raise ValueError("cannot derive approval artifacts from an invalid receipt chain")
+
+        outputs_by_step: dict[str, list[dict[str, Any]]] = {}
+        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            outputs_by_step[payload["step"]] = list(payload.get("outputs", []))
+
+        imagegen = outputs_by_step.get("imagegen", [])
+        roundtrip = outputs_by_step.get("stitch.roundtrip", [])
+        visual = outputs_by_step.get("visual-judge", [])
+        art_images = [item for item in imagegen if str(item.get("mime", "")).startswith("image/")]
+        roundtrip_html = [item for item in roundtrip if item.get("mime") == "text/html"]
+        stitch_images = [item for item in roundtrip if str(item.get("mime", "")).startswith("image/")]
+        visual_by_path = {str(item.get("path")): item for item in visual}
+
+        if len(art_images) != 1:
+            raise ValueError("approval requires exactly one accepted art render")
+        if len(roundtrip_html) != 1:
+            raise ValueError("approval requires exactly one accepted roundtrip HTML artifact")
+        if len(stitch_images) != 1:
+            raise ValueError("approval requires exactly one final Stitch render")
+        missing_comparisons = [path for path in COMPARISON_ARTIFACTS if path not in visual_by_path]
+        if missing_comparisons:
+            raise ValueError("approval requires all three comparison images")
+
+        required = [art_images[0], roundtrip_html[0], stitch_images[0]]
+        required.extend(visual_by_path[path] for path in COMPARISON_ARTIFACTS)
+        return {str(item["path"]): str(item["sha256"]) for item in required}
+
+    def verify_approval(self, run: Run) -> ChainVerification:
+        """Verify the receipt chain and that approval binds the current review set."""
+
+        chain = self.verify_chain(run)
+        errors = list(chain.errors)
+        approval_invalidated = chain.approval_invalidated
+        try:
+            required = self.required_approval_artifacts(run)
+        except ValueError as error:
+            errors.append(str(error))
+            return ChainVerification(False, tuple(dict.fromkeys(errors)), True)
+
+        approval_inputs: dict[str, str] | None = None
+        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if payload.get("step") == "user-approval":
+                approval_inputs = {
+                    str(item.get("path")): str(item.get("sha256"))
+                    for item in payload.get("inputs", [])
+                }
+        if approval_inputs is None:
+            errors.append("user approval receipt is missing")
+            approval_invalidated = True
+        elif approval_inputs != required:
+            errors.append("user approval does not bind the exact required artifact set")
+            approval_invalidated = True
+        return ChainVerification(not errors, tuple(dict.fromkeys(errors)), approval_invalidated)

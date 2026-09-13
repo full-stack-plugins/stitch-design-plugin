@@ -45,7 +45,7 @@ class RunStoreTests(unittest.TestCase):
         artifact = run.path / "artifacts" / "source.html"
         artifact.write_text("<main>first</main>", encoding="utf-8")
         record = ArtifactRecord.from_path(run.path, artifact, "text/html")
-        receipt = Receipt.passed(run.run_id, self.spec.page_id, "stitch-source", outputs=[record])
+        receipt = Receipt.passed(run.run_id, self.spec.page_id, "preflight", outputs=[record])
         self.store.append_receipt(run, receipt)
 
         artifact.write_text("<main>changed</main>", encoding="utf-8")
@@ -60,15 +60,33 @@ class RunStoreTests(unittest.TestCase):
             run,
             Receipt.passed(run.run_id, self.spec.page_id, "preflight"),
         )
-        second = self.store.append_receipt(
-            first,
-            Receipt.passed(run.run_id, self.spec.page_id, "stitch-generated"),
-        )
+        first = self.store.update_state(first, RunState.PREFLIGHT_PASSED)
+        second = self.store.append_receipt(first, Receipt.passed(run.run_id, self.spec.page_id, "stitch.generate"))
 
         receipts = sorted((run.path / "receipts").glob("*.json"))
         self.assertEqual(len(receipts), 2)
         self.assertEqual(second.latest_receipt_sha256, sha256_file(receipts[-1]))
         self.assertTrue(self.store.verify_chain(second).valid)
+
+    def test_unknown_receipt_step_is_rejected_before_a_filename_is_created(self):
+        run = self.store.start(self.root, self.spec, FIXED_TIME)
+
+        with self.assertRaisesRegex(ValueError, "allowlist"):
+            self.store.append_receipt(
+                run,
+                Receipt.passed(run.run_id, run.page_id, "../../escaped"),
+            )
+
+        self.assertEqual(list((run.path / "receipts").iterdir()), [])
+
+    def test_receipt_step_must_match_the_current_run_state(self):
+        run = self.store.start(self.root, self.spec, FIXED_TIME)
+
+        with self.assertRaisesRegex(ValueError, "requires 'preflight'"):
+            self.store.append_receipt(
+                run,
+                Receipt.passed(run.run_id, run.page_id, "imagegen"),
+            )
 
 
 if __name__ == "__main__":

@@ -64,6 +64,13 @@ class ExternalEvidenceTests(unittest.TestCase):
 
         self.assertIn("hash mismatch", " ".join(evidence.verify_artifacts(self.root)))
 
+    def test_unknown_step_is_rejected_even_when_expected_matches(self):
+        payload = self.payload()
+        payload["step"] = "../../outside"
+
+        with self.assertRaisesRegex(EvidenceError, "allowlist"):
+            ExternalEvidence.from_dict(payload, "../../outside")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -227,6 +227,9 @@ class Harness:
             return RunStatus(run_id, run.state, 0, _ACTIONS[run.state])
         if decision.decision != "approved" or not decision.artifact_hashes:
             raise ApprovalRequired("approved decision requires exact artifact hashes")
+        required = self.store.required_approval_artifacts(run)
+        if decision.artifact_hashes != required:
+            raise ApprovalRequired("approval must bind the exact required artifact set")
         records: list[ArtifactRecord] = []
         for relative, digest in decision.artifact_hashes.items():
             path = run.path / relative

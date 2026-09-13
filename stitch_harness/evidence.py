@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .storage import sha256_file
+from .storage import RECEIPT_STEP_SLUGS, sha256_file
 
 
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -72,6 +72,8 @@ class ExternalEvidence:
         if not isinstance(payload, dict) or payload.get("schema_version") != 1:
             raise EvidenceError("external evidence schema_version must be 1")
         step = payload.get("step")
+        if step not in RECEIPT_STEP_SLUGS or step in {"preflight", "user-approval"}:
+            raise EvidenceError("external evidence step must come from the fixed allowlist")
         if step != expected_step:
             raise EvidenceError(f"expected {expected_step} evidence")
         provider = payload.get("provider")
@@ -116,4 +118,3 @@ class ExternalEvidence:
             elif sha256_file(candidate) != artifact.sha256:
                 errors.append(f"artifact hash mismatch: {artifact.path}")
         return tuple(errors)
-

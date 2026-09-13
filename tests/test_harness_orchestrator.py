@@ -8,6 +8,7 @@ from pathlib import Path
 
 from stitch_harness.orchestrator import ApprovalDecision, ApprovalRequired, Harness
 from stitch_harness.state import RunState
+from stitch_harness.storage import ArtifactRecord, Receipt
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "page-spec.json"
@@ -73,6 +74,53 @@ class HarnessTests(unittest.TestCase):
             encoding="utf-8",
         )
         return evidence
+
+    def awaiting_approval_with_artifacts(self):
+        started = self.harness.start(self.project, "login", now=FIXED_TIME)
+        run = self.harness.store.load(self.project, started.run_id)
+        artifacts = {
+            "artifacts/art.png": b"accepted-art",
+            "artifacts/roundtrip.html": b"<main>accepted</main>",
+            "artifacts/stitch-final.png": b"stitch-render",
+            "comparison/side-by-side.png": b"side-by-side",
+            "comparison/overlay.png": b"overlay",
+            "comparison/diff-heatmap.png": b"difference",
+        }
+        for relative, content in artifacts.items():
+            path = run.path / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+
+        run = self.harness.store.update_state(run, RunState.STITCH_GENERATED)
+        run = self.harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
+        art = ArtifactRecord.from_path(run.path, run.path / "artifacts/art.png", "image/png")
+        run = self.harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "imagegen", outputs=[art]))
+        run = self.harness.store.update_state(run, RunState.ART_GENERATED)
+        run = self.harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "ocr"))
+        run = self.harness.store.update_state(run, RunState.ART_ACCEPTED)
+        roundtrip = [
+            ArtifactRecord.from_path(run.path, run.path / "artifacts/roundtrip.html", "text/html"),
+            ArtifactRecord.from_path(run.path, run.path / "artifacts/stitch-final.png", "image/png"),
+        ]
+        run = self.harness.store.append_receipt(
+            run, Receipt.passed(run.run_id, run.page_id, "stitch.roundtrip", outputs=roundtrip)
+        )
+        run = self.harness.store.update_state(run, RunState.ROUNDTRIPPED)
+        run = self.harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "editability"))
+        run = self.harness.store.update_state(run, RunState.EDITABILITY_VERIFIED)
+        comparisons = [
+            ArtifactRecord.from_path(run.path, run.path / relative, "image/png")
+            for relative in (
+                "comparison/side-by-side.png",
+                "comparison/overlay.png",
+                "comparison/diff-heatmap.png",
+            )
+        ]
+        run = self.harness.store.append_receipt(
+            run, Receipt.passed(run.run_id, run.page_id, "visual-judge", outputs=comparisons)
+        )
+        run = self.harness.store.update_state(run, RunState.COMPARISON_ACCEPTED)
+        return self.harness.store.update_state(run, RunState.AWAITING_USER_APPROVAL)
 
     def test_start_stops_after_preflight_and_requests_stitch_generation(self):
         status = self.harness.start(self.project, "login", now=FIXED_TIME)
@@ -147,6 +195,35 @@ class HarnessTests(unittest.TestCase):
                 run.run_id,
                 ApprovalDecision(decision="approved", source="visual-judge", artifact_hashes={}),
             )
+
+    def test_approval_rejects_incomplete_required_artifact_set(self):
+        run = self.awaiting_approval_with_artifacts()
+        required = self.harness.store.required_approval_artifacts(run)
+        required.pop("comparison/overlay.png")
+
+        with self.assertRaisesRegex(ApprovalRequired, "exact required artifact set"):
+            self.harness.approve(
+                self.project,
+                run.run_id,
+                ApprovalDecision("approved", "user", required),
+            )
+
+    def test_modified_approved_artifact_invalidates_approval(self):
+        run = self.awaiting_approval_with_artifacts()
+        required = self.harness.store.required_approval_artifacts(run)
+        approved = self.harness.approve(
+            self.project,
+            run.run_id,
+            ApprovalDecision("approved", "user", required),
+        )
+        loaded = self.harness.store.load(self.project, approved.run_id)
+        (loaded.path / "artifacts/art.png").write_bytes(b"modified-after-approval")
+
+        verification = self.harness.store.verify_approval(loaded)
+
+        self.assertFalse(verification.valid)
+        self.assertTrue(verification.approval_invalidated)
+        self.assertIn("approved artifact hash mismatch", " ".join(verification.errors))
 
     def test_imagegen_wrong_canvas_does_not_advance(self):
         run = self.run_at_state(RunState.SOURCE_ACCEPTED)

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .contracts import PageSpec
 from .state import InvalidTransition, RunState
-from .storage import Run, sha256_file
+from .storage import Run, RunStore, sha256_file
 
 
 @dataclass(frozen=True)
@@ -25,19 +25,27 @@ class ArchiveResult:
 
 
 class ArchiveManager:
-    def __init__(self, project_root: Path):
+    def __init__(self, project_root: Path, *, store: RunStore | None = None):
         self.project_root = project_root.resolve()
+        self.store = store or RunStore()
 
     def archive(self, run: Run, spec: PageSpec) -> ArchiveResult:
         if run.state != RunState.APPROVED:
             raise InvalidTransition("only an approved run can be archived")
+        chain = self.store.verify_chain(run)
+        if not chain.valid:
+            raise ValueError("receipt chain verification failed before archive: " + "; ".join(chain.errors))
+        approval = self.store.verify_approval(run)
+        if not approval.valid:
+            raise ValueError("approval verification failed before archive: " + "; ".join(approval.errors))
+        approved_hashes = self.store.required_approval_artifacts(run)
         destination = self.project_root / spec.archive / run.run_id
         if destination.exists():
             raise FileExistsError(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
         temporary = Path(tempfile.mkdtemp(prefix=f".{run.run_id}-", dir=destination.parent))
         try:
-            for name in ("spec.json", "artifacts", "receipts", "comparison"):
+            for name in ("manifest.json", "spec.json", "artifacts", "receipts", "comparison"):
                 source = run.path / name
                 if source.is_dir():
                     shutil.copytree(source, temporary / name)
@@ -47,6 +55,20 @@ class ArchiveManager:
                 f"# {spec.title}\n\n- Run: `{run.run_id}`\n- Canvas: {spec.canvas.width}×{spec.canvas.height}\n- Theme: `{spec.theme}`\n",
                 encoding="utf-8",
             )
+            archived_run = Run(
+                run.run_id,
+                run.page_id,
+                temporary,
+                run.state,
+                run.latest_receipt_sha256,
+            )
+            archived_chain = self.store.verify_chain(archived_run)
+            archived_approval = self.store.verify_approval(archived_run)
+            if not archived_chain.valid or not archived_approval.valid:
+                raise ValueError("archive copy failed receipt or approval verification")
+            for relative, digest in approved_hashes.items():
+                if sha256_file(temporary / relative) != digest:
+                    raise ValueError(f"archive copy hash mismatch: {relative}")
             temporary.replace(destination)
         finally:
             if temporary.exists():
@@ -74,4 +96,3 @@ class ArchiveManager:
                 shutil.move(str(destination), str(source))
             raise
         return MoveResult(destination, digest)
-
