@@ -1,5 +1,7 @@
+import json
 import tempfile
 import unittest
+from unittest import mock
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -113,6 +115,58 @@ class RunStoreTests(unittest.TestCase):
                 self.assertTrue(RunStore().verify_chain(recovered).valid)
                 self.assertEqual(len(list((run.path / "receipts").glob("*.json"))), 1)
                 self.assertFalse((run.path / ".receipt-pending.json").exists())
+
+    def test_receipt_commit_fsyncs_each_renamed_parent_and_journal_unlink(self):
+        run = self.store.start(self.root, self.spec, FIXED_TIME)
+
+        with mock.patch("stitch_harness.storage._fsync_directory") as fsync_directory:
+            self.store.append_receipt(
+                run,
+                Receipt.passed(run.run_id, run.page_id, "preflight"),
+            )
+
+        self.assertEqual(
+            fsync_directory.call_args_list,
+            [
+                mock.call(run.path),
+                mock.call(run.path / "receipts"),
+                mock.call(run.path),
+                mock.call(run.path),
+            ],
+        )
+
+    def test_receipt_journal_recovery_accepts_sequence_1000_and_fsyncs_recovery(self):
+        class PendingOnlyStore(RunStore):
+            def _checkpoint(self, name):
+                if name == "pending-written":
+                    raise OSError("crash after pending journal")
+
+        run = self.store.start(self.root, self.spec, FIXED_TIME)
+        with self.assertRaisesRegex(OSError, "pending journal"):
+            PendingOnlyStore().append_receipt(
+                run,
+                Receipt.passed(run.run_id, run.page_id, "preflight"),
+            )
+        journal_path = run.path / ".receipt-pending.json"
+        journal = json.loads(journal_path.read_text(encoding="utf-8"))
+        journal["receipt_name"] = "1000-preflight.json"
+        journal_path.write_text(json.dumps(journal), encoding="utf-8")
+
+        with mock.patch("stitch_harness.storage._fsync_directory") as fsync_directory:
+            recovered = RunStore().load(self.root, run.run_id)
+
+        self.assertTrue((run.path / "receipts/1000-preflight.json").is_file())
+        self.assertTrue(RunStore().verify_chain(recovered).valid)
+        self.assertEqual(
+            fsync_directory.call_args_list,
+            [mock.call(run.path / "receipts"), mock.call(run.path), mock.call(run.path)],
+        )
+        continued = RunStore().append_receipt(
+            recovered,
+            Receipt.passed(run.run_id, run.page_id, "preflight"),
+        )
+        self.assertTrue((run.path / "receipts/1001-preflight.json").is_file())
+        self.assertTrue(RunStore().verify_chain(continued).valid)
 
 
 if __name__ == "__main__":

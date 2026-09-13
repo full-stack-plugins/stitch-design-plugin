@@ -78,3 +78,12 @@
 - Compare receipt lock：CLI 在替换前检查通过的 `visual-judge` receipt；receipt 已写但状态提交中断时仍拒绝覆盖。未接受 receipt 时保留原子重试/回滚能力。
 - CLI：probe tool/status 在集合操作前先完成类型校验；顶层捕获 `TypeError` 并返回 contract exit 2，不泄漏 traceback。
 - Round 3 TDD：probe stale/exact/outcome/symlink/type、safe token normalization、journal 三边界、compare interrupted-state lock 均先观察 RED 后转 GREEN；完整回归当前为 191 tests PASS。
+
+## Review Fix Round 4
+
+- 原子 reconciliation 入口：首次 unknown write receipt 提交后，`RECONCILING`、`reconciliation_from`、`reconciliation_step` 与 `reconciliation_attempts=1` 通过同一次 manifest 原子替换持久化，不再存在状态已切换但恢复元数据缺失的窗口。
+- 幂等中断恢复：若进程在 unknown receipt 已提交、reconciliation manifest 尚未提交时中断，重试会识别 manifest 当前链尾的同一步骤 unknown receipt，复用该 receipt 并完成原子状态提交，不重复写入 unknown receipt。
+- crash/power-loss durability：所有关键 JSON 临时文件 rename 后 fsync 父目录；receipt journal 正常提交与恢复完成后的 unlink 也 fsync 父目录。覆盖 journal、receipt 与 manifest 三类转换。
+- receipt sequence：pending journal 接受任意正整数序号，包括 `1000+`；后续追加从现有最大序号继续，receipt 遍历按数值序号排序，避免大序号恢复后回退或字典序破坏哈希链。
+- Round 4 TDD：4 项新增用例先观察 RED，分别暴露缺失目录 fsync、1000 序号拒绝、reconciliation manifest 分裂提交和 unknown receipt 重复追加；实现后 4/4 GREEN。
+- Round 4 验证：Task 5 state/orchestrator/v0.6.0 聚焦测试 45/45 PASS；完整回归 195/195 PASS；`python -m compileall -q stitch_harness tests` 与 `git diff --check` PASS。未执行远程写入或 Task 6 发布动作。

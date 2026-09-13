@@ -15,7 +15,7 @@ from .html_gate import validate_html
 from .ocr_gate import validate_ocr
 from .preflight import default_preflight
 from .state import InvalidTransition, RunState
-from .storage import ArtifactRecord, Receipt, Run, RunStore, _atomic_json, sha256_file
+from .storage import ArtifactRecord, Receipt, Run, RunStore, _atomic_json, _sorted_receipt_paths, sha256_file
 from .visual_gate import validate_visual_scores
 
 
@@ -225,7 +225,7 @@ class Harness:
         *,
         previous_receipt_sha256: str | None = None,
     ) -> str | None:
-        receipt_paths = sorted((run.path / "receipts").glob("*.json"))
+        receipt_paths = _sorted_receipt_paths(run.path / "receipts")
         for receipt_path in reversed(receipt_paths):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             if (
@@ -245,7 +245,7 @@ class Harness:
 
     @staticmethod
     def _latest_unknown_receipt(run: Run, step: str) -> tuple[str, dict] | None:
-        for receipt_path in reversed(sorted((run.path / "receipts").glob("*.json"))):
+        for receipt_path in reversed(_sorted_receipt_paths(run.path / "receipts")):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             if payload.get("step") == step and payload.get("result") == "unknown":
                 return sha256_file(receipt_path), payload
@@ -440,13 +440,21 @@ class Harness:
                 if raw.get("step") != expected:
                     return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], (f"expected {expected} reconciliation evidence",), self._attempts(run))
                 attempts = self._attempts(run) + 1
-                manifest["reconciliation_attempts"] = attempts
                 if attempts >= 3:
-                    run = self.store.update_state(run, RunState.BLOCKED)
-                    manifest["state"] = RunState.BLOCKED.value
-                    manifest["blocked_reason"] = "three unresolved reconciliation attempts"
-                _atomic_json(run.path / "manifest.json", manifest)
-                run = replace(run, state=RunState(manifest["state"]))
+                    run = self.store.update_states(
+                        run,
+                        (RunState.BLOCKED,),
+                        manifest_updates={
+                            "reconciliation_attempts": attempts,
+                            "blocked_reason": "three unresolved reconciliation attempts",
+                        },
+                    )
+                else:
+                    run = self.store.update_states(
+                        run,
+                        (),
+                        manifest_updates={"reconciliation_attempts": attempts},
+                    )
                 return RunStatus(run_id, run.state, 3 if run.state == RunState.RECONCILING else 1, _ACTIONS[run.state], reconciliation_attempts=attempts)
             expected = _ACTIONS[run.state].expected_evidence_step
             if raw.get("step") != expected:
@@ -462,12 +470,19 @@ class Harness:
                 timestamp,
                 error="external write result is unknown",
             )
-            run = self.store.append_receipt(run, receipt)
             source_state = run.state
-            run = self.store.update_state(run, RunState.RECONCILING)
-            manifest = self._manifest(run)
-            manifest.update({"reconciliation_attempts": 1, "reconciliation_from": source_state.value, "reconciliation_step": raw["step"]})
-            _atomic_json(run.path / "manifest.json", manifest)
+            committed_unknown = self._latest_unknown_receipt(run, str(raw["step"]))
+            if committed_unknown is None or committed_unknown[0] != run.latest_receipt_sha256:
+                run = self.store.append_receipt(run, receipt)
+            run = self.store.update_states(
+                run,
+                (RunState.RECONCILING,),
+                manifest_updates={
+                    "reconciliation_attempts": 1,
+                    "reconciliation_from": source_state.value,
+                    "reconciliation_step": raw["step"],
+                },
+            )
             return RunStatus(run_id, run.state, 3, _ACTIONS[run.state], reconciliation_attempts=1)
         if run.state in {RunState.RECONCILING, RunState.BLOCKED}:
             return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], ("reconciliation must be completed through explicit recovery",), self._attempts(run))

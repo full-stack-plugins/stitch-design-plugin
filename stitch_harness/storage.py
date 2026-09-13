@@ -47,7 +47,7 @@ COMPARISON_ARTIFACTS = (
     "comparison/diff-heatmap.png",
 )
 PENDING_RECEIPT_NAME = ".receipt-pending.json"
-RECEIPT_FILE_PATTERN = re.compile(r"^[0-9]{3}-[a-z0-9-]+\.json$")
+RECEIPT_FILE_PATTERN = re.compile(r"^(?P<sequence>0*[1-9][0-9]*)-[a-z0-9-]+\.json$")
 
 
 def sha256_file(path: Path) -> str:
@@ -62,6 +62,34 @@ def _canonical_bytes(payload: dict[str, Any]) -> bytes:
     return (json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
 
 
+def _fsync_directory(path: Path) -> None:
+    """Persist directory-entry changes on platforms that expose directory fsync."""
+
+    if os.name == "nt":
+        return
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    descriptor = os.open(path, flags)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _durable_unlink(path: Path) -> None:
+    path.unlink()
+    _fsync_directory(path.parent)
+
+
+def _receipt_sequence(path: Path) -> int | None:
+    match = RECEIPT_FILE_PATTERN.fullmatch(path.name)
+    return int(match.group("sequence")) if match is not None else None
+
+
+def _sorted_receipt_paths(receipts_dir: Path) -> list[Path]:
+    paths = list(receipts_dir.glob("*.json"))
+    return sorted(paths, key=lambda path: (_receipt_sequence(path) is None, _receipt_sequence(path) or 0, path.name))
+
+
 def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}-")
@@ -72,6 +100,7 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         temporary.replace(path)
+        _fsync_directory(path.parent)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -252,7 +281,7 @@ class RunStore:
         if current != expected_hash:
             manifest["latest_receipt_sha256"] = expected_hash
             _atomic_json(manifest_path, manifest)
-        journal_path.unlink()
+        _durable_unlink(journal_path)
 
     def start(self, project_root: Path, spec: PageSpec, now: datetime) -> Run:
         timestamp = now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -283,7 +312,11 @@ class RunStore:
         if receipt.step != expected_step:
             raise ValueError(f"state {run.state.value} requires {expected_step!r} receipt evidence")
         receipts_dir = run.path / "receipts"
-        sequence = len(list(receipts_dir.glob("*.json"))) + 1
+        receipt_paths = list(receipts_dir.glob("*.json"))
+        sequences = [_receipt_sequence(path) for path in receipt_paths]
+        if any(sequence is None for sequence in sequences):
+            raise ValueError("receipt filename is invalid")
+        sequence = max((sequence for sequence in sequences if sequence is not None), default=0) + 1
         chained = replace(receipt, previous_receipt_sha256=run.latest_receipt_sha256)
         receipt_path = receipts_dir / f"{sequence:03d}-{RECEIPT_STEP_SLUGS[receipt.step]}.json"
         receipt_payload = chained.to_dict()
@@ -301,7 +334,7 @@ class RunStore:
         manifest["latest_receipt_sha256"] = receipt_hash
         _atomic_json(manifest_path, manifest)
         self._checkpoint("manifest-written")
-        (run.path / PENDING_RECEIPT_NAME).unlink()
+        _durable_unlink(run.path / PENDING_RECEIPT_NAME)
         return replace(run, latest_receipt_sha256=receipt_hash)
 
     def load(self, project_root: Path, run_id: str) -> Run:
@@ -364,7 +397,7 @@ class RunStore:
         errors: list[str] = []
         previous: str | None = None
         approval_invalidated = False
-        receipt_paths = sorted((run.path / "receipts").glob("*.json"))
+        receipt_paths = _sorted_receipt_paths(run.path / "receipts")
         for receipt_path in receipt_paths:
             try:
                 payload = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -415,7 +448,7 @@ class RunStore:
             raise ValueError("cannot derive approval artifacts from an invalid receipt chain")
 
         outputs_by_step: dict[str, list[dict[str, Any]]] = {}
-        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+        for receipt_path in _sorted_receipt_paths(run.path / "receipts"):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             outputs_by_step[payload["step"]] = list(payload.get("outputs", []))
 
@@ -453,7 +486,7 @@ class RunStore:
         if not verification.valid:
             raise ValueError("cannot derive comparison sources from an invalid receipt chain")
         outputs_by_step: dict[str, list[dict[str, Any]]] = {}
-        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+        for receipt_path in _sorted_receipt_paths(run.path / "receipts"):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             outputs_by_step[payload["step"]] = list(payload.get("outputs", []))
         art = [item for item in outputs_by_step.get("imagegen", []) if str(item.get("mime", "")).startswith("image/")]
@@ -476,7 +509,7 @@ class RunStore:
         if not verification.valid:
             raise ValueError("cannot derive editability sources from an invalid receipt chain")
         roundtrip: list[dict[str, Any]] = []
-        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+        for receipt_path in _sorted_receipt_paths(run.path / "receipts"):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             if payload.get("step") == "stitch.roundtrip":
                 roundtrip = list(payload.get("outputs", []))
@@ -502,7 +535,7 @@ class RunStore:
             return ChainVerification(False, tuple(dict.fromkeys(errors)), True)
 
         approval_inputs: dict[str, str] | None = None
-        for receipt_path in sorted((run.path / "receipts").glob("*.json")):
+        for receipt_path in _sorted_receipt_paths(run.path / "receipts"):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             if payload.get("step") == "user-approval":
                 approval_inputs = {

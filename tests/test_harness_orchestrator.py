@@ -8,7 +8,7 @@ from pathlib import Path
 
 from stitch_harness.orchestrator import ApprovalDecision, ApprovalRequired, Harness
 from stitch_harness.state import RunState
-from stitch_harness.storage import ArtifactRecord, Receipt
+from stitch_harness.storage import ArtifactRecord, Receipt, RunStore
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "page-spec.json"
@@ -147,6 +147,71 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(status.state, RunState.RECONCILING)
         self.assertEqual(status.reconciliation_attempts, 1)
         self.assertEqual(status.next_action.kind, "stitch.reconcile-read")
+
+    def test_reconciling_state_and_metadata_survive_one_manifest_commit_crash(self):
+        class CrashAfterReconcilingCommit(RunStore):
+            def update_states(self, run, targets, *, manifest_updates=None):
+                targets = tuple(targets)
+                updated = super().update_states(run, targets, manifest_updates=manifest_updates)
+                if targets and targets[-1] == RunState.RECONCILING:
+                    raise OSError("simulated power loss after reconciliation commit")
+                return updated
+
+        harness = Harness(preflight=lambda _project: (), store=CrashAfterReconcilingCommit())
+        started = harness.start(self.project, "login", now=FIXED_TIME)
+        evidence = self.project / "unknown-atomic.json"
+        evidence.write_text(
+            json.dumps({"schema_version": 1, "step": "stitch.generate", "result": "unknown"}),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(OSError, "power loss"):
+            harness.resume(self.project, started.run_id, evidence)
+
+        manifest = json.loads(
+            (self.project / ".stitch/runs" / started.run_id / "manifest.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["state"], RunState.RECONCILING.value)
+        self.assertEqual(manifest["reconciliation_from"], RunState.PREFLIGHT_PASSED.value)
+        self.assertEqual(manifest["reconciliation_step"], "stitch.generate")
+        self.assertEqual(manifest["reconciliation_attempts"], 1)
+
+    def test_unknown_receipt_without_transition_metadata_recovers_idempotently(self):
+        started = self.harness.start(self.project, "login", now=FIXED_TIME)
+        run = self.harness.store.load(self.project, started.run_id)
+        timestamp = datetime.now(UTC).isoformat()
+        run = self.harness.store.append_receipt(
+            run,
+            Receipt(
+                run.run_id,
+                run.page_id,
+                "stitch.generate",
+                1,
+                "unknown",
+                timestamp,
+                timestamp,
+                error="external write result is unknown",
+            ),
+        )
+        evidence = self.project / "unknown-retry.json"
+        evidence.write_text(
+            json.dumps({"schema_version": 1, "step": "stitch.generate", "result": "unknown"}),
+            encoding="utf-8",
+        )
+
+        status = self.harness.resume(self.project, started.run_id, evidence)
+
+        self.assertEqual(status.state, RunState.RECONCILING)
+        self.assertEqual(status.reconciliation_attempts, 1)
+        receipts = list((run.path / "receipts").glob("*.json"))
+        self.assertEqual(len(receipts), 2)
+        self.assertEqual(
+            sum(json.loads(path.read_text(encoding="utf-8"))["result"] == "unknown" for path in receipts),
+            1,
+        )
+        manifest = json.loads((run.path / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["reconciliation_from"], RunState.PREFLIGHT_PASSED.value)
+        self.assertEqual(manifest["reconciliation_step"], "stitch.generate")
 
     def test_stitch_evidence_is_html_gated_before_imagegen(self):
         started = self.harness.start(self.project, "login", now=FIXED_TIME)
