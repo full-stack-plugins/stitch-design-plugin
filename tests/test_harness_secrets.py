@@ -1,7 +1,11 @@
 import importlib
 import json
+import getpass
+import subprocess
+import sys
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 
 
@@ -65,6 +69,23 @@ class SecretProviderTests(unittest.TestCase):
                 module.migrate_legacy_key(source, FakeSecretProvider(fail_on_set=True))
 
             self.assertEqual(source.read_text(encoding="utf-8"), original)
+
+    @unittest.skipUnless(sys.platform == "darwin", "macOS Keychain integration test")
+    def test_macos_keychain_provider_roundtrips_secret(self):
+        module = secrets_module()
+        service = f"com.partme.stitch-design.test.{uuid.uuid4().hex}"
+        account = getpass.getuser()
+        provider = module.MacOSKeychainProvider(service=service, account=account)
+        try:
+            provider.set("synthetic-keychain-secret")
+            self.assertEqual(provider.get(), "synthetic-keychain-secret")
+        finally:
+            subprocess.run(
+                ["/usr/bin/security", "delete-generic-password", "-a", account, "-s", service],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
 
 
 if __name__ == "__main__":

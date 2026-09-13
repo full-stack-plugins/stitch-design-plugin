@@ -94,47 +94,117 @@ class MacOSKeychainProvider:
         self._service = service
         self._account = account
 
-    def get(self) -> str | None:
-        result = subprocess.run(
-            [
-                "/usr/bin/security",
-                "find-generic-password",
-                "-a",
-                self._account,
-                "-s",
-                self._service,
-                "-w",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
+    @staticmethod
+    def _frameworks():
+        if sys.platform != "darwin":
+            raise SecretStoreError("macOS Keychain is unavailable on this platform")
+        security = ctypes.CDLL("/System/Library/Frameworks/Security.framework/Security")
+        core_foundation = ctypes.CDLL(
+            "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
         )
-        if result.returncode == 44:
+        security.SecKeychainFindGenericPassword.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        security.SecKeychainFindGenericPassword.restype = ctypes.c_int32
+        security.SecKeychainAddGenericPassword.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        security.SecKeychainAddGenericPassword.restype = ctypes.c_int32
+        security.SecKeychainItemModifyAttributesAndData.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_uint32,
+            ctypes.c_void_p,
+        ]
+        security.SecKeychainItemModifyAttributesAndData.restype = ctypes.c_int32
+        security.SecKeychainItemFreeContent.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        security.SecKeychainItemFreeContent.restype = ctypes.c_int32
+        core_foundation.CFRelease.argtypes = [ctypes.c_void_p]
+        return security, core_foundation
+
+    def _find(self):
+        security, core_foundation = self._frameworks()
+        service = self._service.encode("utf-8")
+        account = self._account.encode("utf-8")
+        password_length = ctypes.c_uint32()
+        password_data = ctypes.c_void_p()
+        item = ctypes.c_void_p()
+        status = security.SecKeychainFindGenericPassword(
+            None,
+            len(service),
+            service,
+            len(account),
+            account,
+            ctypes.byref(password_length),
+            ctypes.byref(password_data),
+            ctypes.byref(item),
+        )
+        return security, core_foundation, status, password_length, password_data, item
+
+    def get(self) -> str | None:
+        security, core_foundation, status, length, data, item = self._find()
+        if status == -25300:
             return None
-        if result.returncode != 0:
+        if status != 0:
             raise SecretStoreError("macOS Keychain could not read the Stitch credential")
-        value = result.stdout.rstrip("\r\n")
-        return value or None
+        try:
+            value = ctypes.string_at(data, length.value).decode("utf-8")
+            return value or None
+        finally:
+            security.SecKeychainItemFreeContent(None, data)
+            if item:
+                core_foundation.CFRelease(item)
 
     def set(self, value: str) -> None:
         secret = _checked_value(value)
-        result = subprocess.run(
-            [
-                "/usr/bin/security",
-                "add-generic-password",
-                "-U",
-                "-a",
-                self._account,
-                "-s",
-                self._service,
-                "-w",
-            ],
-            input=secret + "\n",
-            capture_output=True,
-            text=True,
-            check=False,
+        security, core_foundation = self._frameworks()
+        service = self._service.encode("utf-8")
+        account = self._account.encode("utf-8")
+        secret_bytes = secret.encode("utf-8")
+        item = ctypes.c_void_p()
+        status = security.SecKeychainAddGenericPassword(
+            None,
+            len(service),
+            service,
+            len(account),
+            account,
+            len(secret_bytes),
+            secret_bytes,
+            ctypes.byref(item),
         )
-        if result.returncode != 0:
+        if status == -25299:
+            found = self._find()
+            _, found_core, find_status, _, password_data, found_item = found
+            if find_status != 0:
+                raise SecretStoreError("macOS Keychain could not locate the existing Stitch credential")
+            try:
+                security.SecKeychainItemFreeContent(None, password_data)
+                status = security.SecKeychainItemModifyAttributesAndData(
+                    found_item,
+                    None,
+                    len(secret_bytes),
+                    secret_bytes,
+                )
+            finally:
+                if found_item:
+                    found_core.CFRelease(found_item)
+        elif item:
+            core_foundation.CFRelease(item)
+        if status != 0:
             raise SecretStoreError("macOS Keychain could not save the Stitch credential")
 
 
