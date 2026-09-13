@@ -3,9 +3,18 @@ import json
 import urllib.error
 import unittest
 from email.message import Message
+from pathlib import Path
 
 
 from stitch_harness import mcp_proxy
+from stitch_harness import tool_catalog
+
+
+FIXTURE = Path(__file__).parent / "fixtures" / "stitch-tool-contract.json"
+
+
+def load_tool_fixture():
+    return json.loads(FIXTURE.read_text(encoding="utf-8"))["tools"]
 
 
 class RotatingSecretProvider:
@@ -70,6 +79,51 @@ INITIALIZE = {
 
 
 class McpHttpSessionTests(unittest.TestCase):
+    def test_schema_repair_injects_all_referenced_known_definitions(self):
+        tools = load_tool_fixture()
+
+        repaired = tool_catalog.repair_tool_schemas(tools)
+
+        self.assertEqual(tool_catalog.validate_tool_catalog(repaired), ())
+        definitions = {
+            name
+            for tool in repaired
+            for schema_name in ("inputSchema", "outputSchema")
+            for name in tool[schema_name].get("$defs", {})
+        }
+        self.assertEqual(definitions, {"File", "ScreenInstance", "SelectedScreenInstance"})
+        self.assertNotIn("$defs", tools[0]["inputSchema"])
+
+    def test_catalog_validation_rejects_an_unresolved_local_reference(self):
+        tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
+        tools[0]["inputSchema"]["properties"]["unknown"] = {"$ref": "#/$defs/Missing"}
+
+        errors = tool_catalog.validate_tool_catalog(tools)
+
+        self.assertTrue(any("Missing" in error for error in errors), errors)
+
+    def test_catalog_validation_rejects_a_missing_required_live_tool(self):
+        tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
+        tools = [tool for tool in tools if tool["name"] != "delete_project"]
+
+        errors = tool_catalog.validate_tool_catalog(tools)
+
+        self.assertTrue(any("delete_project" in error for error in errors), errors)
+
+    def test_tool_catalog_rejects_malformed_entries_instead_of_dropping_them(self):
+        tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
+        tools.append({"annotations": {"readOnlyHint": True, "openWorldHint": False}})
+
+        with self.assertRaises(ValueError):
+            tool_catalog.ToolCatalog(tools)
+
+    def test_write_classification_uses_annotations_and_defaults_to_write(self):
+        catalog = tool_catalog.ToolCatalog(tool_catalog.repair_tool_schemas(load_tool_fixture()))
+
+        self.assertFalse(catalog.is_write_tool("list_projects"))
+        self.assertTrue(catalog.is_write_tool("generate_screen_from_text"))
+        self.assertTrue(catalog.is_write_tool("future_tool"))
+
     def test_initialize_injects_key_and_forwards_session(self):
         response = FakeResponse(
             200,
@@ -139,6 +193,21 @@ class McpHttpSessionTests(unittest.TestCase):
 
         self.assertEqual(messages, [{"jsonrpc": "2.0", "id": 2, "result": {"tools": []}}])
 
+    def test_tools_list_repairs_missing_definitions_before_forwarding(self):
+        body = json.dumps(
+            {"jsonrpc": "2.0", "id": 2, "result": {"tools": load_tool_fixture()}}
+        ).encode()
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=FakeOpener([FakeResponse(200, body)]),
+        )
+
+        messages = session.send({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+
+        repaired = messages[0]["result"]["tools"]
+        self.assertEqual(tool_catalog.validate_tool_catalog(repaired), ())
+        self.assertFalse(session.tool_catalog.is_write_tool("get_screen"))
+
     def test_unauthorized_refreshes_secret_once(self):
         opener = FakeOpener(
             [
@@ -153,6 +222,97 @@ class McpHttpSessionTests(unittest.TestCase):
         self.assertEqual(provider.read_count, 2)
         self.assertEqual(len(opener.requests), 2)
         self.assertEqual(opener.requests[1].headers["X-goog-api-key"], "fresh-secret")
+
+    def test_forbidden_does_not_refresh_or_replay(self):
+        opener = FakeOpener([("http-error", 403, b'{"error":"forbidden"}')])
+        provider = RotatingSecretProvider(["test-secret", "must-not-be-read"])
+        session = mcp_proxy.McpHttpSession(provider=provider, opener=opener)
+
+        with self.assertRaisesRegex(mcp_proxy.ProxyError, "permission denied"):
+            session.send(INITIALIZE)
+
+        self.assertEqual(provider.read_count, 1)
+        self.assertEqual(len(opener.requests), 1)
+
+    def test_write_http_502_is_unknown_and_not_retried(self):
+        opener = FakeOpener([("http-error", 502, b'{"error":"upstream"}')])
+        catalog = tool_catalog.ToolCatalog(tool_catalog.repair_tool_schemas(load_tool_fixture()))
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=opener,
+            tool_catalog=catalog,
+        )
+        request = {
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "tools/call",
+            "params": {"name": "generate_screen_from_text", "arguments": {}},
+        }
+
+        with self.assertRaises(mcp_proxy.ProxyError) as raised:
+            session.send(request)
+
+        self.assertIsInstance(raised.exception, mcp_proxy.UnknownWriteResult)
+        self.assertEqual(len(opener.requests), 1)
+
+    def test_write_http_408_is_unknown_and_not_retried(self):
+        opener = FakeOpener([("http-error", 408, b'{"error":"timeout"}')])
+        catalog = tool_catalog.ToolCatalog(tool_catalog.repair_tool_schemas(load_tool_fixture()))
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=opener,
+            tool_catalog=catalog,
+        )
+        request = {
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "tools/call",
+            "params": {"name": "edit_screens", "arguments": {}},
+        }
+
+        with self.assertRaises(mcp_proxy.ProxyError) as raised:
+            session.send(request)
+
+        self.assertIsInstance(raised.exception, mcp_proxy.UnknownWriteResult)
+        self.assertEqual(len(opener.requests), 1)
+
+    def test_read_http_502_is_a_definitive_proxy_failure(self):
+        opener = FakeOpener([("http-error", 502, b'{"error":"upstream"}')])
+        catalog = tool_catalog.ToolCatalog(tool_catalog.repair_tool_schemas(load_tool_fixture()))
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=opener,
+            tool_catalog=catalog,
+        )
+        request = {
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "tools/call",
+            "params": {"name": "list_projects", "arguments": {}},
+        }
+
+        with self.assertRaises(mcp_proxy.ProxyError) as raised:
+            session.send(request)
+
+        self.assertNotIsInstance(raised.exception, mcp_proxy.UnknownWriteResult)
+
+    def test_request_timeout_defaults_to_300_seconds(self):
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=FakeOpener([]),
+        )
+
+        self.assertEqual(session.timeout, 300.0)
+
+    def test_request_timeout_must_stay_within_bounds(self):
+        for invalid in (0, 601):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    mcp_proxy.McpHttpSession(
+                        provider=RotatingSecretProvider(["test-secret"]),
+                        opener=FakeOpener([]),
+                        timeout=invalid,
+                    )
 
     def test_write_timeout_is_unknown_and_not_retried(self):
         opener = FakeOpener([urllib.error.URLError(TimeoutError("timed out"))])

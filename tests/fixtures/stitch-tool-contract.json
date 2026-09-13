@@ -1,0 +1,94 @@
+{
+  "tools": [
+    {
+      "name": "apply_design_system",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"selectedScreenInstances": {"type": "array", "items": {"$ref": "#/$defs/SelectedScreenInstance"}}}, "required": ["selectedScreenInstances"]},
+      "outputSchema": {"type": "object", "properties": {"screens": {"type": "array", "items": {"$ref": "#/$defs/ScreenInstance"}}}}
+    },
+    {
+      "name": "create_design_system",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"projectId": {"type": "string"}}, "required": ["projectId"]},
+      "outputSchema": {"type": "object", "properties": {"assetId": {"type": "string"}}}
+    },
+    {
+      "name": "create_design_system_from_design_md",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"selectedScreenInstance": {"$ref": "#/$defs/SelectedScreenInstance"}}, "required": ["selectedScreenInstance"]},
+      "outputSchema": {"type": "object", "properties": {"assetId": {"type": "string"}}}
+    },
+    {
+      "name": "create_project",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"title": {"type": "string"}}},
+      "outputSchema": {"type": "object", "properties": {"name": {"type": "string"}}}
+    },
+    {
+      "name": "delete_project",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]},
+      "outputSchema": {"type": "object", "properties": {"deleted": {"type": "boolean"}}}
+    },
+    {
+      "name": "edit_screens",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"selectedScreenInstances": {"type": "array", "items": {"$ref": "#/$defs/SelectedScreenInstance"}}}, "required": ["selectedScreenInstances"]},
+      "outputSchema": {"type": "object", "properties": {"screens": {"type": "array", "items": {"$ref": "#/$defs/ScreenInstance"}}}}
+    },
+    {
+      "name": "generate_screen_from_text",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"projectId": {"type": "string"}, "prompt": {"type": "string"}}, "required": ["projectId", "prompt"]},
+      "outputSchema": {"type": "object", "properties": {"screens": {"type": "array", "items": {"$ref": "#/$defs/ScreenInstance"}}}}
+    },
+    {
+      "name": "generate_variants",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"selectedScreenInstances": {"type": "array", "items": {"$ref": "#/$defs/SelectedScreenInstance"}}}, "required": ["selectedScreenInstances"]},
+      "outputSchema": {"type": "object", "properties": {"screens": {"type": "array", "items": {"$ref": "#/$defs/ScreenInstance"}}}}
+    },
+    {
+      "name": "get_project",
+      "annotations": {"openWorldHint": false, "readOnlyHint": true},
+      "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]},
+      "outputSchema": {"type": "object", "properties": {"screenInstances": {"type": "array", "items": {"$ref": "#/$defs/ScreenInstance"}}}}
+    },
+    {
+      "name": "get_screen",
+      "annotations": {"openWorldHint": false, "readOnlyHint": true},
+      "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]},
+      "outputSchema": {"type": "object", "properties": {"htmlCode": {"$ref": "#/$defs/File"}, "screenshot": {"$ref": "#/$defs/File"}}}
+    },
+    {
+      "name": "list_design_systems",
+      "annotations": {"openWorldHint": false, "readOnlyHint": true},
+      "inputSchema": {"type": "object", "properties": {"projectId": {"type": "string"}}, "required": ["projectId"]},
+      "outputSchema": {"type": "object", "properties": {"designSystems": {"type": "array"}}}
+    },
+    {
+      "name": "list_projects",
+      "annotations": {"openWorldHint": false, "readOnlyHint": true},
+      "inputSchema": {"type": "object", "properties": {"filter": {"type": "string"}}},
+      "outputSchema": {"type": "object", "properties": {"projects": {"type": "array"}}}
+    },
+    {
+      "name": "list_screens",
+      "annotations": {"openWorldHint": false, "readOnlyHint": true},
+      "inputSchema": {"type": "object", "properties": {"projectId": {"type": "string"}}, "required": ["projectId"]},
+      "outputSchema": {"type": "object", "properties": {"screens": {"type": "array", "items": {"$ref": "#/$defs/ScreenInstance"}}}}
+    },
+    {
+      "name": "update_design_system",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"assetId": {"type": "string"}}, "required": ["assetId"]},
+      "outputSchema": {"type": "object", "properties": {"assetId": {"type": "string"}}}
+    },
+    {
+      "name": "upload_design_md",
+      "annotations": {"destructiveHint": true, "idempotentHint": false, "openWorldHint": false, "readOnlyHint": false},
+      "inputSchema": {"type": "object", "properties": {"projectId": {"type": "string"}, "designMdBase64": {"type": "string"}}, "required": ["projectId", "designMdBase64"]},
+      "outputSchema": {"type": "object", "properties": {"file": {"$ref": "#/$defs/File"}}}
+    }
+  ]
+}

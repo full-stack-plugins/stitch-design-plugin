@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 import urllib.error
 import urllib.request
@@ -11,10 +12,13 @@ from typing import IO, Iterable
 from urllib.parse import urlsplit
 
 from .secrets import SecretProvider, SecretStoreError, platform_secret_provider
+from .tool_catalog import ToolCatalog
 
 
 STITCH_ENDPOINT = "https://stitch.googleapis.com/mcp"
 PROTOCOL_VERSION = "2025-06-18"
+MIN_REQUEST_TIMEOUT = 1.0
+MAX_REQUEST_TIMEOUT = 600.0
 
 
 class ProxyError(RuntimeError):
@@ -32,17 +36,6 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def _default_opener():
     return urllib.request.build_opener(_NoRedirect())
-
-
-def _is_write(message: dict) -> bool:
-    if message.get("method") != "tools/call":
-        return False
-    params = message.get("params")
-    if not isinstance(params, dict):
-        return True
-    name = str(params.get("name", "")).lower()
-    read_markers = ("get_", "list_", "search_", "read_", "inspect_")
-    return not name.startswith(read_markers)
 
 
 def _json_messages(payload: bytes) -> list[dict]:
@@ -84,8 +77,9 @@ class McpHttpSession:
     provider: SecretProvider = field(repr=False)
     endpoint: str = STITCH_ENDPOINT
     opener: object | None = field(default=None, repr=False)
-    timeout: float = 60.0
+    timeout: float = 300.0
     session_id: str | None = None
+    tool_catalog: ToolCatalog = field(default_factory=ToolCatalog, repr=False)
     _cached_secret: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -94,8 +88,46 @@ class McpHttpSession:
             raise ValueError("Stitch endpoint must be the official HTTPS endpoint or loopback")
         if self.endpoint == STITCH_ENDPOINT and parsed.scheme != "https":
             raise ValueError("official Stitch endpoint must use HTTPS")
+        if (
+            isinstance(self.timeout, bool)
+            or not isinstance(self.timeout, (int, float))
+            or not math.isfinite(self.timeout)
+            or not MIN_REQUEST_TIMEOUT <= self.timeout <= MAX_REQUEST_TIMEOUT
+        ):
+            raise ValueError(
+                f"Stitch timeout must be between {MIN_REQUEST_TIMEOUT:g} and "
+                f"{MAX_REQUEST_TIMEOUT:g} seconds"
+            )
+        self.timeout = float(self.timeout)
         if self.opener is None:
             self.opener = _default_opener()
+
+    def _is_write(self, message: dict) -> bool:
+        if message.get("method") != "tools/call":
+            return False
+        params = message.get("params")
+        if not isinstance(params, dict):
+            return True
+        name = params.get("name")
+        if not isinstance(name, str) or not name:
+            return True
+        return self.tool_catalog.is_write_tool(name)
+
+    def _repair_tool_list(self, request: dict, messages: list[dict]) -> list[dict]:
+        if request.get("method") != "tools/list":
+            return messages
+        params = request.get("params")
+        if not isinstance(params, dict) or "cursor" not in params:
+            self.tool_catalog.clear()
+        for message in messages:
+            result = message.get("result")
+            if not isinstance(result, dict) or not isinstance(result.get("tools"), list):
+                continue
+            try:
+                result["tools"] = self.tool_catalog.extend(result["tools"])
+            except ValueError as error:
+                raise ProxyError("Stitch returned duplicate tool metadata") from error
+        return messages
 
     def _request(self, message: dict, secret: str):
         headers = {
@@ -135,19 +167,27 @@ class McpHttpSession:
                         return []
                     content_type = response.headers.get_content_type()
                     if content_type == "text/event-stream":
-                        return _sse_messages(payload)
-                    return _json_messages(payload)
+                        return self._repair_tool_list(message, _sse_messages(payload))
+                    return self._repair_tool_list(message, _json_messages(payload))
             except urllib.error.HTTPError as error:
-                if error.code in {401, 403} and auth_attempt == 0:
+                if error.code == 401 and auth_attempt == 0:
                     error.close()
                     continue
-                if error.code in {401, 403}:
+                if error.code == 401:
                     error.close()
                     raise ProxyError("Stitch authentication failed after one credential refresh") from error
+                if error.code == 403:
+                    error.close()
+                    raise ProxyError("Stitch permission denied") from error
+                if (error.code == 408 or 500 <= error.code <= 599) and self._is_write(message):
+                    error.close()
+                    raise UnknownWriteResult(
+                        "Stitch write result is unknown; reconcile with read tools before retrying"
+                    ) from error
                 error.close()
                 raise ProxyError(f"Stitch returned HTTP {error.code}") from error
             except (urllib.error.URLError, TimeoutError, OSError) as error:
-                if _is_write(message):
+                if self._is_write(message):
                     raise UnknownWriteResult(
                         "Stitch write result is unknown; reconcile with read tools before retrying"
                     ) from error
