@@ -6,7 +6,7 @@ import os
 import shutil
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from .contracts import PageSpec
 from .state import InvalidTransition, RunState
@@ -29,6 +29,27 @@ class ArchiveManager:
         self.project_root = project_root.resolve()
         self.store = store or RunStore()
 
+    def _archive_destination(self, archive: str, run_id: str) -> Path:
+        windows_path = PureWindowsPath(archive)
+        archive_path = Path(archive)
+        if (
+            not archive
+            or "\\" in archive
+            or windows_path.is_absolute()
+            or bool(windows_path.drive)
+            or archive_path.is_absolute()
+            or ".." in archive_path.parts
+        ):
+            raise ValueError("archive destination must be contained under the project root")
+        if not run_id or "/" in run_id or "\\" in run_id or ".." in run_id:
+            raise ValueError("archive destination must be contained under the project root")
+        destination = self.project_root / archive_path / run_id
+        try:
+            destination.resolve(strict=False).relative_to(self.project_root)
+        except ValueError as error:
+            raise ValueError("archive destination must be contained under the project root") from error
+        return destination
+
     def archive(self, run: Run, spec: PageSpec) -> ArchiveResult:
         if run.state != RunState.APPROVED:
             raise InvalidTransition("only an approved run can be archived")
@@ -39,7 +60,7 @@ class ArchiveManager:
         if not approval.valid:
             raise ValueError("approval verification failed before archive: " + "; ".join(approval.errors))
         approved_hashes = self.store.required_approval_artifacts(run)
-        destination = self.project_root / spec.archive / run.run_id
+        destination = self._archive_destination(spec.archive, run.run_id)
         if destination.exists():
             raise FileExistsError(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -55,13 +76,13 @@ class ArchiveManager:
                 f"# {spec.title}\n\n- Run: `{run.run_id}`\n- Canvas: {spec.canvas.width}×{spec.canvas.height}\n- Theme: `{spec.theme}`\n",
                 encoding="utf-8",
             )
-            archived_run = Run(
-                run.run_id,
-                run.page_id,
-                temporary,
-                run.state,
-                run.latest_receipt_sha256,
-            )
+            archived_run = self.store.load_from_path(temporary, run.run_id)
+            if (
+                archived_run.page_id != run.page_id
+                or archived_run.state != run.state
+                or archived_run.latest_receipt_sha256 != run.latest_receipt_sha256
+            ):
+                raise ValueError("archive copy manifest does not match the approved run")
             archived_chain = self.store.verify_chain(archived_run)
             archived_approval = self.store.verify_approval(archived_run)
             if not archived_chain.valid or not archived_approval.valid:
@@ -70,6 +91,9 @@ class ArchiveManager:
                 if sha256_file(temporary / relative) != digest:
                     raise ValueError(f"archive copy hash mismatch: {relative}")
             temporary.replace(destination)
+            published_run = self.store.load_from_path(destination, run.run_id)
+            if not self.store.verify_chain(published_run).valid or not self.store.verify_approval(published_run).valid:
+                raise ValueError("published archive failed receipt or approval verification")
         finally:
             if temporary.exists():
                 shutil.rmtree(temporary)

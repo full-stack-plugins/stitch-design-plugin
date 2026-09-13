@@ -233,19 +233,35 @@ class RunStore:
         return replace(run, latest_receipt_sha256=receipt_hash)
 
     def load(self, project_root: Path, run_id: str) -> Run:
+        return self.load_from_path(project_root / ".stitch" / "runs" / run_id, run_id)
+
+    def load_from_path(self, run_path: Path, run_id: str) -> Run:
+        """Load and validate a run manifest from an explicit run directory."""
+
         if not run_id or "/" in run_id or "\\" in run_id or ".." in run_id:
             raise ValueError("run_id must not contain a path")
-        run_path = project_root / ".stitch" / "runs" / run_id
         manifest_path = run_path / "manifest.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if payload.get("schema_version") != 1:
+            raise ValueError("run manifest schema version mismatch")
         if payload.get("run_id") != run_id:
             raise ValueError("run manifest identity mismatch")
+        page_id = payload.get("page_id")
+        if not isinstance(page_id, str) or not page_id:
+            raise ValueError("run manifest page identity is missing")
+        latest_receipt = payload.get("latest_receipt_sha256")
+        if latest_receipt is not None and (
+            not isinstance(latest_receipt, str)
+            or len(latest_receipt) != 64
+            or any(character not in "0123456789abcdef" for character in latest_receipt)
+        ):
+            raise ValueError("run manifest latest receipt hash is invalid")
         return Run(
             run_id,
-            str(payload["page_id"]),
+            page_id,
             run_path,
             RunState(payload["state"]),
-            payload.get("latest_receipt_sha256"),
+            latest_receipt,
         )
 
     def update_state(self, run: Run, target: RunState) -> Run:
@@ -320,6 +336,11 @@ class RunStore:
         missing_comparisons = [path for path in COMPARISON_ARTIFACTS if path not in visual_by_path]
         if missing_comparisons:
             raise ValueError("approval requires all three comparison images")
+        if any(
+            not str(visual_by_path[path].get("mime", "")).startswith("image/")
+            for path in COMPARISON_ARTIFACTS
+        ):
+            raise ValueError("approval comparison artifacts require an image MIME")
 
         required = [art_images[0], roundtrip_html[0], stitch_images[0]]
         required.extend(visual_by_path[path] for path in COMPARISON_ARTIFACTS)

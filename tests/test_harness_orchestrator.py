@@ -75,17 +75,25 @@ class HarnessTests(unittest.TestCase):
         )
         return evidence
 
-    def awaiting_approval_with_artifacts(self):
+    def awaiting_approval_with_artifacts(
+        self,
+        *,
+        comparison_mime="image/png",
+        comparison_paths=(
+            "comparison/side-by-side.png",
+            "comparison/overlay.png",
+            "comparison/diff-heatmap.png",
+        ),
+    ):
         started = self.harness.start(self.project, "login", now=FIXED_TIME)
         run = self.harness.store.load(self.project, started.run_id)
         artifacts = {
             "artifacts/art.png": b"accepted-art",
             "artifacts/roundtrip.html": b"<main>accepted</main>",
             "artifacts/stitch-final.png": b"stitch-render",
-            "comparison/side-by-side.png": b"side-by-side",
-            "comparison/overlay.png": b"overlay",
-            "comparison/diff-heatmap.png": b"difference",
         }
+        for index, relative in enumerate(comparison_paths):
+            artifacts[relative] = f"comparison-{index}".encode()
         for relative, content in artifacts.items():
             path = run.path / relative
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -109,12 +117,8 @@ class HarnessTests(unittest.TestCase):
         run = self.harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "editability"))
         run = self.harness.store.update_state(run, RunState.EDITABILITY_VERIFIED)
         comparisons = [
-            ArtifactRecord.from_path(run.path, run.path / relative, "image/png")
-            for relative in (
-                "comparison/side-by-side.png",
-                "comparison/overlay.png",
-                "comparison/diff-heatmap.png",
-            )
+            ArtifactRecord.from_path(run.path, run.path / relative, comparison_mime)
+            for relative in comparison_paths
         ]
         run = self.harness.store.append_receipt(
             run, Receipt.passed(run.run_id, run.page_id, "visual-judge", outputs=comparisons)
@@ -224,6 +228,24 @@ class HarnessTests(unittest.TestCase):
         self.assertFalse(verification.valid)
         self.assertTrue(verification.approval_invalidated)
         self.assertIn("approved artifact hash mismatch", " ".join(verification.errors))
+
+    def test_required_comparisons_must_have_image_mime(self):
+        run = self.awaiting_approval_with_artifacts(comparison_mime="text/plain")
+
+        with self.assertRaisesRegex(ValueError, "image MIME"):
+            self.harness.store.required_approval_artifacts(run)
+
+    def test_required_comparisons_must_use_the_three_expected_paths(self):
+        run = self.awaiting_approval_with_artifacts(
+            comparison_paths=(
+                "comparison/side-by-side.png",
+                "artifacts/overlay.png",
+                "comparison/diff-heatmap.png",
+            )
+        )
+
+        with self.assertRaisesRegex(ValueError, "three comparison images"):
+            self.harness.store.required_approval_artifacts(run)
 
     def test_imagegen_wrong_canvas_does_not_advance(self):
         run = self.run_at_state(RunState.SOURCE_ACCEPTED)

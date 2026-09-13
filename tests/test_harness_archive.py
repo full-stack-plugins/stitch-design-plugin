@@ -1,6 +1,8 @@
+import json
 import os
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -112,8 +114,38 @@ class ArchiveTests(unittest.TestCase):
         result = self.manager.archive(run, self.spec)
 
         self.assertTrue((result.destination / "manifest.json").is_file())
+        archived = RunStore().load_from_path(result.destination, run.run_id)
+        self.assertEqual(archived.state, RunState.APPROVED)
+        self.assertEqual(archived.latest_receipt_sha256, run.latest_receipt_sha256)
         for relative, digest in RunStore().required_approval_artifacts(run).items():
             self.assertEqual(sha256_file(result.destination / relative), digest)
+
+    def test_archive_rejects_stale_copied_manifest(self):
+        run = self.approved_run()
+        manifest_path = run.path / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["latest_receipt_sha256"] = "0" * 64
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "manifest|receipt chain"):
+            self.manager.archive(run, self.spec)
+
+    def test_archive_rejects_windows_style_archive_paths(self):
+        run = self.approved_run()
+        for archive in (r"nested\archive", r"C:archive", r"C:\outside\archive", r"\\server\share"):
+            with self.subTest(archive=archive):
+                unsafe_spec = replace(self.spec, archive=archive)
+                with self.assertRaisesRegex(ValueError, "contained"):
+                    self.manager.archive(run, unsafe_spec)
+
+    def test_archive_rejects_symlink_escape(self):
+        run = self.approved_run()
+        with tempfile.TemporaryDirectory() as outside_directory:
+            (self.project / "escaped").symlink_to(Path(outside_directory), target_is_directory=True)
+            unsafe_spec = replace(self.spec, archive="escaped/archive")
+
+            with self.assertRaisesRegex(ValueError, "contained"):
+                self.manager.archive(run, unsafe_spec)
 
 
 if __name__ == "__main__":
