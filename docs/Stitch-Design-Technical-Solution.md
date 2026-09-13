@@ -28,6 +28,7 @@
 | `stitch_harness/` | Contracts, proxy, gates, receipts, state and archive |
 | `skills/` | Workflow and conversion contracts |
 | `scripts/stitch_setup.py` | Setup, check, run, CLI, desktop, UI server |
+| `scripts/live_canary.py` | Bounded remote Canary, sanitized evidence, single-attempt cleanup |
 | `assets/setup/` | Single-card onboarding page |
 | `scripts/validate_distribution.py` | Package contract and secret-like pattern scan |
 | `tests/` | Distribution, credential, HTTP security, and UI structure tests |
@@ -179,8 +180,11 @@ python scripts/scan_secrets.py .
 find scripts skills -type f -name '*.sh' -exec shellcheck {} +
 python -m compileall -q scripts stitch_harness skills
 actionlint .github/workflows/validate.yml
+actionlint .github/workflows/live-canary.yml
 git diff --check
 ```
+
+The live workflow is intentionally excluded from push and pull-request triggers. Authentication is mapped only from the `STITCH_API_KEY` repository secret. Opaque identifiers remain in a private `0600` runner state; the final `always()` step is the sole delete site and verifies absence with `list_projects`. The prepared contract and pending external gates are recorded in [live-canary-acceptance.md](live-canary-acceptance.md).
 
 Release proof for 0.4.0:
 
@@ -203,4 +207,4 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 2.5.0 · **Status:** Aligned with local 0.6.0 candidate
+**Document version:** 2.6.0 · **Status:** Aligned with local 0.6.0 candidate and Canary repository preparation

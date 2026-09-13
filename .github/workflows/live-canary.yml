@@ -1,0 +1,49 @@
+name: Live Canary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stitch-design-live-canary
+  cancel-in-progress: false
+
+jobs:
+  live-canary:
+    name: Controlled Stitch live canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned test and Harness dependencies
+        run: python -m pip install -r requirements-test.txt -r requirements-harness.txt
+      - name: Require repository credential
+        shell: bash
+        env:
+          STITCH_API_KEY: ${{ secrets.STITCH_API_KEY }}
+        run: test -n "${STITCH_API_KEY:-}" || { echo 'Required repository secret is not configured.' >&2; exit 2; }
+      - name: Run bounded canary chain
+        env:
+          STITCH_API_KEY: ${{ secrets.STITCH_API_KEY }}
+        run: >-
+          python scripts/live_canary.py run
+          --state "$RUNNER_TEMP/stitch-live-canary/private-state.json"
+          --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"
+          --workspace "$RUNNER_TEMP/stitch-live-canary/workspace"
+      - name: Validate sanitized evidence contract
+        run: >-
+          python scripts/live_canary.py verify-evidence
+          --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"
+      - name: Cleanup remote project and prove absence
+        if: ${{ always() }}
+        env:
+          STITCH_API_KEY: ${{ secrets.STITCH_API_KEY }}
+        run: >-
+          python scripts/live_canary.py cleanup
+          --state "$RUNNER_TEMP/stitch-live-canary/private-state.json"
+          --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"

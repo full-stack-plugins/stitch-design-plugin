@@ -28,6 +28,7 @@
 | `stitch_harness/` | 契约、代理、门禁、receipts、状态和归档 |
 | `skills/` | 工作流和转换合同 |
 | `scripts/stitch_setup.py` | setup/check/run/cli/desktop/ui |
+| `scripts/live_canary.py` | 有界远端 Canary、脱敏证据、单次清理尝试 |
 | `assets/setup/` | 中央单卡片首次设置页 |
 | `scripts/validate_distribution.py` | 包合同和秘密模式扫描 |
 | `tests/` | 分发、凭据、HTTP 安全和 UI 结构测试 |
@@ -175,8 +176,11 @@ python scripts/scan_secrets.py .
 find scripts skills -type f -name '*.sh' -exec shellcheck {} +
 python -m compileall -q scripts stitch_harness skills
 actionlint .github/workflows/validate.yml
+actionlint .github/workflows/live-canary.yml
 git diff --check
 ```
+
+真实 workflow 有意不配置 push 与 pull request 触发。认证只映射 `STITCH_API_KEY` Repository Secret；opaque ID 仅保存在 runner 内 `0600` 私有状态。最后一个 `always()` 步骤是唯一删除入口，并通过 `list_projects` 确认目标不存在。仓库准备与待补外部门禁见 [真实 Canary 验收台账](live-canary-acceptance.zh_CN.md)。
 
 0.4.0 证据：提交/标签/远端 SHA 均为 `6cf533ee884157a5a265c6200bbff6842b62c0f5`；16 项测试、40 个 Skills、公开 Marketplace 安装、安装产物对比，以及 390×884、768×1024、1280×1024 视觉检查通过。
 
@@ -192,4 +196,4 @@ git diff --check
 
 ---
 
-**文档版本**：2.5.0 · **状态**：与 0.6.0 本地候选对齐
+**文档版本**：2.6.0 · **状态**：与 0.6.0 本地候选及 Canary 仓库准备对齐

@@ -308,6 +308,10 @@ ADR summary:
 
 Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 automated tests, validation of 40 Skills, Skill structure validation, ShellCheck, secret-pattern scanning, and visual checks at 390×884, 768×1024, and 1280×1024. These gates prove package and setup behavior; they do not prove continuous Google Stitch availability.
 
+### 10.1 Controlled 0.6.0 Canary boundary
+
+The manual live-canary workflow separates public evidence from the private cleanup state. Only the runner-private `0600` state holds project/screen/design-system identifiers. The log-safe evidence contains booleans, counts, hashes, and timestamps. The final `always()` step checkpoints a single delete attempt and performs a read-only absence check. See the [acceptance register](live-canary-acceptance.md). This control is prepared offline but has not been run remotely, so 0.6.0 remains a local release candidate.
+
 ---
 
-**Document version:** 2.5.0 · **Status:** Aligned with local 0.6.0 candidate · **Updated:** 2026-09-14
+**Document version:** 2.6.0 · **Status:** Aligned with local 0.6.0 candidate and Canary repository preparation · **Updated:** 2026-09-14
