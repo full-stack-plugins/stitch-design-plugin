@@ -17,6 +17,22 @@ _MISSING_GLOBAL_MCP = re.compile(
     r"No MCP server named ['\"]stitch['\"] found\.\s*$",
     re.IGNORECASE,
 )
+_PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+_STDIO_FIELDS = frozenset(
+    {"enabled", "transport", "command", "args", "cwd", "env", "remove"}
+)
+_HTTP_FIELDS = frozenset(
+    {
+        "enabled",
+        "transport",
+        "url",
+        "bearer_token_env_var",
+        "http_headers",
+        "env_http_headers",
+        "http_headers_helper",
+        "remove",
+    }
+)
 _SECRET_ENVIRONMENT_MARKERS = (
     "ACCESS_KEY",
     "API_KEY",
@@ -48,6 +64,62 @@ def _codex_cli_environment() -> dict[str, str]:
 def _global_mcp_is_absent(result: subprocess.CompletedProcess[str]) -> bool:
     output = f"{result.stdout}\n{result.stderr}".strip()
     return result.returncode == 1 and _MISSING_GLOBAL_MCP.search(output) is not None
+
+
+def _parse_mcp_registration(result: subprocess.CompletedProcess[str]) -> dict[str, str] | None:
+    if result.returncode != 0 or result.stderr.strip():
+        return None
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    if not lines or lines[0].strip() != "stitch":
+        return None
+    fields: dict[str, str] = {}
+    for line in lines[1:]:
+        if not line[:1].isspace() or ":" not in line:
+            return None
+        name, value = line.strip().split(":", 1)
+        if not name or name in fields or not value.strip():
+            return None
+        fields[name] = value.strip()
+    transport = fields.get("transport")
+    required_fields = _STDIO_FIELDS if transport == "stdio" else _HTTP_FIELDS
+    if transport not in {"stdio", "streamable_http"} or set(fields) != required_fields:
+        return None
+    if fields["enabled"] not in {"true", "false"}:
+        return None
+    return fields
+
+
+def _is_plugin_owned_stdio(fields: dict[str, str]) -> bool:
+    if (
+        fields.get("enabled") != "true"
+        or fields.get("transport") != "stdio"
+        or fields.get("command") not in {"python", "python3"}
+        or fields.get("args") != "scripts/stitch_mcp_proxy.py"
+        or fields.get("env") != "-"
+    ):
+        return False
+    configured_cwd = Path(fields["cwd"]).expanduser()
+    if not configured_cwd.is_absolute():
+        return False
+    try:
+        resolved_cwd = configured_cwd.resolve()
+        resolved_cwd.relative_to(_PLUGIN_ROOT)
+    except (OSError, RuntimeError, ValueError):
+        return False
+    configured_script = (resolved_cwd / fields["args"]).resolve()
+    expected_script = (_PLUGIN_ROOT / "scripts" / "stitch_mcp_proxy.py").resolve()
+    return configured_script == expected_script
+
+
+def _mcp_registration_status(result: subprocess.CompletedProcess[str]) -> str:
+    if _global_mcp_is_absent(result):
+        return "absent"
+    fields = _parse_mcp_registration(result)
+    if fields is None:
+        return "invalid"
+    if _is_plugin_owned_stdio(fields):
+        return "plugin"
+    return "conflict"
 
 
 def _response_for_id(responses: list[dict], identifier: int) -> dict | None:
@@ -180,12 +252,13 @@ def default_preflight(_project_root: Path) -> tuple[str, ...]:
     except OSError:
         errors.append("Codex global MCP configuration could not be read")
         return tuple(errors)
-    if global_mcp.returncode == 0:
+    registration_status = _mcp_registration_status(global_mcp)
+    if registration_status == "conflict":
         errors.append(
             "separate global Stitch MCP detected; run `codex mcp remove stitch` and retry"
         )
         return tuple(errors)
-    if not _global_mcp_is_absent(global_mcp):
+    if registration_status == "invalid":
         errors.append("Codex global MCP configuration could not be read")
         return tuple(errors)
     try:

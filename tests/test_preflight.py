@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from stitch_harness import preflight
 from stitch_harness.preflight import default_preflight, stitch_read_probe
 
 
@@ -191,7 +192,21 @@ class DefaultPreflightTests(unittest.TestCase):
     def test_separate_global_stitch_mcp_is_a_precise_preflight_failure(self):
         provider = mock.Mock()
         provider.get.return_value = "test-secret"
-        global_result = SimpleNamespace(returncode=0, stdout="stitch\n enabled: true\n", stderr="")
+        global_result = SimpleNamespace(
+            returncode=0,
+            stdout=(
+                "stitch\n"
+                "  enabled: true\n"
+                "  transport: streamable_http\n"
+                "  url: https://stitch.googleapis.com/mcp\n"
+                "  bearer_token_env_var: -\n"
+                "  http_headers: -\n"
+                "  env_http_headers: -\n"
+                "  http_headers_helper: <redacted>\n"
+                "  remove: codex mcp remove stitch\n"
+            ),
+            stderr="",
+        )
 
         with mock.patch(
             "stitch_harness.preflight.platform_secret_provider", return_value=provider
@@ -213,6 +228,112 @@ class DefaultPreflightTests(unittest.TestCase):
             check=False,
             env=mock.ANY,
         )
+
+    def test_plugin_owned_stdio_mcp_continues_with_plugin_and_read_checks(self):
+        provider = mock.Mock()
+        provider.get.return_value = "test-secret"
+        plugin_root = Path(preflight.__file__).resolve().parents[1]
+        owned = SimpleNamespace(
+            returncode=0,
+            stdout=(
+                "stitch\n"
+                "  enabled: true\n"
+                "  transport: stdio\n"
+                "  command: python3\n"
+                "  args: scripts/stitch_mcp_proxy.py\n"
+                f"  cwd: {plugin_root}/.\n"
+                "  env: -\n"
+                "  remove: codex mcp remove stitch\n"
+            ),
+            stderr="",
+        )
+        plugins = SimpleNamespace(
+            returncode=0,
+            stdout="stitch-design@0.5.2 enabled\n",
+            stderr="",
+        )
+
+        with mock.patch(
+            "stitch_harness.preflight.platform_secret_provider", return_value=provider
+        ), mock.patch(
+            "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+        ), mock.patch(
+            "stitch_harness.preflight.subprocess.run", side_effect=[owned, plugins]
+        ), mock.patch(
+            "stitch_harness.preflight.stitch_read_probe", return_value=()
+        ):
+            errors = default_preflight(Path("."))
+
+        self.assertEqual(errors, ())
+
+    def test_mismatched_stdio_command_or_cwd_is_a_conflict(self):
+        plugin_root = Path(preflight.__file__).resolve().parents[1]
+        mismatches = (
+            ("python-malicious", f"{plugin_root}/."),
+            ("python3", f"{plugin_root.parent}/other-plugin"),
+        )
+        for command, cwd in mismatches:
+            with self.subTest(command=command, cwd=cwd):
+                provider = mock.Mock()
+                provider.get.return_value = "test-secret"
+                result = SimpleNamespace(
+                    returncode=0,
+                    stdout=(
+                        "stitch\n"
+                        "  enabled: true\n"
+                        "  transport: stdio\n"
+                        f"  command: {command}\n"
+                        "  args: scripts/stitch_mcp_proxy.py\n"
+                        f"  cwd: {cwd}\n"
+                        "  env: -\n"
+                        "  remove: codex mcp remove stitch\n"
+                    ),
+                    stderr="",
+                )
+
+                with mock.patch(
+                    "stitch_harness.preflight.platform_secret_provider", return_value=provider
+                ), mock.patch(
+                    "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+                ), mock.patch(
+                    "stitch_harness.preflight.subprocess.run", return_value=result
+                ):
+                    errors = default_preflight(Path("."))
+
+                self.assertEqual(
+                    errors,
+                    (
+                        "separate global Stitch MCP detected; "
+                        "run `codex mcp remove stitch` and retry",
+                    ),
+                )
+
+    def test_malformed_successful_mcp_output_fails_closed_without_echoing_it(self):
+        provider = mock.Mock()
+        provider.get.return_value = "test-secret"
+        malformed = SimpleNamespace(
+            returncode=0,
+            stdout=(
+                "stitch\n"
+                "  enabled: true\n"
+                "  transport: stdio\n"
+                "  command: python3\n"
+                "  credential-like-private-detail\n"
+            ),
+            stderr="",
+        )
+
+        with mock.patch(
+            "stitch_harness.preflight.platform_secret_provider", return_value=provider
+        ), mock.patch(
+            "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+        ), mock.patch(
+            "stitch_harness.preflight.subprocess.run", return_value=malformed
+        ):
+            errors = default_preflight(Path("."))
+
+        self.assertEqual(errors, ("Codex global MCP configuration could not be read",))
+        self.assertNotIn("private-detail", " ".join(errors))
 
     def test_absent_global_mcp_continues_with_plugin_and_read_checks(self):
         provider = mock.Mock()
