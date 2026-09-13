@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Iterable
 from typing import Any
+from urllib.parse import unquote
 
 
 REQUIRED_TOOL_NAMES = frozenset(
@@ -107,6 +108,56 @@ def _referenced_definition_names(schema: dict[str, Any]) -> set[str]:
     return names
 
 
+def _local_references(schema: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(
+        reference
+        for node in _walk(schema)
+        if isinstance((reference := node.get("$ref")), str) and reference.startswith("#")
+    )
+
+
+def _decode_pointer_token(token: str) -> str | None:
+    decoded: list[str] = []
+    index = 0
+    while index < len(token):
+        character = token[index]
+        if character != "~":
+            decoded.append(character)
+            index += 1
+            continue
+        if index + 1 >= len(token) or token[index + 1] not in {"0", "1"}:
+            return None
+        decoded.append("~" if token[index + 1] == "0" else "/")
+        index += 2
+    return "".join(decoded)
+
+
+def _resolve_local_pointer(schema: dict[str, Any], reference: str) -> tuple[bool, Any]:
+    fragment = unquote(reference[1:])
+    if not fragment:
+        return True, schema
+    if not fragment.startswith("/"):
+        return False, None
+    target: Any = schema
+    for raw_token in fragment[1:].split("/"):
+        token = _decode_pointer_token(raw_token)
+        if token is None:
+            return False, None
+        if isinstance(target, dict):
+            if token not in target:
+                return False, None
+            target = target[token]
+            continue
+        if isinstance(target, list) and token.isdigit():
+            item_index = int(token)
+            if item_index >= len(target):
+                return False, None
+            target = target[item_index]
+            continue
+        return False, None
+    return True, target
+
+
 def repair_tool_schemas(tools: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     """Copy tools and inject definitions omitted by the upstream catalog."""
 
@@ -166,11 +217,10 @@ def validate_tool_catalog(tools: Iterable[dict[str, Any]]) -> tuple[str, ...]:
             if not isinstance(definitions, dict):
                 errors.append(f"{name}: {schema_name} $defs must be an object")
                 continue
-            for referenced in sorted(_referenced_definition_names(schema)):
-                if referenced not in definitions:
-                    errors.append(
-                        f"{name}: {schema_name} has unresolved local definition {referenced}"
-                    )
+            for reference in sorted(_local_references(schema)):
+                resolved, target = _resolve_local_pointer(schema, reference)
+                if not resolved or not isinstance(target, dict):
+                    errors.append(f"{name}: {schema_name} has invalid local $ref {reference}")
 
     seen: set[str] = set()
     duplicates: list[str] = []

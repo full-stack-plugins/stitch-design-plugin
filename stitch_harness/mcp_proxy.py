@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import http.client
 import json
 import math
 import sys
@@ -186,6 +187,12 @@ class McpHttpSession:
                     ) from error
                 error.close()
                 raise ProxyError(f"Stitch returned HTTP {error.code}") from error
+            except http.client.IncompleteRead as error:
+                if self._is_write(message):
+                    raise UnknownWriteResult(
+                        "Stitch write result is unknown; reconcile with read tools before retrying"
+                    ) from error
+                raise ProxyError("Stitch returned a truncated response") from error
             except (urllib.error.URLError, TimeoutError, OSError) as error:
                 if self._is_write(message):
                     raise UnknownWriteResult(

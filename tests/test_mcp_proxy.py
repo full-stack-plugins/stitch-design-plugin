@@ -1,3 +1,4 @@
+import http.client
 import io
 import json
 import urllib.error
@@ -32,15 +33,26 @@ class RotatingSecretProvider:
 
 
 class FakeResponse:
-    def __init__(self, status, body=b"", *, content_type="application/json", headers=None):
+    def __init__(
+        self,
+        status,
+        body=b"",
+        *,
+        content_type="application/json",
+        headers=None,
+        read_error=None,
+    ):
         self.status = status
         self._body = body
+        self._read_error = read_error
         self.headers = Message()
         self.headers["Content-Type"] = content_type
         for key, value in (headers or {}).items():
             self.headers[key] = value
 
     def read(self):
+        if self._read_error is not None:
+            raise self._read_error
         return self._body
 
     def __enter__(self):
@@ -109,6 +121,38 @@ class McpHttpSessionTests(unittest.TestCase):
         errors = tool_catalog.validate_tool_catalog(tools)
 
         self.assertTrue(any("delete_project" in error for error in errors), errors)
+
+    def test_catalog_validation_resolves_the_complete_local_pointer(self):
+        tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
+        schema = tools[0]["inputSchema"]
+        schema["$defs"]["Container"] = {"type": "object", "properties": {}}
+        schema["properties"]["broken"] = {
+            "$ref": "#/$defs/Container/properties/missing"
+        }
+
+        errors = tool_catalog.validate_tool_catalog(tools)
+
+        self.assertTrue(any("/properties/missing" in error for error in errors), errors)
+
+    def test_catalog_validation_checks_non_definitions_local_pointers(self):
+        tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
+        tools[0]["inputSchema"]["properties"]["broken"] = {
+            "$ref": "#/properties/missing"
+        }
+
+        errors = tool_catalog.validate_tool_catalog(tools)
+
+        self.assertTrue(any("#/properties/missing" in error for error in errors), errors)
+
+    def test_catalog_validation_rejects_a_malformed_referenced_definition(self):
+        tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
+        schema = tools[0]["inputSchema"]
+        schema["$defs"]["Malformed"] = "not-a-schema"
+        schema["properties"]["broken"] = {"$ref": "#/$defs/Malformed"}
+
+        errors = tool_catalog.validate_tool_catalog(tools)
+
+        self.assertTrue(any("Malformed" in error for error in errors), errors)
 
     def test_tool_catalog_rejects_malformed_entries_instead_of_dropping_them(self):
         tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
@@ -296,6 +340,61 @@ class McpHttpSessionTests(unittest.TestCase):
 
         self.assertNotIsInstance(raised.exception, mcp_proxy.UnknownWriteResult)
 
+    def test_truncated_read_response_is_a_sanitized_proxy_failure(self):
+        catalog = tool_catalog.ToolCatalog(tool_catalog.repair_tool_schemas(load_tool_fixture()))
+        opener = FakeOpener(
+            [FakeResponse(200, read_error=http.client.IncompleteRead(b'{"partial":', 20))]
+        )
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=opener,
+            tool_catalog=catalog,
+        )
+        request = {
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "tools/call",
+            "params": {"name": "list_projects", "arguments": {}},
+        }
+
+        try:
+            session.send(request)
+        except Exception as error:  # noqa: BLE001 - the regression proves public containment
+            raised = error
+        else:
+            self.fail("truncated response must not be accepted")
+
+        self.assertIsInstance(raised, mcp_proxy.ProxyError)
+        self.assertNotIsInstance(raised, mcp_proxy.UnknownWriteResult)
+        self.assertNotIn("partial", str(raised))
+
+    def test_truncated_write_response_has_unknown_result(self):
+        catalog = tool_catalog.ToolCatalog(tool_catalog.repair_tool_schemas(load_tool_fixture()))
+        opener = FakeOpener(
+            [FakeResponse(200, read_error=http.client.IncompleteRead(b'{"partial":', 20))]
+        )
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=opener,
+            tool_catalog=catalog,
+        )
+        request = {
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "tools/call",
+            "params": {"name": "edit_screens", "arguments": {}},
+        }
+
+        try:
+            session.send(request)
+        except Exception as error:  # noqa: BLE001 - the regression proves public containment
+            raised = error
+        else:
+            self.fail("truncated response must not be accepted")
+
+        self.assertIsInstance(raised, mcp_proxy.UnknownWriteResult)
+
+
     def test_request_timeout_defaults_to_300_seconds(self):
         session = mcp_proxy.McpHttpSession(
             provider=RotatingSecretProvider(["test-secret"]),
@@ -344,6 +443,38 @@ class StdioServerTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(payload["error"]["code"], -32700)
         self.assertNotIn("secret-not-json", output_stream.getvalue())
+
+    def test_truncated_upstream_response_never_crashes_stdio(self):
+        catalog = tool_catalog.ToolCatalog(tool_catalog.repair_tool_schemas(load_tool_fixture()))
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=FakeOpener(
+                [FakeResponse(200, read_error=http.client.IncompleteRead(b"partial", 20))]
+            ),
+            tool_catalog=catalog,
+        )
+        input_stream = io.StringIO(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 7,
+                    "method": "tools/call",
+                    "params": {"name": "edit_screens", "arguments": {}},
+                }
+            )
+            + "\n"
+        )
+        output_stream = io.StringIO()
+
+        try:
+            code = mcp_proxy.serve_stdio(input_stream, output_stream, session=session)
+        except Exception as error:  # noqa: BLE001 - the regression proves stdio containment
+            self.fail(f"stdio crashed on a truncated upstream response: {type(error).__name__}")
+
+        payload = json.loads(output_stream.getvalue())
+        self.assertEqual(code, 0)
+        self.assertEqual(payload["error"]["code"], -32001)
+        self.assertNotIn("partial", output_stream.getvalue())
 
 
 if __name__ == "__main__":

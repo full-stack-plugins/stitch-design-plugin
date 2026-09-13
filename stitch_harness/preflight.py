@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -9,6 +11,43 @@ from pathlib import Path
 from .mcp_proxy import McpHttpSession, PROTOCOL_VERSION, ProxyError
 from .secrets import SecretStoreError, platform_secret_provider
 from .tool_catalog import ToolCatalog
+
+
+_MISSING_GLOBAL_MCP = re.compile(
+    r"No MCP server named ['\"]stitch['\"] found\.\s*$",
+    re.IGNORECASE,
+)
+_SECRET_ENVIRONMENT_MARKERS = (
+    "ACCESS_KEY",
+    "API_KEY",
+    "APIKEY",
+    "AUTHORIZATION",
+    "BEARER",
+    "COOKIE",
+    "CREDENTIAL",
+    "PASSWORD",
+    "PRIVATE_KEY",
+    "SECRET",
+    "TOKEN",
+    "WEBHOOK",
+)
+
+
+def _codex_cli_environment() -> dict[str, str]:
+    environment: dict[str, str] = {}
+    for name, value in os.environ.items():
+        normalized = name.upper()
+        if normalized.startswith("STITCH_"):
+            continue
+        if any(marker in normalized for marker in _SECRET_ENVIRONMENT_MARKERS):
+            continue
+        environment[name] = value
+    return environment
+
+
+def _global_mcp_is_absent(result: subprocess.CompletedProcess[str]) -> bool:
+    output = f"{result.stdout}\n{result.stderr}".strip()
+    return result.returncode == 1 and _MISSING_GLOBAL_MCP.search(output) is not None
 
 
 def _response_for_id(responses: list[dict], identifier: int) -> dict | None:
@@ -20,6 +59,8 @@ def _response_for_id(responses: list[dict], identifier: int) -> dict | None:
     response = final_responses[0]
     if (
         response.get("jsonrpc") != "2.0"
+        or isinstance(response.get("id"), bool)
+        or type(response.get("id")) is not type(identifier)
         or response.get("id") != identifier
         or "error" in response
     ):
@@ -127,15 +168,37 @@ def default_preflight(_project_root: Path) -> tuple[str, ...]:
     if codex is None:
         errors.append("Codex CLI is unavailable for plugin uniqueness check")
         return tuple(errors)
-    global_mcp = subprocess.run(
-        [codex, "mcp", "get", "stitch"], capture_output=True, text=True, check=False
-    )
+    cli_environment = _codex_cli_environment()
+    try:
+        global_mcp = subprocess.run(
+            [codex, "mcp", "get", "stitch"],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=cli_environment,
+        )
+    except OSError:
+        errors.append("Codex global MCP configuration could not be read")
+        return tuple(errors)
     if global_mcp.returncode == 0:
         errors.append(
             "separate global Stitch MCP detected; run `codex mcp remove stitch` and retry"
         )
         return tuple(errors)
-    result = subprocess.run([codex, "plugin", "list"], capture_output=True, text=True, check=False)
+    if not _global_mcp_is_absent(global_mcp):
+        errors.append("Codex global MCP configuration could not be read")
+        return tuple(errors)
+    try:
+        result = subprocess.run(
+            [codex, "plugin", "list"],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=cli_environment,
+        )
+    except OSError:
+        errors.append("Codex plugin list could not be read")
+        return tuple(errors)
     if result.returncode != 0:
         errors.append("Codex plugin list could not be read")
         return tuple(errors)

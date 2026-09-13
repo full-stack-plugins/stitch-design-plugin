@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -102,6 +103,22 @@ class StitchReadProbeTests(unittest.TestCase):
 
         self.assertEqual(stitch_read_probe(session), ("Stitch MCP initialize response is invalid",))
 
+    def test_initialize_response_rejects_boolean_id_equal_to_one(self):
+        session = valid_session(
+            initialize=[
+                {
+                    "jsonrpc": "2.0",
+                    "id": True,
+                    "result": {
+                        "protocolVersion": "2025-06-18",
+                        "capabilities": {"tools": {}},
+                    },
+                }
+            ]
+        )
+
+        self.assertEqual(stitch_read_probe(session), ("Stitch MCP initialize response is invalid",))
+
     def test_initialize_error_fails_before_initialized_notification(self):
         session = valid_session(
             initialize=[{"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "no"}}]
@@ -194,7 +211,139 @@ class DefaultPreflightTests(unittest.TestCase):
             capture_output=True,
             text=True,
             check=False,
+            env=mock.ANY,
         )
+
+    def test_absent_global_mcp_continues_with_plugin_and_read_checks(self):
+        provider = mock.Mock()
+        provider.get.return_value = "test-secret"
+        absent = SimpleNamespace(
+            returncode=1,
+            stdout="",
+            stderr="Error: No MCP server named 'stitch' found.\n",
+        )
+        plugins = SimpleNamespace(
+            returncode=0,
+            stdout="stitch-design@0.5.2 enabled\n",
+            stderr="",
+        )
+
+        with mock.patch(
+            "stitch_harness.preflight.platform_secret_provider", return_value=provider
+        ), mock.patch(
+            "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+        ), mock.patch(
+            "stitch_harness.preflight.subprocess.run", side_effect=[absent, plugins]
+        ), mock.patch(
+            "stitch_harness.preflight.stitch_read_probe", return_value=()
+        ):
+            errors = default_preflight(Path("."))
+
+        self.assertEqual(errors, ())
+
+    def test_global_mcp_cli_failure_blocks_preflight(self):
+        provider = mock.Mock()
+        provider.get.return_value = "test-secret"
+        failed = SimpleNamespace(
+            returncode=1,
+            stdout="",
+            stderr="Error: failed to load MCP configuration\n",
+        )
+
+        with mock.patch(
+            "stitch_harness.preflight.platform_secret_provider", return_value=provider
+        ), mock.patch(
+            "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+        ), mock.patch(
+            "stitch_harness.preflight.subprocess.run", return_value=failed
+        ):
+            errors = default_preflight(Path("."))
+
+        self.assertEqual(errors, ("Codex global MCP configuration could not be read",))
+
+    def test_global_mcp_process_failure_blocks_preflight_without_crashing(self):
+        provider = mock.Mock()
+        provider.get.return_value = "test-secret"
+
+        with mock.patch(
+            "stitch_harness.preflight.platform_secret_provider", return_value=provider
+        ), mock.patch(
+            "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+        ), mock.patch(
+            "stitch_harness.preflight.subprocess.run", side_effect=OSError("exec failed")
+        ):
+            try:
+                errors = default_preflight(Path("."))
+            except Exception as error:  # noqa: BLE001 - regression proves fail-closed behavior
+                self.fail(f"global MCP check crashed: {type(error).__name__}")
+
+        self.assertEqual(errors, ("Codex global MCP configuration could not be read",))
+
+    def test_plugin_list_process_failure_blocks_preflight_without_crashing(self):
+        provider = mock.Mock()
+        provider.get.return_value = "test-secret"
+        absent = SimpleNamespace(
+            returncode=1,
+            stdout="",
+            stderr="Error: No MCP server named 'stitch' found.\n",
+        )
+
+        with mock.patch(
+            "stitch_harness.preflight.platform_secret_provider", return_value=provider
+        ), mock.patch(
+            "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+        ), mock.patch(
+            "stitch_harness.preflight.subprocess.run", side_effect=[absent, OSError("exec failed")]
+        ):
+            try:
+                errors = default_preflight(Path("."))
+            except Exception as error:  # noqa: BLE001 - regression proves fail-closed behavior
+                self.fail(f"plugin list check crashed: {type(error).__name__}")
+
+        self.assertEqual(errors, ("Codex plugin list could not be read",))
+
+    def test_codex_cli_checks_receive_no_credential_environment(self):
+        provider = mock.Mock()
+        provider.get.return_value = "provider-secret"
+        absent = SimpleNamespace(
+            returncode=1,
+            stdout="",
+            stderr="Error: No MCP server named 'stitch' found.\n",
+        )
+        plugins = SimpleNamespace(
+            returncode=0,
+            stdout="stitch-design@0.5.2 enabled\n",
+            stderr="",
+        )
+        secret_environment = {
+            "STITCH_API_KEY": "stitch-secret",
+            "STITCH_DESIGN_CONFIG": "/private/credential.json",
+            "GOOGLE_API_KEY": "google-secret",
+            "AWS_ACCESS_KEY_ID": "aws-key",
+            "PRIVATE_KEY": "private-key",
+            "ACCESS_TOKEN": "token-secret",
+            "SERVICE_PASSWORD": "password-secret",
+            "SAFE_SETTING": "preserved",
+        }
+
+        with mock.patch.dict(os.environ, secret_environment, clear=False), mock.patch(
+            "stitch_harness.preflight.platform_secret_provider", return_value=provider
+        ), mock.patch(
+            "stitch_harness.preflight.shutil.which", return_value="/usr/bin/codex"
+        ), mock.patch(
+            "stitch_harness.preflight.subprocess.run", side_effect=[absent, plugins]
+        ) as run, mock.patch(
+            "stitch_harness.preflight.stitch_read_probe", return_value=()
+        ):
+            errors = default_preflight(Path("."))
+
+        self.assertEqual(errors, ())
+        for call in run.call_args_list:
+            child_environment = call.kwargs.get("env")
+            self.assertIsNotNone(child_environment)
+            self.assertEqual(child_environment["SAFE_SETTING"], "preserved")
+            for secret_name in secret_environment.keys() - {"SAFE_SETTING"}:
+                self.assertNotIn(secret_name, child_environment)
 
 
 if __name__ == "__main__":
