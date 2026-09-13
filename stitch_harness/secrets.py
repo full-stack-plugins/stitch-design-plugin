@@ -77,7 +77,7 @@ class CompositeSecretProvider:
                 continue
             provider.set(value)
             return
-        raise SecretStoreError("no writable system secret store is available")
+        raise SecretStoreError("no writable credential store is available")
 
 
 def _checked_value(value: str) -> str:
@@ -313,24 +313,15 @@ class WindowsCredentialProvider:
             raise SecretStoreError("Windows Credential Manager could not save the Stitch credential")
 
 
-def system_secret_provider() -> SecretProvider:
-    """Return the native writable provider for the current platform."""
-
-    if sys.platform == "darwin":
-        return MacOSKeychainProvider()
-    if os.name == "nt":
-        return WindowsCredentialProvider()
-    return LinuxSecretServiceProvider()
-
-
-def platform_secret_provider() -> SecretProvider:
-    """Return the environment-first provider chain for this process."""
-
-    return CompositeSecretProvider([EnvironmentSecretProvider(), system_secret_provider()])
-
-
 def _atomic_json(path: Path, payload: dict[str, str]) -> None:
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if os.name != "nt":
+        if path.parent.is_symlink():
+            raise OSError("credential directory must not be a symbolic link")
+        directory_stat = path.parent.stat()
+        if directory_stat.st_uid != os.getuid():
+            raise OSError("credential directory must be owned by the current user")
+        path.parent.chmod(0o700)
     descriptor, temporary_name = tempfile.mkstemp(dir=path.parent, prefix=".credentials-", text=True)
     temporary = Path(temporary_name)
     try:
@@ -346,6 +337,58 @@ def _atomic_json(path: Path, payload: dict[str, str]) -> None:
             path.chmod(0o600)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def default_config_path() -> Path:
+    """Return the cross-platform user configuration path."""
+
+    override = os.environ.get("STITCH_DESIGN_CONFIG")
+    if override:
+        return Path(override).expanduser()
+    if os.name == "nt":
+        base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    return base / "stitch-design" / "credentials.json"
+
+
+class UserConfigSecretProvider:
+    """Store the key in a restricted current-user configuration file."""
+
+    def __init__(self, path: Path | None = None):
+        self._path = path or default_config_path()
+
+    def get(self) -> str | None:
+        try:
+            payload = json.loads(self._path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+        except (json.JSONDecodeError, OSError) as error:
+            raise SecretStoreError("Stitch credential file could not be read") from error
+        value = payload.get(KEY_NAME)
+        return value.strip() if isinstance(value, str) and value.strip() else None
+
+    def set(self, value: str) -> None:
+        try:
+            _atomic_json(self._path, {KEY_NAME: _checked_value(value)})
+        except OSError as error:
+            raise SecretStoreError("Stitch credential file could not be saved") from error
+
+
+def system_secret_provider() -> SecretProvider:
+    """Return the optional native system secret provider for this platform."""
+
+    if sys.platform == "darwin":
+        return MacOSKeychainProvider()
+    if os.name == "nt":
+        return WindowsCredentialProvider()
+    return LinuxSecretServiceProvider()
+
+
+def platform_secret_provider() -> SecretProvider:
+    """Return the non-interactive environment-first default provider chain."""
+
+    return CompositeSecretProvider([EnvironmentSecretProvider(), UserConfigSecretProvider()])
 
 
 def migrate_legacy_key(source: Path, provider: SecretProvider) -> MigrationResult:

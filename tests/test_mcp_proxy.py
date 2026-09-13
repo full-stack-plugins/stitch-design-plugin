@@ -97,6 +97,33 @@ class McpHttpSessionTests(unittest.TestCase):
 
         self.assertEqual(messages, [])
 
+    def test_session_reuses_secret_until_authentication_rejects_it(self):
+        opener = FakeOpener([FakeResponse(202), FakeResponse(202)])
+        provider = RotatingSecretProvider(["test-secret"])
+        session = mcp_proxy.McpHttpSession(provider=provider, opener=opener)
+
+        session.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        session.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+
+        self.assertEqual(provider.read_count, 1)
+
+    def test_cached_secret_is_excluded_from_session_repr(self):
+        secret = "secret-must-not-appear"
+
+        class ReprSecretProvider(RotatingSecretProvider):
+            def __repr__(self):
+                return f"Provider(secret={self.values[0]!r})"
+
+        provider = ReprSecretProvider([secret])
+        session = mcp_proxy.McpHttpSession(
+            provider=provider,
+            opener=FakeOpener([FakeResponse(202)]),
+        )
+
+        session.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+
+        self.assertNotIn(secret, repr(session))
+
     def test_sse_messages_are_parsed(self):
         body = (
             b"event: message\n"

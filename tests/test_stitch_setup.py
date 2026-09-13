@@ -34,7 +34,7 @@ class CredentialTests(unittest.TestCase):
 
         self.assertEqual(provider.get(), "existing")
 
-    def test_saved_key_uses_system_provider_not_legacy_file(self):
+    def test_saved_key_uses_explicit_provider(self):
         provider = FakeSecretProvider()
         with tempfile.TemporaryDirectory() as directory:
             legacy = Path(directory) / "credentials.json"
@@ -46,6 +46,21 @@ class CredentialTests(unittest.TestCase):
 
         self.assertEqual(provider.get(), "secret")
         self.assertFalse(legacy.exists())
+
+    def test_saved_key_defaults_to_user_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "credentials.json"
+            os.environ["STITCH_DESIGN_CONFIG"] = str(target)
+            try:
+                setup.save_key("file-secret")
+                self.assertEqual(setup.load_key(), "file-secret")
+            finally:
+                os.environ.pop("STITCH_DESIGN_CONFIG", None)
+
+            self.assertEqual(
+                json.loads(target.read_text(encoding="utf-8")),
+                {"STITCH_API_KEY": "file-secret"},
+            )
 
 
 class SetupServerTests(unittest.TestCase):
@@ -86,7 +101,7 @@ class SetupServerTests(unittest.TestCase):
         self.assertEqual(failure.exception.code, 403)
         self.assertNotIn(secret, body)
 
-    def test_valid_save_uses_system_provider_and_never_writes_legacy_file(self):
+    def test_valid_save_uses_selected_provider_and_never_echoes_secret(self):
         secret = "secret-must-not-appear"
         request = urllib.request.Request(
             self.origin + "/api/save",

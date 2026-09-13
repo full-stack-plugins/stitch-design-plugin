@@ -23,6 +23,7 @@ if str(PLUGIN_ROOT) not in sys.path:
 from stitch_harness.secrets import (  # noqa: E402
     SecretProvider,
     SecretStoreError,
+    default_config_path,
     migrate_legacy_key,
     platform_secret_provider,
     system_secret_provider,
@@ -33,25 +34,18 @@ SETUP_ASSETS = PLUGIN_ROOT / "assets" / "setup"
 
 
 def config_path() -> Path:
-    override = os.environ.get("STITCH_DESIGN_CONFIG")
-    if override:
-        return Path(override).expanduser()
-    if os.name == "nt":
-        base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
-    else:
-        base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return base / "stitch-design" / "credentials.json"
+    return default_config_path()
 
 
 def save_key(key: str, provider: SecretProvider | None = None) -> None:
     value = key.strip()
     if not value:
         raise ValueError("STITCH_API_KEY cannot be empty")
-    target = provider or system_secret_provider()
+    target = provider or platform_secret_provider()
     target.set(value)
     stored = target.get()
     if stored != value:
-        raise SecretStoreError("system secret store verification failed")
+        raise SecretStoreError("credential store verification failed")
 
 
 def load_key(provider: SecretProvider | None = None) -> str | None:
@@ -67,7 +61,7 @@ def setup(secret_provider: SecretProvider | None = None) -> int:
     except (SecretStoreError, ValueError) as error:
         print(f"Could not save Stitch credentials: {error}", file=sys.stderr)
         return 1
-    print("Saved Stitch credentials to the current user's system secret store.")
+    print("Saved Stitch credentials to the current user's configuration.")
     print("Run this setup command again to replace the saved key.")
     return 0
 
@@ -156,7 +150,7 @@ def create_setup_server(
     secret_provider: SecretProvider | None = None,
 ):
     state = SimpleNamespace(csrf_token=secrets.token_urlsafe(32), completed=False)
-    target_provider = secret_provider or system_secret_provider()
+    target_provider = secret_provider or platform_secret_provider()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):

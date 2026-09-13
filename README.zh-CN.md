@@ -9,8 +9,8 @@
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 发布版本 | [v0.4.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.4.0) |
-| 本地候选 | `0.5.0`（尚未发布） |
+| 已发布版本 | [v0.4.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.4.0) |
+| 发布候选 | `0.5.1` |
 | 宿主布局 | Codex compatibility plugin |
 | Skills | 41 |
 | MCP Endpoint | `https://stitch.googleapis.com/mcp` |
@@ -24,7 +24,7 @@ Codex
 Stitch Design
   ├─ 41 个 Skills：路由、安全、设计、转换、交付
   ├─ Delivery Harness：契约 → 门禁 → receipts → 批准
-  ├─ 本地设置页：获取 Key → 系统秘密存储
+  ├─ 本地设置页：获取 Key → 用户受限配置
   └─ 内置 stdio 代理 → Google Stitch HTTPS MCP
                          │
                          ▼
@@ -70,7 +70,7 @@ python3 /已安装插件路径/scripts/stitch_setup.py ui
 py C:\已安装插件路径\scripts\stitch_setup.py ui
 ```
 
-页面只监听 `127.0.0.1`，不加载外部资产，校验 CSRF 和 Origin，不记录 Key，并在每次响应后清空输入。Key 保存到 macOS Keychain、Windows Credential Manager 或 Linux Secret Service。详见 [使用指南](docs/getting-started.zh-CN.md) 与 [隐私说明](PRIVACY.md)。
+页面只监听 `127.0.0.1`，不加载外部资产，校验 CSRF 和 Origin，不记录 Key，并在每次响应后清空输入。所有平台默认保存到当前用户的受限配置文件；默认流程不会访问 macOS Keychain、Windows Credential Manager 或 Linux Secret Service。详见 [使用指南](docs/getting-started.zh-CN.md) 与 [隐私说明](PRIVACY.md)。
 
 ## 使用示例
 
@@ -88,10 +88,10 @@ py C:\已安装插件路径\scripts\stitch_setup.py ui
 `.mcp.json` 从安装后的插件根目录启动内置 stdio 代理。凭据优先级为：
 
 1. 当前进程中的 `STITCH_API_KEY`。
-2. 当前平台的系统秘密存储。
+2. 当前用户的 Stitch Design 凭据文件。
 3. 首次设置页面。
 
-旧 JSON 凭据必须显式执行 `stitch_setup.py migrate`，且只有系统存储回读验证成功后才会脱敏。
+Unix 默认位置是 `$XDG_CONFIG_HOME/stitch-design/credentials.json`（未设置时为 `~/.config/...`），Windows 为 `%APPDATA%\stitch-design\credentials.json`。迁移到系统秘密存储仅作为高级用户显式操作；默认流程不会触发系统授权弹窗。
 
 只检查状态、不回显 Key：
 
@@ -118,7 +118,7 @@ shellcheck scripts/stitch_setup.sh
 git diff --check
 ```
 
-已发布 0.4.0 的证据保留为历史记录。本地 0.5.0 候选新增 41 个 Skills、stdio 代理和 Harness；离线及当前主机证据不能冒充推送、Release、Marketplace 升级或跨平台验证。
+0.5.1 新增 41 个 Skills、stdio 代理与 Delivery Harness，并恢复非交互的用户配置作为默认凭据路径。跨平台代码路径已有测试，Windows/Linux 实机验收仍属于独立证据。
 
 ## 故障排查
 

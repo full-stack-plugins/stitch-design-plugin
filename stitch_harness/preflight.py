@@ -22,7 +22,7 @@ def stitch_read_probe(session: McpHttpSession) -> tuple[str, ...]:
                 "params": {
                     "protocolVersion": "2025-06-18",
                     "capabilities": {},
-                    "clientInfo": {"name": "stitch-delivery-harness", "version": "0.5.0"},
+                    "clientInfo": {"name": "stitch-delivery-harness", "version": "0.5.1"},
                 },
             }
         )

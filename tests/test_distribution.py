@@ -73,7 +73,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(manifest["name"], "stitch-design")
-        self.assertEqual(manifest["version"], "0.5.0")
+        self.assertEqual(manifest["version"], "0.5.1")
         self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
@@ -95,7 +95,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("SDK 仍然需要 `STITCH_API_KEY`", guide)
         self.assertIn("不需要克隆插件仓库", guide)
         self.assertIn("Windows", guide)
-        self.assertIn("Keychain", guide)
+        self.assertIn("默认流程不访问系统钥匙串", guide)
         self.assertIn("ChatGPT 网页版", guide)
         self.assertIn("尚未通过端到端验证", guide)
 
@@ -145,7 +145,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("scripts/stitch_setup.py ui", skill)
         self.assertIn("不要让用户把 key 粘贴到聊天", skill)
         self.assertIn("Windows", skill)
-        self.assertIn("Keychain", skill)
+        self.assertIn("默认配置不会访问系统钥匙串", skill)
 
     def test_delivery_harness_skill_exposes_verified_handoff_contract(self) -> None:
         skill = (ROOT / "skills" / "stitch-delivery-harness" / "SKILL.md").read_text(encoding="utf-8")
@@ -173,7 +173,7 @@ class DistributionContractTests(unittest.TestCase):
         for path in paths:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.5.0", text)
+                self.assertIn("0.5.1", text)
                 self.assertIn("stdio", text)
                 self.assertIn("Harness", text)
                 self.assertNotIn("env_http_headers", text)
@@ -204,7 +204,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(provider.get(), secret)
         self.assertFalse(config.exists())
 
-    def test_stitch_setup_does_not_silently_load_legacy_user_config(self) -> None:
+    def test_stitch_setup_respects_an_explicit_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"
         secret = "config-secret-must-not-appear"
 

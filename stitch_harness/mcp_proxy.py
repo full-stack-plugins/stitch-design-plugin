@@ -6,7 +6,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import IO, Iterable
 from urllib.parse import urlsplit
 
@@ -81,11 +81,12 @@ def _sse_messages(payload: bytes) -> list[dict]:
 class McpHttpSession:
     """One upstream MCP session with controlled authentication refresh."""
 
-    provider: SecretProvider
+    provider: SecretProvider = field(repr=False)
     endpoint: str = STITCH_ENDPOINT
-    opener: object | None = None
+    opener: object | None = field(default=None, repr=False)
     timeout: float = 60.0
     session_id: str | None = None
+    _cached_secret: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         parsed = urlsplit(self.endpoint)
@@ -114,10 +115,12 @@ class McpHttpSession:
         if not isinstance(message, dict) or message.get("jsonrpc") != "2.0":
             raise ProxyError("invalid JSON-RPC request")
         for auth_attempt in range(2):
-            try:
-                secret = self.provider.get()
-            except SecretStoreError as error:
-                raise ProxyError("Stitch credential could not be read") from error
+            if self._cached_secret is None or auth_attempt > 0:
+                try:
+                    self._cached_secret = self.provider.get()
+                except SecretStoreError as error:
+                    raise ProxyError("Stitch credential could not be read") from error
+            secret = self._cached_secret
             if not secret:
                 raise ProxyError("Stitch credential is not configured")
             request = self._request(message, secret)

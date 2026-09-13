@@ -9,7 +9,7 @@ flowchart LR
     A[添加插件市场] --> B[安装 Stitch Design]
     B --> C[自动加载插件内 .mcp.json]
     C --> D[启动本地 stdio 安全代理]
-    D --> E[从系统秘密存储读取 Key]
+    D --> E[从用户受限配置读取 Key]
     E --> F[Google Stitch MCP]
 ```
 
@@ -43,7 +43,7 @@ Stitch SDK 不会消除凭据要求。官方教程所说的“不需要 MCP 配�
    py C:\absolute\plugin\root\scripts\stitch_setup.py ui
    ```
 
-   配置器使用隐藏输入，不修改 shell 或 PowerShell Profile。macOS 保存到 Keychain，Windows 保存到 Credential Manager，Linux 保存到 Secret Service；Key 不写入 Codex 配置或普通 JSON 文件。
+   配置器使用隐藏输入，不修改 shell 或 PowerShell Profile。所有平台默认写入当前用户的受限配置文件：Unix 为 `$XDG_CONFIG_HOME/stitch-design/credentials.json`（未设置时使用 `~/.config/...`），Windows 为 `%APPDATA%\stitch-design\credentials.json`。默认流程不访问系统钥匙串，因此不会反复请求系统密码。
 
 4. 此后由配置器启动 Codex，它会读取凭据并仅注入子进程：
 
@@ -71,7 +71,7 @@ macOS 的 `desktop` 快捷命令会启动 `/Applications/ChatGPT.app`。Windows/
 python3 /absolute/plugin/root/scripts/stitch_setup.py check
 ```
 
-检查只报告 key 是否可由当前环境或系统秘密存储取得，绝不输出 key 的值；同时检查插件包中的 MCP 配置文件。
+检查只报告 key 是否可由当前环境或用户配置取得，绝不输出 key 的值；同时检查插件包中的 MCP 配置文件。
 
 ## ChatGPT 网页版
 

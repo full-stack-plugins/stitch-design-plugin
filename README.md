@@ -9,8 +9,8 @@
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Release | [v0.4.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.4.0) |
-| Local candidate | `0.5.0` (not yet published) |
+| Published release | [v0.4.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.4.0) |
+| Release candidate | `0.5.1` |
 | Host layout | Codex compatibility plugin |
 | Skills | 41 |
 | MCP endpoint | `https://stitch.googleapis.com/mcp` |
@@ -24,7 +24,7 @@ Codex
 Stitch Design
   ├─ 41 Skills: routing, safety, design, conversion, delivery
   ├─ Delivery Harness: contracts → gates → receipts → approval
-  ├─ local setup UI: get key → system secret store
+  ├─ local setup UI: get key → user configuration
   └─ bundled stdio proxy → Google Stitch HTTPS MCP
                          │
                          ▼
@@ -70,7 +70,7 @@ python3 /path/to/installed/plugin/scripts/stitch_setup.py ui
 py C:\path\to\installed\plugin\scripts\stitch_setup.py ui
 ```
 
-The page binds only to `127.0.0.1`, loads no external assets, uses CSRF and Origin checks, never logs the key, and clears the input after every response. It stores the key in macOS Keychain, Windows Credential Manager, or Linux Secret Service. See [Getting started](docs/getting-started.zh-CN.md) and [Privacy](PRIVACY.md).
+The page binds only to `127.0.0.1`, loads no external assets, uses CSRF and Origin checks, never logs the key, and clears the input after every response. It stores the key in a restricted current-user configuration file on every supported platform. Native system secret stores are optional and never accessed by the default flow. See [Getting started](docs/getting-started.zh-CN.md) and [Privacy](PRIVACY.md).
 
 ## Example requests
 
@@ -99,10 +99,10 @@ Remote writes require the target project and intended scope. If a write times ou
 Credential precedence:
 
 1. `STITCH_API_KEY` in the current process.
-2. The native system secret store.
+2. The current-user Stitch Design credential file.
 3. First-use setup.
 
-Legacy JSON credentials require the explicit `stitch_setup.py migrate` command and are scrubbed only after the system store is verified.
+Default locations are `$XDG_CONFIG_HOME/stitch-design/credentials.json` (or `~/.config/...`) on Unix and `%APPDATA%\stitch-design\credentials.json` on Windows. Native system-store migration is an explicit advanced operation; the default flow never opens Keychain, Credential Manager, or Secret Service.
 
 Run a secret-free check:
 
@@ -129,7 +129,7 @@ shellcheck scripts/stitch_setup.sh
 git diff --check
 ```
 
-Published 0.4.0 evidence remains historical. The local 0.5.0 candidate adds 41 Skills, a stdio proxy and Harness; its offline and current-host evidence must not be confused with a push, release, Marketplace upgrade, or cross-platform validation.
+Release 0.5.1 adds 41 Skills, the stdio proxy and Delivery Harness, and restores non-interactive user configuration as the default credential path. Cross-platform code paths are tested, while live Windows/Linux acceptance remains separate evidence.
 
 ## Troubleshooting
 

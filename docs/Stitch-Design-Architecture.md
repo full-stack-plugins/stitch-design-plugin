@@ -2,7 +2,7 @@
 
 > **Purpose:** Define the verified architecture, trust boundaries, lifecycle, failure semantics, and evolution constraints of Stitch Design.
 >
-> **Version:** 0.5.0 · **Status:** Local candidate · **Evidence date:** 2026-09-14
+> **Version:** 0.5.1 · **Status:** Release candidate · **Evidence date:** 2026-09-14
 
 [简体中文](Stitch-Design-Architecture.zh_CN.md) | [Technical solution](Stitch-Design-Technical-Solution.md) | [README](../README.md)
 
@@ -87,7 +87,7 @@ flowchart LR
     subgraph Device["User-controlled device"]
       Browser["Loopback browser UI"]
       Setup["Setup service"]
-      Store[("System secret store")]
+      Store[("Restricted user config")]
       Codex["Codex process"]
       Plugin["Plugin Skills and MCP config"]
       Browser -->|"key over 127.0.0.1 + CSRF"| Setup
@@ -103,7 +103,7 @@ flowchart LR
     Plugin -->|"HTTPS + X-Goog-Api-Key"| MCP
 ```
 
-The API key is stored in macOS Keychain, Windows Credential Manager, or Linux Secret Service. The local stdio proxy reads it at request time and sends it only to the exact Google Stitch HTTPS origin. Plugin authors do not receive MCP traffic.
+The API key is stored in a restricted current-user configuration file by default. The local stdio proxy reads it once per process, caches it until an authentication rejection, and sends it only to the exact Google Stitch HTTPS origin. Native system stores remain explicit advanced options. Plugin authors do not receive MCP traffic.
 
 ## 4. Components and dependency direction
 
@@ -163,7 +163,7 @@ sequenceDiagram
     participant P as Plugin
     U->>C: add marketplace and plugin
     C->>M: resolve main
-    M-->>C: stitch-design 0.5.0
+    M-->>C: stitch-design 0.5.1
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -220,13 +220,13 @@ sequenceDiagram
 | Data | Authority | Location | Lifecycle |
 |:---|:---|:---|:---|
 | Plugin metadata | Repository | Manifest/marketplace | Release controlled |
-| API key | User | Environment or system secret store | Until replaced/removed |
+| API key | User | Environment or restricted user config | Until replaced/removed |
 | Harness receipts | Local run | Business project `.stitch/runs` | Until project cleanup |
 | Design data | Google Stitch | Remote account | Google/user policy |
 | Setup CSRF token | Setup process | Memory only | One process |
 | Tests and examples | Repository | `tests/`, Skill resources | Version controlled |
 
-Configuration precedence: explicit process `STITCH_API_KEY` → native system secret store → setup required. Legacy JSON credentials are read only by the explicit migration command and are scrubbed only after write-and-read verification.
+Configuration precedence: explicit process `STITCH_API_KEY` → restricted user configuration → setup required. Native system stores are never accessed by the default path; migration to one requires an explicit advanced command and write-and-read verification.
 
 ## 7. Security and privacy
 
@@ -234,7 +234,7 @@ Configuration precedence: explicit process `STITCH_API_KEY` → native system se
 - The wizard uses a password input and clears it after each response.
 - The loopback server loads no external scripts, fonts, images, or analytics.
 - Unix configuration directories use `0700` and files `0600`; Windows inherits the current user's profile ACL.
-- Legacy credential files are never loaded silently and are not treated as a system secret vault.
+- The user configuration is permission-restricted but is not an encrypted system secret vault.
 - Remote write operations require the user's requested scope and normal host approval behavior.
 
 ## 8. Reliability and operations
@@ -308,4 +308,4 @@ Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 
 
 ---
 
-**Document version:** 2.0.0 · **Status:** Aligned with local 0.5.0 candidate · **Updated:** 2026-09-14
+**Document version:** 2.1.0 · **Status:** Aligned with 0.5.1 release candidate · **Updated:** 2026-09-14

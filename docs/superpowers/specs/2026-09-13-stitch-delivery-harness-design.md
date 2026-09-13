@@ -168,9 +168,9 @@ stateDiagram-v2
 
 Codex 通过本地 stdio MCP 进程连接 Stitch。适配器从秘密提供器读取 Key，并仅在发往 `https://stitch.googleapis.com/mcp` 的同源 HTTPS 请求中添加 `X-Goog-Api-Key`。
 
-秘密优先级：当前进程显式传入的 `STITCH_API_KEY` → macOS Keychain → Windows Credential Manager → Linux Secret Service。旧版用户级 JSON 凭据只用于一次迁移；迁移验证成功后删除 Key 字段。若当前系统没有安全存储，预检失败并给出设置指引，不降级为仓库文件或明文 Codex 配置。
+秘密优先级：当前进程显式传入的 `STITCH_API_KEY` → 当前用户受限配置文件。默认路径不得访问 macOS Keychain、Windows Credential Manager 或 Linux Secret Service，避免后台代理触发交互式授权；这些系统存储仅供高级用户显式迁移。Unix 配置目录/文件权限为 `0700`/`0600`，Windows 继承当前用户 Profile ACL。配置不得进入仓库或 Codex 配置。
 
-适配器必须支持 MCP 初始化、JSON 与 SSE 响应、通知、`Mcp-Session-Id`、协议版本传递和关闭。401/403 时最多重新读取一次秘密并重试一次；其他写请求不得自动重试。所有错误输出经过秘密和签名 URL 脱敏。
+适配器必须支持 MCP 初始化、JSON 与 SSE 响应、通知、`Mcp-Session-Id`、协议版本传递和关闭。秘密每个代理进程读取一次并缓存；仅在 401/403 时重新读取一次并重试一次，其他写请求不得自动重试。所有错误输出经过秘密和签名 URL 脱敏。
 
 ### 8.2 唯一安装门禁
 
@@ -287,7 +287,7 @@ stitch_harness.py archive --project <path> --run <run-id>
 
 - 保留现有 40 个 Stitch Skills 的用户入口；Harness 作为高可信交付入口，不破坏单次查询和轻量编辑能力。
 - `stitch-loop` 后续改为调用 Harness 状态机，不再自行定义另一套完成语义。
-- 首次设置向导改用系统安全存储，并提供旧 JSON 凭据的一次性迁移。
+- 首次设置向导默认使用当前用户受限配置，并把系统秘密存储保留为显式高级迁移选项。
 - 现有 `.stitch/loops/` 产物保持只读；可通过导入命令生成 receipt，但不得伪造历史用户批准。
 - 插件升级不自动删除用户数据、远程 Stitch 项目或已有设计稿。
 

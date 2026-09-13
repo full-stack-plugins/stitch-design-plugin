@@ -78,7 +78,7 @@ Expected: FAIL because `stitch_harness.secrets` and system-backed providers do n
 
 - [ ] **Step 3: Implement the provider boundary**
 
-Implement `MacOSKeychainProvider` with `/usr/bin/security`, `WindowsCredentialProvider` with PowerShell Credential Manager APIs when available, and `LinuxSecretServiceProvider` with `secret-tool`. Pass secrets through child stdin or a private environment value; never place them in argv. `CompositeSecretProvider` checks explicit process environment first and then the platform store.
+Implement `UserConfigSecretProvider` as the default writable provider, with explicit process environment first. Keep `MacOSKeychainProvider`, `WindowsCredentialProvider`, and `LinuxSecretServiceProvider` only for explicit advanced migration. Never place secrets in argv.
 
 The macOS service/account contract is:
 
@@ -87,7 +87,7 @@ KEYCHAIN_SERVICE = "com.partme.stitch-design"
 KEYCHAIN_ACCOUNT = getpass.getuser()
 ```
 
-Keep legacy JSON loading solely for migration. Save to the system store, read it back using constant-time comparison, then atomically replace the legacy file with `{"migrated_to":"system-secret-store"}`. On any failure, leave the original file unchanged.
+Use the restricted current-user JSON as the normal source. If an advanced user explicitly migrates it to a system store, read it back using constant-time comparison, then atomically replace the source with `{"migrated_to":"system-secret-store"}`. On any failure, leave the original unchanged.
 
 - [ ] **Step 4: Update the setup UI backend**
 
@@ -630,12 +630,12 @@ git commit -m "feat: add verified Stitch delivery workflow skill"
 - Modify: `tests/test_distribution.py`
 
 **Interfaces:**
-- Produces: local 0.5.0 compatibility-plugin candidate
+- Produces: 0.5.1 compatibility-plugin release candidate
 - Documents: secure secret store, stdio proxy, Harness states, receipts, provider boundary, archive contract
 
 - [ ] **Step 1: Write failing distribution and documentation consistency tests**
 
-Require version `0.5.0`, 41 Skills, stdio MCP config, required Harness modules/scripts, no legacy environment-header mapping, no statement that restricted JSON equals secure storage, and matching English/Chinese architecture status.
+Require version `0.5.1`, 41 Skills, stdio MCP config, required Harness modules/scripts, no legacy environment-header mapping, no statement that restricted JSON equals secure storage, and matching English/Chinese architecture status.
 
 - [ ] **Step 2: Run the tests to verify RED**
 
@@ -647,7 +647,7 @@ Expected: FAIL because distribution metadata and documents still describe 0.4.0 
 
 - [ ] **Step 3: Update metadata and documentation**
 
-Set the local candidate to 0.5.0 and 41 Skills. Update both architecture documents and both technical solutions with Mermaid diagrams showing:
+Set the release candidate to 0.5.1 and 41 Skills. Update both architecture documents and both technical solutions with Mermaid diagrams showing:
 
 ```mermaid
 flowchart LR
@@ -672,7 +672,7 @@ python3.13 /Users/wandl/.codex/skills/.system/skill-creator/scripts/quick_valida
 git diff --check
 ```
 
-Expected: every command exits zero; validator reports 41 Skills and 0.5.0; no secret-like value is found.
+Expected: every command exits zero; validator reports 41 Skills and 0.5.1; no secret-like value is found.
 
 - [ ] **Step 5: Review security and compatibility**
 
@@ -747,14 +747,14 @@ Report:
 5. round-trip editability;
 6. user approval and local archive.
 
-Do not claim push, public release, Marketplace 0.5.0 installation, or cross-platform validation.
+Do not claim push, public release, Marketplace 0.5.1 installation, or cross-platform validation until those actions are separately authorized and verified.
 
 ---
 
 ## Final verification checklist
 
 - [ ] Run `python3 -m unittest discover -s tests -v` with zero failures.
-- [ ] Run `python3 scripts/validate_distribution.py .` and confirm 41 Skills at 0.5.0.
+- [ ] Run `python3 scripts/validate_distribution.py .` and confirm 41 Skills at 0.5.1.
 - [ ] Run ShellCheck and `git diff --check` with zero failures.
 - [ ] Inspect `git status --short` in both plugin and WeKefu repositories; preserve unrelated user changes.
 - [ ] Confirm current-host process/config/output scans contain no Stitch key value.

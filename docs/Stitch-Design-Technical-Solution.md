@@ -1,6 +1,6 @@
 # Stitch Design Technical Solution
 
-> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.5.0.
+> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.5.1.
 >
 > **Updated:** 2026-09-13
 
@@ -12,10 +12,10 @@
 |:---|:---|:---|
 | Host packaging | Codex compatibility manifest | Currently supported and verified |
 | Tool transport | Bundled stdio proxy to Google Stitch HTTP MCP | Reliable host integration and provider-owned execution |
-| Authentication | Process environment or native system secret store | Keeps key outside config and package |
+| Authentication | Process environment or restricted user configuration | Avoids interactive system prompts and keeps the key outside the package |
 | Workflow layer | 41 Agent Skills plus Delivery Harness | Precise discovery and verified delivery |
 | First-use UI | Python stdlib loopback server + static assets | No new runtime dependency |
-| Credential persistence | Keychain, Credential Manager, or Secret Service | Native user-scoped protection |
+| Credential persistence | Cross-platform current-user JSON with restricted permissions | Predictable non-interactive behavior |
 | Validation | Python unittest + distribution validator + ShellCheck | Reproducible offline gates |
 
 ## 2. Repository mapping
@@ -72,8 +72,8 @@ The server overrides request logging and never returns submitted values. The UI 
 flowchart TD
     Start(["First Stitch use"]) --> Env{"STITCH_API_KEY in current process?"}
     Env -->|Yes| Direct["Use process value"]
-    Env -->|No| Store{"System secret store contains key?"}
-    Store -->|Yes| Inject["Read inside local stdio proxy"]
+    Env -->|No| Store{"Restricted user config contains key?"}
+    Store -->|Yes| Inject["Read once inside local stdio proxy"]
     Store -->|No| Wizard["Open local setup wizard"]
     Wizard --> Save["Validate and save key"]
     Save --> Inject
@@ -81,7 +81,7 @@ flowchart TD
     Inject --> Ready
 ```
 
-The wizard writes to the platform secret store. Legacy JSON is read only by the explicit migration command and is atomically scrubbed after write-and-read verification.
+The wizard writes to the restricted current-user configuration. Native system stores are accessed only by an explicit advanced migration command; successful migration is verified before the source is atomically scrubbed.
 
 Key rotation: open the UI, save the new key, start a new Codex process, run read-only `list_projects`, then revoke the old key in Stitch Settings.
 
@@ -196,4 +196,4 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 2.0.0 · **Status:** Aligned with local 0.5.0 candidate
+**Document version:** 2.1.0 · **Status:** Aligned with the 0.5.1 release candidate

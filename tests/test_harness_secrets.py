@@ -1,12 +1,15 @@
 import importlib
 import json
 import getpass
+import os
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from unittest import mock
 
 
 def secrets_module():
@@ -70,7 +73,49 @@ class SecretProviderTests(unittest.TestCase):
 
             self.assertEqual(source.read_text(encoding="utf-8"), original)
 
-    @unittest.skipUnless(sys.platform == "darwin", "macOS Keychain integration test")
+    def test_default_provider_uses_user_config_without_touching_system_store(self):
+        module = secrets_module()
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "credentials.json"
+            with mock.patch.dict(
+                os.environ,
+                {"STITCH_DESIGN_CONFIG": str(target)},
+                clear=True,
+            ), mock.patch.object(
+                module,
+                "system_secret_provider",
+                side_effect=AssertionError("default provider must not access the system store"),
+            ):
+                provider = module.platform_secret_provider()
+                provider.set("file-secret")
+
+                self.assertEqual(provider.get(), "file-secret")
+                self.assertEqual(
+                    json.loads(target.read_text(encoding="utf-8")),
+                    {"STITCH_API_KEY": "file-secret"},
+                )
+
+    @unittest.skipIf(os.name == "nt", "POSIX permission test")
+    def test_user_config_restricts_an_existing_directory(self):
+        module = secrets_module()
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory) / "stitch-design"
+            parent.mkdir(mode=0o755)
+            parent.chmod(0o755)
+            provider = module.UserConfigSecretProvider(parent / "credentials.json")
+
+            provider.set("file-secret")
+
+            self.assertEqual(stat.S_IMODE(parent.stat().st_mode), 0o700)
+            self.assertEqual(
+                stat.S_IMODE((parent / "credentials.json").stat().st_mode),
+                0o600,
+            )
+
+    @unittest.skipUnless(
+        sys.platform == "darwin" and os.environ.get("STITCH_TEST_SYSTEM_SECRET_STORE") == "1",
+        "macOS Keychain integration test is explicit opt-in",
+    )
     def test_macos_keychain_provider_roundtrips_secret(self):
         module = secrets_module()
         service = f"com.partme.stitch-design.test.{uuid.uuid4().hex}"

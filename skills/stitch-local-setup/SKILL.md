@@ -14,14 +14,14 @@ license: Apache-2.0
 2. “Stitch 提示缺少 STITCH_API_KEY。”
 3. “帮我配置 Stitch key，但不要写进 shell profile。”
 
-面向 Windows、macOS、Linux 的本地 Codex 用户。插件已内置本地 stdio MCP 代理；本 Skill 只处理用户凭据缺失、系统秘密存储和旧凭据显式迁移。
+面向 Windows、macOS、Linux 的本地 Codex 用户。插件已内置本地 stdio MCP 代理；本 Skill 只处理用户凭据缺失、用户级配置和可选的系统秘密存储迁移。
 
 ## 能力边界说明
 
 ### ✅ 擅长处理
 
-- 检查 `STITCH_API_KEY` 是否已在当前进程或系统秘密存储中配置，不输出其值。
-- 指导用户隐藏输入自己的 Stitch API key，并保存到 macOS Keychain、Windows Credential Manager 或 Linux Secret Service。
+- 检查 `STITCH_API_KEY` 是否已在当前进程或用户配置中设置，不输出其值。
+- 指导用户隐藏输入自己的 Stitch API key，并保存到跨平台的当前用户受限配置文件。
 - 用保存的凭据启动 Codex CLI，或向用户指定的本地命令注入环境变量。
 
 ### ⚠️ 需要用户完成
@@ -34,7 +34,7 @@ license: Apache-2.0
 
 - ChatGPT 网页插件授权：应由正式 connector/OAuth 处理，不要求用户粘贴 key。
 - 团队共享一个作者 key：每位用户使用独立凭据，或建设租户隔离的认证网关。
-- 将 Key 写入 Codex 配置、shell profile、项目文件或普通 JSON 文件。
+- 将 Key 写入 Codex 配置、shell profile、项目文件或权限不受限的文件。
 
 ## 首次使用工作流
 
@@ -61,7 +61,7 @@ license: Apache-2.0
      ```
 
 5. 用户在同一张卡片中完成“获取 Key → 保存到本机 → 打开 Codex”；高级命令默认折叠。
-6. 旧版 JSON 凭据只在用户明确要求迁移时执行 `stitch_setup.py migrate`；写入系统秘密存储并回读验证成功后才脱敏旧文件。
+6. 默认配置不会访问系统钥匙串。只有高级用户明确要求时，才执行 `stitch_setup.py migrate` 将当前用户配置迁移到平台秘密存储；回读验证成功后才脱敏原文件。
 7. 设置后启动 Codex：
 
    ```bash
@@ -75,7 +75,7 @@ license: Apache-2.0
 
 - 不搜索浏览器、其他客户端配置、shell profile、历史或日志中的 key。
 - 不执行 `echo "$STITCH_API_KEY"`、`printenv STITCH_API_KEY` 或全量 `env`。
-- Key 不进入插件目录、Git、Codex 配置或普通用户文件；配置器不修改 `.zshrc`、PowerShell Profile 或系统环境。
+- Key 不进入插件目录、Git 或 Codex 配置；用户配置目录和文件在 Unix 使用 `0700`/`0600`，Windows 继承当前用户 Profile ACL。配置器不修改 `.zshrc`、PowerShell Profile 或系统环境。
 - 缺少 Python 时，提供当前终端的会话级环境变量方案，并说明关闭终端后失效。
 
 ## FAQ
@@ -86,7 +86,7 @@ license: Apache-2.0
 
 **Q3：会修改 shell 配置吗？** 不会。配置器使用独立的用户凭据文件。
 
-**Q4：保存在哪里？** macOS 使用 Keychain，Windows 使用 Credential Manager，Linux 使用 Secret Service。
+**Q4：保存在哪里？** Unix 使用 `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/...`，Windows 使用 `%APPDATA%\stitch-design\credentials.json`；系统秘密存储仅为显式高级选项。
 
 **Q5：如何验证？** 运行 `stitch_setup.py check`，重启后只读调用 `list_projects`。
 
