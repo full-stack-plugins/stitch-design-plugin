@@ -144,7 +144,8 @@ class HarnessTests(unittest.TestCase):
         status = self.harness.resume(self.project, started.run_id, evidence)
 
         self.assertEqual(status.exit_code, 3)
-        self.assertEqual(status.state, RunState.PREFLIGHT_PASSED)
+        self.assertEqual(status.state, RunState.RECONCILING)
+        self.assertEqual(status.reconciliation_attempts, 1)
         self.assertEqual(status.next_action.kind, "stitch.reconcile-read")
 
     def test_stitch_evidence_is_html_gated_before_imagegen(self):

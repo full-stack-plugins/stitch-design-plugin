@@ -2,7 +2,7 @@
 
 > **Purpose:** Define the verified architecture, trust boundaries, lifecycle, failure semantics, and evolution constraints of Stitch Design.
 >
-> **Version:** 0.5.4 · **Status:** Immediate release target · **Evidence date:** 2026-09-14
+> **Version:** 0.6.0 · **Status:** Local release candidate · **Evidence date:** 2026-09-14
 
 [简体中文](Stitch-Design-Architecture.zh_CN.md) | [Technical solution](Stitch-Design-Technical-Solution.md) | [README](../README.md)
 
@@ -164,8 +164,8 @@ sequenceDiagram
     participant M as Marketplace / source
     participant P as Plugin
     U->>C: add marketplace and plugin
-    C->>M: resolve main for v0.5.4
-    M-->>C: stitch-design 0.5.4 release target
+    C->>M: resolve main for 0.6.0 candidate
+    M-->>C: stitch-design 0.6.0 local candidate
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -310,4 +310,4 @@ Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 
 
 ---
 
-**Document version:** 2.4.0 · **Status:** Aligned with immediate release target 0.5.4 · **Updated:** 2026-09-14
+**Document version:** 2.5.0 · **Status:** Aligned with local 0.6.0 candidate · **Updated:** 2026-09-14

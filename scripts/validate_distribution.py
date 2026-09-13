@@ -35,8 +35,8 @@ def validate(root: Path) -> list[str]:
 
     if manifest.get("name") != "stitch-design":
         errors.append("manifest name must be stitch-design")
-    if manifest.get("version") != "0.5.4":
-        errors.append("manifest version must be 0.5.4")
+    if manifest.get("version") != "0.6.0":
+        errors.append("manifest version must be 0.6.0")
     if manifest.get("repository") != EXPECTED_REPOSITORY:
         errors.append("manifest repository mismatch")
     interface = manifest.get("interface", {})
@@ -87,7 +87,7 @@ def validate(root: Path) -> list[str]:
         if name != skill_dir.name or NAME_PATTERN.fullmatch(name) is None:
             errors.append(f"invalid skill identity: {skill_dir.name} -> {name}")
 
-    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "requirements-test.txt", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh", "scripts/stitch_mcp_proxy.py", "scripts/smoke_mcp_config.py", "scripts/validate_skills.py", "scripts/validate_markdown_links.py", "scripts/scan_secrets.py", "stitch_harness/mcp_proxy.py"):
+    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "requirements-test.txt", "requirements-harness.txt", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh", "scripts/stitch_mcp_proxy.py", "scripts/stitch_harness.py", "scripts/setup_harness_runtime.py", "scripts/smoke_mcp_config.py", "scripts/validate_skills.py", "scripts/validate_markdown_links.py", "scripts/scan_secrets.py", "stitch_harness/mcp_proxy.py", "stitch_harness/assets.py", "stitch_harness/evidence_writer.py", "stitch_harness/spec.schema.json", "stitch_harness/spec-template.json"):
         if not (root / required).is_file():
             errors.append(f"missing required file: {required}")
 
@@ -102,7 +102,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.5.4")
+    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.6.0")
     return 0
 
 

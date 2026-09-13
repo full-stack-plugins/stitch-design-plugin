@@ -29,22 +29,43 @@ def runtime_python(root: Path) -> Path:
     return root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def check(root: Path) -> int:
+def is_ready(root: Path) -> bool:
     executable = runtime_python(root)
     if not executable.is_file():
-        print(f"Harness runtime is not installed at {root}")
-        return 1
+        return False
     result = subprocess.run(
         [str(executable), "-c", "import PIL; print(PIL.__version__)"],
         capture_output=True,
         text=True,
         check=False,
     )
-    if result.returncode != 0 or result.stdout.strip() != PINNED_PILLOW:
+    return result.returncode == 0 and result.stdout.strip() == PINNED_PILLOW
+
+
+def check(root: Path) -> int:
+    if not runtime_python(root).is_file():
+        print(f"Harness runtime is not installed at {root}")
+        return 1
+    if not is_ready(root):
         print(f"Harness runtime does not contain Pillow {PINNED_PILLOW}")
         return 1
     print(f"Harness runtime ready with Pillow {PINNED_PILLOW}")
     return 0
+
+
+def run(root: Path, arguments: list[str]) -> int:
+    """Run the Harness through its isolated Pillow interpreter."""
+
+    if not is_ready(root):
+        print(f"Harness runtime is not ready with Pillow {PINNED_PILLOW}", file=sys.stderr)
+        return 1
+    environment = dict(os.environ)
+    environment["STITCH_HARNESS_ISOLATED"] = "1"
+    return subprocess.run(
+        [str(runtime_python(root)), str(PLUGIN_ROOT / "scripts" / "stitch_harness.py"), *arguments],
+        env=environment,
+        check=False,
+    ).returncode
 
 
 def install(root: Path) -> int:
@@ -64,7 +85,9 @@ def main(arguments: list[str]) -> int:
         return check(root)
     if arguments == ["install"]:
         return install(root)
-    print("Usage: setup_harness_runtime.py check | install", file=sys.stderr)
+    if arguments[:1] == ["run"] and len(arguments) > 1:
+        return run(root, arguments[1:])
+    print("Usage: setup_harness_runtime.py check | install | run <harness arguments>", file=sys.stderr)
     return 2
 
 

@@ -9,7 +9,8 @@
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Published release target | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) — immediate |
+| Candidate | `0.6.0` — local, not yet published |
+| Released baseline | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
 | Host layout | Codex compatibility plugin |
 | Skills | 43 |
 | MCP endpoint | `https://stitch.googleapis.com/mcp` |
@@ -23,6 +24,7 @@ Codex
 Stitch Design
   ├─ 43 Skills: routing, safety, design, conversion, delivery
   ├─ Delivery Harness: contracts → gates → receipts → approval
+  ├─ local asset tools: safe upload → verified atomic export
   ├─ local setup UI: get key → user configuration
   └─ bundled stdio proxy → Google Stitch HTTPS MCP
                          │
@@ -35,6 +37,7 @@ Stitch Design
 - Create, inspect, edit, and generate variants of Stitch screens.
 - Manage design systems and DESIGN.md-based workflows.
 - Import local HTML/images into authorized Stitch projects.
+- Export HTML, screenshots, available DESIGN.md, and referenced assets with hashes through `stitch_local_download_assets`.
 - Convert Stitch outputs to React, React Native, shadcn/ui, Vue, Vant, Element Plus, Bootstrap, Layui, uView, uView Pro, and uview-plus.
 - Generate site specifications, prompt architecture, visual guidance, and Remotion walkthroughs.
 - Recover safely from ambiguous remote writes by reading state before any retry.
@@ -135,7 +138,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-The immediate 0.5.4 release target contains 43 Skills, the hardened stdio proxy, Delivery Harness, and cross-platform validation workflow. GitHub-hosted matrix results and live Windows/Linux installed-host acceptance remain separate evidence.
+The local 0.6.0 candidate contains 43 Skills, two namespaced local asset tools, typed Harness evidence writers, isolated comparison, explicit reconciliation/recovery, and recoverable archive publication. Release, Marketplace installation, live canary, and installed-host evidence remain separate Task 6 gates; v0.5.4 is the published baseline.
 
 ## Troubleshooting
 

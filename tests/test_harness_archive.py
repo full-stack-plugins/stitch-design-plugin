@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from stitch_harness.archive import ArchiveManager
+from stitch_harness.cli import _archive_or_recover
+from stitch_harness.orchestrator import Harness
 from stitch_harness.contracts import PageSpec
 from stitch_harness.state import InvalidTransition, RunState
 from stitch_harness.storage import ArtifactRecord, ChainVerification, Receipt, Run, RunStore, sha256_file
@@ -165,6 +167,29 @@ class ArchiveTests(unittest.TestCase):
             manager.archive(run, self.spec)
 
         self.assertFalse(destination.exists())
+
+    def test_archive_command_recovers_after_publication_before_state_persistence(self):
+        run = self.approved_run()
+        harness = Harness()
+        original = harness.store.update_state
+        calls = 0
+
+        def interrupted(candidate, target):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise OSError("simulated state persistence interruption")
+            return original(candidate, target)
+
+        harness.store.update_state = interrupted
+        with self.assertRaisesRegex(OSError, "interruption"):
+            _archive_or_recover(harness, self.project, run.run_id)
+        destination = self.project / self.spec.archive / run.run_id
+        self.assertTrue(destination.is_dir())
+
+        state, recovered_destination = _archive_or_recover(harness, self.project, run.run_id)
+        self.assertEqual(state, RunState.ARCHIVED)
+        self.assertEqual(recovered_destination.resolve(), destination.resolve())
 
 
 if __name__ == "__main__":

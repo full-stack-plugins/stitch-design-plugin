@@ -247,7 +247,52 @@ class McpHttpSessionTests(unittest.TestCase):
 
         messages = session.send({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
 
-        self.assertEqual(messages, [{"jsonrpc": "2.0", "id": 2, "result": {"tools": []}}])
+        self.assertEqual(messages[0]["id"], 2)
+        self.assertEqual(
+            {tool["name"] for tool in messages[0]["result"]["tools"]},
+            {"stitch_local_upload_asset", "stitch_local_download_assets"},
+        )
+
+    def test_tool_discovery_appends_namespaced_local_tools(self):
+        body = json.dumps({"jsonrpc": "2.0", "id": 2, "result": {"tools": load_tool_fixture()}}).encode()
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=FakeOpener([FakeResponse(200, body)]),
+        )
+
+        messages = session.send({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
+
+        names = {tool["name"] for tool in messages[0]["result"]["tools"]}
+        self.assertTrue({"stitch_local_upload_asset", "stitch_local_download_assets"}.issubset(names))
+        self.assertEqual(session.tool_catalog.validation_errors(), ())
+
+    def test_local_upload_tool_call_uses_injected_transport_without_provider_forward(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / "screen.html"
+            source.write_text("<main>demo</main>", encoding="utf-8")
+            result_body = json.dumps({"results": [{"screen": {"name": "projects/123/screens/" + "a" * 32}}]}).encode()
+            transport_calls = []
+
+            def transport(request, **kwargs):
+                transport_calls.append(request)
+                return FakeResponse(200, result_body)
+
+            provider_opener = FakeOpener([])
+            session = mcp_proxy.McpHttpSession(
+                provider=RotatingSecretProvider(["test-secret"]),
+                opener=provider_opener,
+                asset_transport=transport,
+            )
+            messages = session.send({
+                "jsonrpc": "2.0", "id": 9, "method": "tools/call",
+                "params": {"name": "stitch_local_upload_asset", "arguments": {"projectId": "123", "filePath": str(source)}},
+            })
+
+            self.assertEqual(messages[0]["result"]["structuredContent"]["screens"][0]["name"], "projects/123/screens/" + "a" * 32)
+            self.assertEqual(len(transport_calls), 1)
+            self.assertEqual(provider_opener.requests, [])
 
     def test_tools_list_repairs_missing_definitions_before_forwarding(self):
         body = json.dumps(

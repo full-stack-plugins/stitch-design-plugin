@@ -42,15 +42,19 @@ license: Apache-2.0
 2. 从本 Skill 向上两级定位插件根目录，调用：
 
    ```bash
-   python3 /absolute/plugin/root/scripts/stitch_harness.py start --project /absolute/project --spec page-id
+   python /absolute/plugin/root/scripts/stitch_harness.py spec init --project /absolute/project --page-id page-id
+   python /absolute/plugin/root/scripts/stitch_harness.py start --project /absolute/project --spec page-id
    ```
 
-3. 已有运行使用 `status` 或 `resume`，不得重新创建 run。
-4. 只执行 Harness 返回的 `next_action`；调用真实 Stitch、ImageGen、OCR 或视觉评估工具后，按 evidence 合同保存产物与脱敏元数据，再调用 `resume --evidence`。
+3. `spec init` 只创建不存在的 starter spec，绝不覆盖现有规格；用户确认后再 `start`。
+4. 已有运行使用 `status` 或 `resume`，不得重新创建 run。
+5. 只执行 Harness 返回的 `next_action`；调用真实 Stitch、ImageGen、OCR 或视觉评估工具后，用 `stitch_harness.evidence_writer.EvidenceWriter` 的对应类型方法生成 evidence，再调用 `resume --evidence`。
+6. 双图比较执行 `python scripts/setup_harness_runtime.py run compare ...`；它只在隔离 Pillow runtime 内生成三张比较图与布局证据。
 
 ## 硬门禁
 
-- Stitch 写入超时或回执未知：只用项目/屏幕读取工具对账，不直接重发。
+- Stitch 写入超时或回执未知：进入 `RECONCILING`，只用项目/屏幕读取工具对账，不直接重发；三次仍未知转为 `BLOCKED`。
+- `BLOCKED` 只有明确原因的 `recover --reason "..."` 能恢复；普通 `resume` 不得绕过。
 - 尺寸取页面规格的内容画布，不取浏览器外框或设备像素比。
 - 回灌后必须重新下载 HTML 和渲染图，并完成探针编辑与恢复。
 - 自动门禁全部通过后只能进入 `AWAITING_USER_APPROVAL`。
@@ -71,7 +75,7 @@ license: Apache-2.0
 
 **工具说成功就可以继续吗？** 不可以；必须下载文件并校验哈希和对应门禁。
 
-**写操作超时怎么办？** 保存 unknown，只读对账，不盲重试。
+**写操作超时怎么办？** 保存 unknown，进入显式 `RECONCILING`，只读对账；三次未解转为 `BLOCKED`，不得盲重试。
 
 **OCR 通过能批准吗？** 不能；OCR 只是一个自动门禁。
 

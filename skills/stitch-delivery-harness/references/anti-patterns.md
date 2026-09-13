@@ -8,4 +8,5 @@
 6. **模型替用户批准**：自动分数合格不代表采用 → 纠正为停在 `AWAITING_USER_APPROVAL` 并展示三类对比材料。
 7. **归档后旧图失效**：会话无法继续显示 → 纠正为留下相对软连接并验证目标哈希。
 8. **在 evidence 里保存调试请求**：可能泄露 Key 或签名 URL → 纠正为只保存脱敏 provider 元数据、资源 ID、路径与哈希。
-
+9. **在 `RECONCILING` 时再次写入**：未知结果可能重复创建资源 → 只执行三类读探针；第三次未解后停止并显式记录 recovery reason。
+10. **只比较 restored HTML**：渲染仍可能漂移 → before/edited/restored 的 HTML 与 render 六个哈希都要记录并校验。

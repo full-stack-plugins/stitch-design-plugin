@@ -9,11 +9,13 @@ import sys
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import IO, Iterable
 from urllib.parse import urlsplit
 
 from .secrets import SecretProvider, SecretStoreError, platform_secret_provider
 from .tool_catalog import ToolCatalog
+from .assets import AssetError, LocalAssetManager, local_tool_definitions
 
 
 STITCH_ENDPOINT = "https://stitch.googleapis.com/mcp"
@@ -81,6 +83,7 @@ class McpHttpSession:
     timeout: float = 300.0
     session_id: str | None = None
     tool_catalog: ToolCatalog = field(default_factory=ToolCatalog, repr=False)
+    asset_transport: object | None = field(default=None, repr=False)
     _cached_secret: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -125,10 +128,92 @@ class McpHttpSession:
             if not isinstance(result, dict) or not isinstance(result.get("tools"), list):
                 continue
             try:
-                result["tools"] = self.tool_catalog.extend(result["tools"])
+                tools = list(result["tools"])
+                if not isinstance(params, dict) or "cursor" not in params:
+                    tools.extend(local_tool_definitions())
+                result["tools"] = self.tool_catalog.extend(tools)
             except ValueError as error:
                 raise ProxyError("Stitch returned duplicate tool metadata") from error
         return messages
+
+    @staticmethod
+    def _structured_result(messages: list[dict]) -> dict:
+        if len(messages) != 1 or not isinstance(messages[0].get("result"), dict):
+            raise AssetError("provider read returned an invalid MCP result")
+        result = messages[0]["result"]
+        structured = result.get("structuredContent")
+        return structured if isinstance(structured, dict) else result
+
+    def _read_project_screens(self, project_id: str) -> list[dict]:
+        listed = self._structured_result(self.send({
+            "jsonrpc": "2.0", "id": "local-list-screens", "method": "tools/call",
+            "params": {"name": "list_screens", "arguments": {"projectId": project_id}},
+        }))
+        summaries = listed.get("screens")
+        if not isinstance(summaries, list):
+            raise AssetError("list_screens did not return a screen list")
+        screens: list[dict] = []
+        for summary in summaries:
+            name = summary.get("name") if isinstance(summary, dict) else None
+            if not isinstance(name, str):
+                raise AssetError("list_screens returned an invalid screen name")
+            detail = self._structured_result(self.send({
+                "jsonrpc": "2.0", "id": "local-get-screen", "method": "tools/call",
+                "params": {"name": "get_screen", "arguments": {"name": name}},
+            }))
+            screen = detail.get("screen", detail)
+            if not isinstance(screen, dict):
+                raise AssetError("get_screen did not return screen metadata")
+            screens.append(screen)
+        return screens
+
+    def _local_tool_call(self, message: dict) -> list[dict] | None:
+        if message.get("method") != "tools/call" or not isinstance(message.get("params"), dict):
+            return None
+        params = message["params"]
+        name = params.get("name")
+        if name not in {"stitch_local_upload_asset", "stitch_local_download_assets"}:
+            return None
+        arguments = params.get("arguments")
+        if not isinstance(arguments, dict):
+            raise ProxyError("local tool arguments must be an object")
+        allowed = {
+            "stitch_local_upload_asset": {"projectId", "filePath", "title", "createScreenInstances"},
+            "stitch_local_download_assets": {"projectId", "outputDir", "assetsSubdir"},
+        }[name]
+        if set(arguments).difference(allowed):
+            raise ProxyError("local tool arguments contain unsupported fields")
+        transport = self.asset_transport
+        manager = LocalAssetManager(
+            secret_provider=lambda: self.provider.get(),
+            **({"transport": transport} if transport is not None else {}),
+        )
+        try:
+            if name == "stitch_local_upload_asset":
+                if not isinstance(arguments.get("projectId"), str) or not isinstance(arguments.get("filePath"), str):
+                    raise AssetError("projectId and filePath must be strings")
+                result = manager.upload_asset(
+                    arguments.get("projectId"), Path(arguments.get("filePath", "")),
+                    title=arguments.get("title"),
+                    create_screen_instances=arguments.get("createScreenInstances", False),
+                )
+            else:
+                project_id = arguments.get("projectId")
+                if not isinstance(project_id, str) or not isinstance(arguments.get("outputDir"), str):
+                    raise AssetError("projectId and outputDir must be strings")
+                if "assetsSubdir" in arguments and not isinstance(arguments["assetsSubdir"], str):
+                    raise AssetError("assetsSubdir must be a string")
+                result = manager.download_assets(
+                    project_id, Path(arguments.get("outputDir", "")),
+                    assets_subdir=arguments.get("assetsSubdir", "assets"),
+                    screens=self._read_project_screens(project_id),
+                )
+        except (AssetError, SecretStoreError) as error:
+            raise ProxyError(str(error)) from error
+        return [{
+            "jsonrpc": "2.0", "id": message.get("id"),
+            "result": {"content": [{"type": "text", "text": json.dumps(result, separators=(",", ":"))}], "structuredContent": result},
+        }]
 
     def _request(self, message: dict, secret: str):
         headers = {
@@ -147,6 +232,9 @@ class McpHttpSession:
 
         if not isinstance(message, dict) or message.get("jsonrpc") != "2.0":
             raise ProxyError("invalid JSON-RPC request")
+        local = self._local_tool_call(message)
+        if local is not None:
+            return local
         for auth_attempt in range(2):
             if self._cached_secret is None or auth_attempt > 0:
                 try:

@@ -18,6 +18,7 @@ class RunState(StrEnum):
     AWAITING_USER_APPROVAL = "AWAITING_USER_APPROVAL"
     APPROVED = "APPROVED"
     ARCHIVED = "ARCHIVED"
+    RECONCILING = "RECONCILING"
     BLOCKED = "BLOCKED"
 
 
@@ -27,17 +28,18 @@ class InvalidTransition(ValueError):
 
 _TRANSITIONS = {
     RunState.DRAFT: {RunState.PREFLIGHT_PASSED, RunState.BLOCKED},
-    RunState.PREFLIGHT_PASSED: {RunState.STITCH_GENERATED, RunState.BLOCKED},
-    RunState.STITCH_GENERATED: {RunState.SOURCE_ACCEPTED, RunState.BLOCKED},
-    RunState.SOURCE_ACCEPTED: {RunState.ART_GENERATED, RunState.BLOCKED},
-    RunState.ART_GENERATED: {RunState.ART_ACCEPTED, RunState.BLOCKED},
-    RunState.ART_ACCEPTED: {RunState.ROUNDTRIPPED, RunState.BLOCKED},
-    RunState.ROUNDTRIPPED: {RunState.EDITABILITY_VERIFIED, RunState.BLOCKED},
-    RunState.EDITABILITY_VERIFIED: {RunState.COMPARISON_ACCEPTED, RunState.BLOCKED},
+    RunState.PREFLIGHT_PASSED: {RunState.STITCH_GENERATED, RunState.RECONCILING, RunState.BLOCKED},
+    RunState.STITCH_GENERATED: {RunState.SOURCE_ACCEPTED, RunState.RECONCILING, RunState.BLOCKED},
+    RunState.SOURCE_ACCEPTED: {RunState.ART_GENERATED, RunState.RECONCILING, RunState.BLOCKED},
+    RunState.ART_GENERATED: {RunState.ART_ACCEPTED, RunState.RECONCILING, RunState.BLOCKED},
+    RunState.ART_ACCEPTED: {RunState.ROUNDTRIPPED, RunState.RECONCILING, RunState.BLOCKED},
+    RunState.ROUNDTRIPPED: {RunState.EDITABILITY_VERIFIED, RunState.RECONCILING, RunState.BLOCKED},
+    RunState.EDITABILITY_VERIFIED: {RunState.COMPARISON_ACCEPTED, RunState.RECONCILING, RunState.BLOCKED},
     RunState.COMPARISON_ACCEPTED: {RunState.AWAITING_USER_APPROVAL, RunState.BLOCKED},
     RunState.AWAITING_USER_APPROVAL: {RunState.APPROVED, RunState.ART_GENERATED, RunState.BLOCKED},
     RunState.APPROVED: {RunState.ARCHIVED, RunState.AWAITING_USER_APPROVAL, RunState.BLOCKED},
     RunState.ARCHIVED: set(),
+    RunState.RECONCILING: {RunState.BLOCKED},
     RunState.BLOCKED: set(),
 }
 
@@ -48,4 +50,3 @@ def transition(current: RunState, target: RunState) -> RunState:
     if target not in _TRANSITIONS[current]:
         raise InvalidTransition(f"cannot transition from {current} to {target}")
     return target
-
