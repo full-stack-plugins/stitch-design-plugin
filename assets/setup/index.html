@@ -1,0 +1,8 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stitch Design 设置</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main><div class="brand">✦ Stitch Design <span>Setup</span></div><h1>三步完成首次设置</h1><p class="subtitle">保存你的 Stitch Key，即可在 Codex 中开始设计</p>
+<section class="setup-card" data-csrf="__CSRF_TOKEN__">
+<div class="setup-step"><b>1　获取 Key</b><a href="https://stitch.withgoogle.com/settings" target="_blank" rel="noreferrer">打开 Stitch 设置</a><p>创建并复制 API Key，请勿发送到聊天。</p></div>
+<div class="setup-step"><b>2　保存到本机</b><div class="input-row"><input id="api-key" type="password" autocomplete="off" placeholder="粘贴 Stitch API Key"><button id="save">保存</button></div><p id="status" aria-live="polite">Key 只保存在当前用户的本机配置中。</p></div>
+<div class="setup-step"><b>3　打开 Codex</b><button id="launch" disabled>打开 Codex</button><p>保存成功后重新打开 Codex，并只读列出 Stitch 项目。</p></div>
+<details><summary>高级设置</summary><p>高级用户可使用 STITCH_API_KEY 环境变量或运行配置器的 run 命令。</p></details>
+</section></main><script src="/app.js"></script></body></html>

@@ -18,6 +18,10 @@ Agent Plugins 1.0 states that clients **MUST NOT perform placeholder or environm
 
 The current Codex compatibility configuration safely maps `X-Goog-Api-Key` to the local environment variable name `STITCH_API_KEY` through `env_http_headers`. That client-specific mechanism cannot be copied into portable `mcp.json`.
 
+The official `@google/stitch-sdk` removes the need for application code to maintain an MCP configuration file, but it does not remove authentication. The SDK still reads `STITCH_API_KEY` and uses it to connect to the Stitch MCP server. Replacing the current remote configuration with a bundled SDK adapter would therefore add a Node.js runtime and dependency lifecycle without solving ChatGPT web authorization.
+
+On 2026-09-13, a ChatGPT Developer Mode connection could discover the Stitch tool catalog, but a read-only `list_projects` call did not return after connection. This is tool-discovery evidence only, not an end-to-end authentication success.
+
 ## Migration gate
 
 Activate root `plugin.json` and `mcp.json` only after one of these paths is verified end to end:

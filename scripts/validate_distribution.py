@@ -11,7 +11,7 @@ from pathlib import Path
 
 EXPECTED_REPOSITORY = "https://github.com/partme-ai/codex-stitch-plugin"
 EXPECTED_MCP_URL = "https://stitch.googleapis.com/mcp"
-EXPECTED_SKILLS = 39
+EXPECTED_SKILLS = 40
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SECRET_PATTERNS = (
     re.compile(rb"AIza[0-9A-Za-z_-]{20,}"),
@@ -38,8 +38,8 @@ def validate(root: Path) -> list[str]:
 
     if manifest.get("name") != "stitch-design":
         errors.append("manifest name must be stitch-design")
-    if manifest.get("version") != "0.3.0":
-        errors.append("manifest version must be 0.3.0")
+    if manifest.get("version") != "0.4.0":
+        errors.append("manifest version must be 0.4.0")
     if manifest.get("repository") != EXPECTED_REPOSITORY:
         errors.append("manifest repository mismatch")
     interface = manifest.get("interface", {})
@@ -70,7 +70,7 @@ def validate(root: Path) -> list[str]:
         }
         if entry.get("source") != expected_source:
             errors.append("repository marketplace source mismatch")
-        if entry.get("policy") != {"installation": "AVAILABLE", "authentication": "ON_INSTALL"}:
+        if entry.get("policy") != {"installation": "AVAILABLE", "authentication": "ON_USE"}:
             errors.append("repository marketplace policy mismatch")
 
     if (root / "plugin.json").exists() or (root / "mcp.json").exists():
@@ -88,7 +88,7 @@ def validate(root: Path) -> list[str]:
         if name != skill_dir.name or NAME_PATTERN.fullmatch(name) is None:
             errors.append(f"invalid skill identity: {skill_dir.name} -> {name}")
 
-    for required in ("README.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "docs/portable-migration.md"):
+    for required in ("README.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh"):
         if not (root / required).is_file():
             errors.append(f"missing required file: {required}")
 
@@ -108,7 +108,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.3.0")
+    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.4.0")
     return 0
 
 
