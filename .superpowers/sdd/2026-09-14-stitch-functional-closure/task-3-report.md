@@ -82,3 +82,16 @@ Reviewer findings were addressed in a second RED → GREEN cycle:
 - Corrected current inventory references to 43 Skills while preserving manifest/release-candidate truth at `0.5.1`; Task 4 still owns the `0.5.2` bump and release.
 
 Round 1 verification: focused Skill/distribution tests `24/24`; full isolated-runtime suite `126/126`; uploader `13/13`; distribution `43` Skills; `quick_validate` `43/43`; relative links `266` files; ShellCheck, Python compilation, and diff whitespace gates passed.
+
+## Review Round 2
+
+A third RED → GREEN cycle closed the remaining permission and documentation findings:
+
+- Added an all-Skill negative scan for `stitch*:*` and a dedicated zero-preapproval contract for the seven local conversion Skills: uView, uview-plus, uView Pro, Vue Bootstrap, Vue Element Plus, Vue Layui, and Vue Vant.
+- Removed the complete `allowed-tools` field from those seven Skills, including the quoted comma-form syntax in uview-plus. The only remaining `allowed-tools` entry in the repository is the local-only `Read Write Bash` declaration on `stitch-skill-creator`; no Skill preapproves a remote Stitch wildcard.
+- Made the public-document stale-storage scan case-insensitive.
+- Renamed the two remaining English Mermaid nodes from `System secret store` to `Restricted user config`.
+
+Round 2 RED contained 16 expected failures: each of the seven conversion Skills failed both wildcard and local-conversion checks, and each stale English diagram node failed the case-insensitive documentation check. The focused checks passed after the minimal changes.
+
+Round 2 final verification: isolated-runtime suite `128/128`; uploader `13/13`; distribution `43` Skills; `quick_validate` `43/43`; relative links `266` files; ShellCheck, Python compilation, and diff whitespace gates passed.

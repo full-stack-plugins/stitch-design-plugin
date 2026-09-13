@@ -1,7 +1,6 @@
 ---
 name: stitch-uview-components
 description: Convert Stitch designs into uni-app and Vue 2 and uView 2.0 pages and components. Uses Stitch MCP get_screen for retrieval; high-reliability fetch via scripts; enforces uni-app page structure and uView 2 u-* component contracts.
-allowed-tools: stitch*:* Bash Read Write web_fetch
 ---
 
 

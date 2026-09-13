@@ -92,7 +92,7 @@ sequenceDiagram
     participant B as Browser
     participant H as 127.0.0.1 server
     participant V as Request validator
-    participant F as System secret store
+    participant F as Restricted user config
     B->>H: GET / with per-run CSRF token
     H-->>B: local assets + no-store + CSP
     B->>H: POST /api/save (Origin, CSRF, JSON)

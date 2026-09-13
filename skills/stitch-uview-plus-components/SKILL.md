@@ -1,7 +1,6 @@
 ---
 name: stitch-uview-plus-components
 description: "Convert Stitch designs into uni-app + Vue 3 + uview-plus pages and components. Use when the user mentions Stitch, uview-plus, up- components, or uni-app Vue 3 conversion targeting uview-plus. Retrieves screen HTML via Stitch MCP get_screen, rewrites Tailwind structure into up-* components, and enforces stronger setup, theme, safe-area, tabbar, popup, upload, and dark-mode rules than the generic uView Pro conversion skill."
-allowed-tools: "stitch*:*, Bash, Read, Write, web_fetch"
 ---
 
 # Stitch to uni-app + uview-plus Components

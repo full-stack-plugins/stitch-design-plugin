@@ -116,14 +116,16 @@ class DistributionContractTests(unittest.TestCase):
             ROOT / "docs/getting-started.zh-CN.md",
         )
         stale = (
-            "System Secret Store", "system secret store", "system-secret-store",
-            "Keychain", "Credential Manager", "Secret Service", "系统秘密存储", "系统钥匙串",
+            "system secret store", "system-secret-store", "native system store",
+            "native secret store", "keychain", "credential manager", "secret service",
+            "系统秘密存储", "系统钥匙串",
         )
         for path in paths:
             text = path.read_text(encoding="utf-8")
+            normalized = text.casefold()
             with self.subTest(path=path.name):
                 for phrase in stale:
-                    self.assertNotIn(phrase, text)
+                    self.assertNotIn(phrase.casefold(), normalized)
         privacy = (ROOT / "PRIVACY.md").read_text(encoding="utf-8")
         self.assertIn("Only HTTP 401", privacy)
         self.assertIn("HTTP 403 is permission denied and is not refreshed or replayed", privacy)

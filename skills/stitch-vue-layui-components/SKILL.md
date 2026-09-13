@@ -1,7 +1,6 @@
 ---
 name: stitch-vue-layui-components
 description: Convert Stitch designs into modular Vite/Vue 3 and Layui-Vue components. Uses Stitch MCP get_screen for retrieval; high-reliability fetch via scripts; enforces Vue SFC structure and Layui-Vue component contracts layui-btn layui-input lay-card etc..
-allowed-tools: stitch*:* Bash Read Write web_fetch
 ---
 
 

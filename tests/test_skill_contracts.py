@@ -118,6 +118,24 @@ class SkillContractTests(unittest.TestCase):
             with self.subTest(skill=name):
                 self.assertNotRegex(frontmatter, r"(?m)^allowed-tools:")
 
+    def test_no_skill_preapproves_the_wildcard_remote_namespace(self):
+        for skill_file in sorted(SKILLS.glob("*/SKILL.md")):
+            frontmatter = skill_file.read_text(encoding="utf-8").split("---", 2)[1]
+            with self.subTest(skill=skill_file.parent.name):
+                self.assertNotRegex(frontmatter, r"(?i)stitch\s*\*\s*:\s*\*")
+
+    def test_local_conversion_skills_do_not_preapprove_remote_tools(self):
+        conversions = (
+            "stitch-uview-components", "stitch-uview-plus-components",
+            "stitch-uviewpro-components", "stitch-vue-bootstrap-components",
+            "stitch-vue-element-components", "stitch-vue-layui-components",
+            "stitch-vue-vant-components",
+        )
+        for name in conversions:
+            frontmatter = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1]
+            with self.subTest(skill=name):
+                self.assertNotRegex(frontmatter, r"(?m)^allowed-tools:")
+
     def test_delete_skill_requires_preview_approval_single_call_and_reconciliation(self):
         text = (SKILLS / "stitch-delete-project" / "SKILL.md").read_text(encoding="utf-8")
         for phrase in ("projects/{project}", "明确批准", "运行时批准", "仅调用一次", "list_projects", "删除前"):

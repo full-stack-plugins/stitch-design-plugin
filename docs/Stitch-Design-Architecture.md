@@ -45,7 +45,7 @@ flowchart LR
     Plugin --> Skills["43 Skills"]
     Plugin --> Setup["Loopback setup UI"]
     Plugin --> MCP["Google Stitch MCP"]
-    Setup --> Config["System secret store"]
+    Setup --> Config["Restricted user config"]
     MCP --> Stitch["Stitch projects and screens"]
     subgraph Local["User device"]
       Codex
