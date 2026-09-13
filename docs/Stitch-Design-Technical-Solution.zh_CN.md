@@ -164,11 +164,15 @@ flowchart LR
 ```
 
 ```bash
+python3 -m pip install -r requirements-test.txt
 python3 -m unittest discover -s tests -v
 python3 scripts/validate_distribution.py .
-for skill_dir in skills/*; do python3.13 /Users/wandl/.codex/skills/.system/skill-creator/scripts/quick_validate.py "$skill_dir" || exit 1; done
+python3 scripts/validate_skills.py skills
+python3 scripts/validate_markdown_links.py .
+python3 scripts/scan_secrets.py .
 find scripts skills -type f -name '*.sh' -exec shellcheck {} +
 python3 -m compileall -q scripts stitch_harness skills
+node --check scripts/stitch_mcp_launcher.js
 actionlint .github/workflows/validate.yml
 git diff --check
 ```

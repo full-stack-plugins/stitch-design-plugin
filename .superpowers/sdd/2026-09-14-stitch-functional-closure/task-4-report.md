@@ -30,3 +30,13 @@
 
 - Task 4 仓库变更：完成并提交。
 - Task 4 外部发布、安装、远端/实机验证：待控制器执行。
+
+## Review Round 1 修复
+
+- `.mcp.json` 改为调用仓库内 `scripts/stitch_mcp_launcher.js`。启动器在 Windows 优先 `py -3.11`、缺失时回退到 `python`，在 Unix 依次尝试 `python3`、`python`；stdio、SIGINT/SIGTERM 与子进程退出状态均被转发，凭据不进入 argv。
+- Windows CI smoke 从 `.mcp.json` 读取并执行真实 `command`、`args` 和 `cwd`，不再绕过插件清单直接调用 Python 代理。
+- 新增仓库内 `validate_skills.py`、`validate_markdown_links.py`、`scan_secrets.py`；Ubuntu、macOS、Windows job 均显式运行。Skill 校验使用固定版本 PyYAML 完整解析 frontmatter；秘密扫描覆盖 Google、GitHub、AWS、Slack、Stripe 和私钥高置信格式，并有检出/放行夹具。
+- workflow 契约测试改为解析 YAML 并按 job/step/命令断言；中英文发布候选图明确区分已发布 v0.5.1 与本地 0.5.2 候选；英文凭据状态图移除遗留 `system store` 文案。
+- Review Round 1 TDD：启动器、三个校验器、秘密正反夹具、workflow 结构、文档真实性测试均先观察到目标失败；补充退出/信号码和 Windows Python 回退时也分别完成 RED → GREEN。
+- 最新验证：Python 3.13 隔离环境完整套件 139 tests PASS；0.5.2 分发、43 Skills、Markdown 链接、秘密扫描、compileall、Node syntax、actionlint、ShellCheck、`git diff --check` 全部 PASS。
+- 仍待外部证据：GitHub-hosted Windows/macOS/Ubuntu workflow 实跑、安装宿主 Node/Python launcher smoke、独立审查，以及所有 push/tag/Release/Marketplace/安装等价性门禁。

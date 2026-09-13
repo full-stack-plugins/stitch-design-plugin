@@ -159,11 +159,16 @@ flowchart LR
 sequenceDiagram
     participant U as User
     participant C as Codex
-    participant M as Marketplace
+    participant M as Marketplace / source
     participant P as Plugin
     U->>C: add marketplace and plugin
-    C->>M: resolve main
-    M-->>C: stitch-design 0.5.2
+    alt published installation
+        C->>M: resolve v0.5.1
+        M-->>C: published stitch-design 0.5.1
+    else release-candidate validation
+        C->>M: open current source tree
+        M-->>C: local 0.5.2 release candidate
+    end
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -173,7 +178,7 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> CredentialCheck
-    CredentialCheck --> Ready: environment or system store found
+    CredentialCheck --> Ready: environment or restricted user config found
     CredentialCheck --> SetupRequired: missing
     SetupRequired --> WizardOpen
     WizardOpen --> Saved: valid local submission

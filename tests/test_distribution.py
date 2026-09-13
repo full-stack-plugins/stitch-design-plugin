@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -54,25 +56,56 @@ class DistributionContractTests(unittest.TestCase):
     def test_validate_workflow_covers_cross_platform_offline_gates(self) -> None:
         workflow_path = ROOT / ".github" / "workflows" / "validate.yml"
         self.assertTrue(workflow_path.is_file(), "validate workflow must exist")
-        workflow = workflow_path.read_text(encoding="utf-8")
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+        jobs = workflow["jobs"]
 
-        for required in (
-            "ubuntu-latest",
-            "macos-latest",
-            "windows-latest",
-            "3.11",
-            "3.13",
-            "python -m pip install -r requirements-harness.txt",
-            "python -m unittest discover -s tests -v",
-            "python scripts/validate_distribution.py .",
-            "Validate distribution, all Skills, and scan for secret-like content",
-            "shellcheck",
-            "python -m compileall",
-            "scripts/stitch_mcp_proxy.py",
-            '"code":-32700',
+        unix = jobs["unix-offline"]
+        self.assertEqual(unix["strategy"]["matrix"]["os"], ["ubuntu-latest", "macos-latest"])
+        self.assertEqual(unix["strategy"]["matrix"]["python-version"], ["3.11", "3.13"])
+        unix_steps = {step.get("name"): step.get("run") for step in unix["steps"] if "name" in step}
+        for name in (
+            "Run unit tests",
+            "Validate distribution",
+            "Validate all Skills",
+            "Validate Markdown links",
+            "Scan for secrets",
+            "Run ShellCheck",
+            "Compile Python sources",
+            "Validate launcher syntax",
         ):
-            with self.subTest(required=required):
-                self.assertIn(required, workflow)
+            self.assertIn(name, unix_steps)
+        self.assertEqual(unix_steps["Run unit tests"], "python -m unittest discover -s tests -v")
+        self.assertEqual(unix_steps["Validate distribution"], "python scripts/validate_distribution.py .")
+        self.assertEqual(unix_steps["Validate all Skills"], "python scripts/validate_skills.py skills")
+        self.assertEqual(unix_steps["Validate Markdown links"], "python scripts/validate_markdown_links.py .")
+        self.assertEqual(unix_steps["Scan for secrets"], "python scripts/scan_secrets.py .")
+        self.assertIn("shellcheck", unix_steps["Run ShellCheck"])
+        self.assertIn("python -m compileall", unix_steps["Compile Python sources"])
+        self.assertEqual(unix_steps["Validate launcher syntax"], "node --check scripts/stitch_mcp_launcher.js")
+
+        windows = jobs["windows-offline"]
+        self.assertEqual(windows["runs-on"], "windows-latest")
+        self.assertEqual(windows["strategy"]["matrix"]["python-version"], ["3.11", "3.13"])
+        windows_steps = {step.get("name"): step for step in windows["steps"] if "name" in step}
+        for name in (
+            "Run unit tests",
+            "Validate distribution",
+            "Validate all Skills",
+            "Validate Markdown links",
+            "Scan for secrets",
+            "Compile Python sources",
+            "Validate launcher syntax",
+        ):
+            self.assertIn(name, windows_steps)
+        self.assertEqual(
+            windows_steps["Validate launcher syntax"]["run"],
+            "node --check scripts/stitch_mcp_launcher.js",
+        )
+        smoke = windows_steps["Smoke-test configured stdio launcher"]["run"]
+        self.assertIn("Get-Content .mcp.json", smoke)
+        self.assertIn("$server.command", smoke)
+        self.assertIn("$server.args", smoke)
+        self.assertIn('"code":-32700', smoke)
 
     def test_manifest_declares_official_stitch_brand_assets(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -114,7 +147,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_USE")
 
-    def test_plugin_uses_bundled_secret_safe_stdio_proxy(self) -> None:
+    def test_plugin_uses_cross_platform_secret_safe_stdio_launcher(self) -> None:
         config = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
         server = config["mcpServers"]["stitch"]
 
@@ -122,8 +155,8 @@ class DistributionContractTests(unittest.TestCase):
             server,
             {
                 "type": "stdio",
-                "command": "python3",
-                "args": ["scripts/stitch_mcp_proxy.py"],
+                "command": "node",
+                "args": ["scripts/stitch_mcp_launcher.js"],
                 "cwd": ".",
             },
         )
@@ -286,6 +319,12 @@ class DistributionContractTests(unittest.TestCase):
                 self.assertIn("stdio", text)
                 self.assertIn("Harness", text)
                 self.assertNotIn("env_http_headers", text)
+
+        architecture = paths[0].read_text(encoding="utf-8")
+        self.assertNotIn("environment or system store found", architecture)
+        self.assertIn("environment or restricted user config found", architecture)
+        self.assertIn("published stitch-design 0.5.1", architecture)
+        self.assertIn("local 0.5.2 release candidate", architecture)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"

@@ -1,0 +1,2 @@
+-r requirements-harness.txt
+PyYAML==6.0.3

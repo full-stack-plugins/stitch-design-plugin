@@ -2,8 +2,8 @@
   "mcpServers": {
     "stitch": {
       "type": "stdio",
-      "command": "python3",
-      "args": ["scripts/stitch_mcp_proxy.py"],
+      "command": "node",
+      "args": ["scripts/stitch_mcp_launcher.js"],
       "cwd": "."
     }
   }

@@ -8,14 +8,12 @@ import re
 import sys
 from pathlib import Path
 
+from scan_secrets import scan
+
 
 EXPECTED_REPOSITORY = "https://github.com/partme-ai/codex-stitch-plugin"
 EXPECTED_SKILLS = 43
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-SECRET_PATTERNS = (
-    re.compile(rb"AIza[0-9A-Za-z_-]{20,}"),
-    re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-)
 
 
 def load_json(path: Path) -> dict:
@@ -52,12 +50,12 @@ def validate(root: Path) -> list[str]:
     server = mcp.get("mcpServers", {}).get("stitch", {})
     expected_server = {
         "type": "stdio",
-        "command": "python3",
-        "args": ["scripts/stitch_mcp_proxy.py"],
+        "command": "node",
+        "args": ["scripts/stitch_mcp_launcher.js"],
         "cwd": ".",
     }
     if server != expected_server:
-        errors.append("Stitch MCP must use the bundled secret-safe stdio proxy")
+        errors.append("Stitch MCP must use the bundled cross-platform stdio launcher")
 
     entries = [item for item in marketplace.get("plugins", []) if item.get("name") == "stitch-design"]
     if len(entries) != 1:
@@ -89,16 +87,11 @@ def validate(root: Path) -> list[str]:
         if name != skill_dir.name or NAME_PATTERN.fullmatch(name) is None:
             errors.append(f"invalid skill identity: {skill_dir.name} -> {name}")
 
-    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh", "scripts/stitch_mcp_proxy.py", "stitch_harness/mcp_proxy.py"):
+    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "requirements-test.txt", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh", "scripts/stitch_mcp_launcher.js", "scripts/stitch_mcp_proxy.py", "scripts/validate_skills.py", "scripts/validate_markdown_links.py", "scripts/scan_secrets.py", "stitch_harness/mcp_proxy.py"):
         if not (root / required).is_file():
             errors.append(f"missing required file: {required}")
 
-    for path in root.rglob("*"):
-        if not path.is_file() or ".git" in path.parts:
-            continue
-        data = path.read_bytes()
-        if any(pattern.search(data) for pattern in SECRET_PATTERNS):
-            errors.append(f"secret-like content detected: {path.relative_to(root)}")
+    errors.extend(f"secret-like content detected: {finding}" for finding in scan(root))
 
     return errors
 

@@ -112,9 +112,15 @@ Codex 负责插件加载和审批；Google Stitch 负责远程设计数据和工
 ## 开发与验证
 
 ```bash
+python3 -m pip install -r requirements-test.txt
 python3 -m unittest discover -s tests -v
 python3 scripts/validate_distribution.py .
-shellcheck scripts/stitch_setup.sh
+python3 scripts/validate_skills.py skills
+python3 scripts/validate_markdown_links.py .
+python3 scripts/scan_secrets.py .
+find scripts skills -type f -name '*.sh' -exec shellcheck {} +
+python3 -m compileall -q scripts stitch_harness skills
+node --check scripts/stitch_mcp_launcher.js
 git diff --check
 ```
 

@@ -157,11 +157,16 @@ flowchart LR
 sequenceDiagram
     participant U as 用户
     participant C as Codex
-    participant M as Marketplace
+    participant M as Marketplace / 源码
     participant P as 插件
     U->>C: 添加市场并安装插件
-    C->>M: 解析 main
-    M-->>C: stitch-design 0.5.2
+    alt 已发布安装
+        C->>M: 解析 v0.5.1
+        M-->>C: 已发布 stitch-design 0.5.1
+    else 发布候选验证
+        C->>M: 打开当前源码树
+        M-->>C: 本地 0.5.2 发布候选
+    end
     C->>P: 加载 manifest、Skills、MCP
     P-->>C: 注册能力
 ```
