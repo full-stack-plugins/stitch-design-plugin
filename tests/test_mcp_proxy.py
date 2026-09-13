@@ -154,6 +154,18 @@ class McpHttpSessionTests(unittest.TestCase):
 
         self.assertTrue(any("Malformed" in error for error in errors), errors)
 
+    def test_catalog_validation_accepts_boolean_schema_reference_targets(self):
+        for boolean_schema in (True, False):
+            with self.subTest(boolean_schema=boolean_schema):
+                tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
+                schema = tools[0]["inputSchema"]
+                schema["$defs"]["BooleanSchema"] = boolean_schema
+                schema["properties"]["allowed"] = {"$ref": "#/$defs/BooleanSchema"}
+
+                errors = tool_catalog.validate_tool_catalog(tools)
+
+                self.assertEqual(errors, ())
+
     def test_tool_catalog_rejects_malformed_entries_instead_of_dropping_them(self):
         tools = tool_catalog.repair_tool_schemas(load_tool_fixture())
         tools.append({"annotations": {"readOnlyHint": True, "openWorldHint": False}})

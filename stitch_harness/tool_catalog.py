@@ -219,7 +219,7 @@ def validate_tool_catalog(tools: Iterable[dict[str, Any]]) -> tuple[str, ...]:
                 continue
             for reference in sorted(_local_references(schema)):
                 resolved, target = _resolve_local_pointer(schema, reference)
-                if not resolved or not isinstance(target, dict):
+                if not resolved or not isinstance(target, (dict, bool)):
                     errors.append(f"{name}: {schema_name} has invalid local $ref {reference}")
 
     seen: set[str] = set()
