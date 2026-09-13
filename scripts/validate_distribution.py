@@ -88,7 +88,7 @@ def validate(root: Path) -> list[str]:
         if name != skill_dir.name or NAME_PATTERN.fullmatch(name) is None:
             errors.append(f"invalid skill identity: {skill_dir.name} -> {name}")
 
-    for required in ("README.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh"):
+    for required in ("README.md", "README.zh-CN.md", "PRIVACY.md", "TERMS.md", "LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md", "assets/setup/index.html", "assets/setup/styles.css", "assets/setup/app.js", "docs/Stitch-Design-Architecture.md", "docs/Stitch-Design-Architecture.zh_CN.md", "docs/Stitch-Design-Technical-Solution.md", "docs/Stitch-Design-Technical-Solution.zh_CN.md", "docs/getting-started.zh-CN.md", "docs/portable-migration.md", "scripts/stitch_setup.py", "scripts/stitch_setup.sh"):
         if not (root / required).is_file():
             errors.append(f"missing required file: {required}")
 

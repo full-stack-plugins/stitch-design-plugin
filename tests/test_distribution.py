@@ -72,9 +72,11 @@ class DistributionContractTests(unittest.TestCase):
 
     def test_local_setup_guide_separates_plugin_mcp_and_credentials(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        readme_zh = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
         guide = (ROOT / "docs" / "getting-started.zh-CN.md").read_text(encoding="utf-8")
 
-        self.assertIn("选择使用环境", readme)
+        self.assertIn("[简体中文](README.zh-CN.md)", readme)
+        self.assertIn("第一次使用", readme_zh)
         self.assertIn("安装插件时会自动加载 `.mcp.json`", guide)
         self.assertIn("SDK 仍然需要 `STITCH_API_KEY`", guide)
         self.assertIn("不需要克隆插件仓库", guide)
