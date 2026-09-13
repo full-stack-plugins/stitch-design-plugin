@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -13,6 +14,66 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DistributionContractTests(unittest.TestCase):
+    def test_release_candidate_uses_052_across_active_surfaces(self) -> None:
+        manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["version"], "0.5.2")
+
+        validator = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "validate_distribution.py"), str(ROOT)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(validator.returncode, 0, validator.stdout + validator.stderr)
+        self.assertIn("compatibility distribution 0.5.2", validator.stdout)
+
+        active_version_surfaces = (
+            ROOT / "README.md",
+            ROOT / "README.zh-CN.md",
+            ROOT / "docs" / "Stitch-Design-Architecture.md",
+            ROOT / "docs" / "Stitch-Design-Architecture.zh_CN.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.zh_CN.md",
+            ROOT / "skills" / "stitch-design-use" / "SKILL.md",
+            ROOT / "stitch_harness" / "preflight.py",
+        )
+        for path in active_version_surfaces:
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(path=path.relative_to(ROOT)):
+                self.assertIn("0.5.2", text)
+
+        self.assertIn(
+            "Published release | [v0.5.1]",
+            (ROOT / "README.md").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "已发布版本 | [v0.5.1]",
+            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
+        )
+
+    def test_validate_workflow_covers_cross_platform_offline_gates(self) -> None:
+        workflow_path = ROOT / ".github" / "workflows" / "validate.yml"
+        self.assertTrue(workflow_path.is_file(), "validate workflow must exist")
+        workflow = workflow_path.read_text(encoding="utf-8")
+
+        for required in (
+            "ubuntu-latest",
+            "macos-latest",
+            "windows-latest",
+            "3.11",
+            "3.13",
+            "python -m pip install -r requirements-harness.txt",
+            "python -m unittest discover -s tests -v",
+            "python scripts/validate_distribution.py .",
+            "Validate distribution, all Skills, and scan for secret-like content",
+            "shellcheck",
+            "python -m compileall",
+            "scripts/stitch_mcp_proxy.py",
+            '"code":-32700',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, workflow)
+
     def test_manifest_declares_official_stitch_brand_assets(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         interface = manifest["interface"]
@@ -73,7 +134,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(manifest["name"], "stitch-design")
-        self.assertEqual(manifest["version"], "0.5.1")
+        self.assertEqual(manifest["version"], "0.5.2")
         self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
@@ -130,21 +191,23 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("Only HTTP 401", privacy)
         self.assertIn("HTTP 403 is permission denied and is not refreshed or replayed", privacy)
 
-    def test_manifest_and_readmes_remain_truthful_at_051(self) -> None:
+    def test_manifest_and_readmes_remain_truthful_at_052(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.5.1")
+        self.assertEqual(manifest["version"], "0.5.2")
         for path in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertNotIn("current 0.5.2", text.lower())
-                self.assertNotIn("当前 0.5.2", text)
+                self.assertIn("0.5.2", text)
 
     def test_stitch_setup_check_never_prints_the_key(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
+        shell = shutil.which("sh")
+        if shell is None:
+            self.skipTest("POSIX-compatible shell is not available")
         secret = "test-secret-must-not-appear"
         result = subprocess.run(
-            [str(script), "check"],
-            env={"PATH": "/usr/bin:/bin", "STITCH_API_KEY": secret},
+            [shell, str(script), "check"],
+            env={"PATH": os.environ.get("PATH", ""), "STITCH_API_KEY": secret},
             capture_output=True,
             text=True,
             check=False,
@@ -156,6 +219,9 @@ class DistributionContractTests(unittest.TestCase):
 
     def test_stitch_setup_cli_forwards_the_key_without_printing_it(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
+        shell = shutil.which("sh")
+        if shell is None:
+            self.skipTest("POSIX-compatible shell is not available")
         secret = "test-secret-must-not-appear"
         with tempfile.TemporaryDirectory() as directory:
             fake_codex = Path(directory) / "codex"
@@ -166,8 +232,11 @@ class DistributionContractTests(unittest.TestCase):
             )
             fake_codex.chmod(0o755)
             result = subprocess.run(
-                [str(script), "cli", "--", "resume"],
-                env={"PATH": f"{directory}:/usr/bin:/bin", "STITCH_API_KEY": secret},
+                [shell, str(script), "cli", "--", "resume"],
+                env={
+                    "PATH": os.pathsep.join((directory, os.environ.get("PATH", ""))),
+                    "STITCH_API_KEY": secret,
+                },
                 capture_output=True,
                 text=True,
                 check=False,
@@ -213,7 +282,7 @@ class DistributionContractTests(unittest.TestCase):
         for path in paths:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.5.1", text)
+                self.assertIn("0.5.2", text)
                 self.assertIn("stdio", text)
                 self.assertIn("Harness", text)
                 self.assertNotIn("env_http_headers", text)

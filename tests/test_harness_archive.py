@@ -33,6 +33,7 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaises(InvalidTransition):
             self.manager.archive(run, self.spec)
 
+    @unittest.skipIf(os.name == "nt", "Windows runners do not guarantee symlink privileges")
     def test_move_preserves_old_conversation_path_as_relative_symlink(self):
         old_image = self.project / "generated" / "login.png"
         old_image.parent.mkdir()
@@ -138,6 +139,7 @@ class ArchiveTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "contained"):
                     self.manager.archive(run, unsafe_spec)
 
+    @unittest.skipIf(os.name == "nt", "Windows runners do not guarantee symlink privileges")
     def test_archive_rejects_symlink_escape(self):
         run = self.approved_run()
         with tempfile.TemporaryDirectory() as outside_directory:

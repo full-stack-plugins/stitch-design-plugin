@@ -1,8 +1,8 @@
 # Stitch Design 技术方案
 
-> **范围**：说明 Stitch Design 0.5.1 的实现决策、接口、安全、测试、发布和迁移方案。
+> **范围**：说明 Stitch Design 0.5.2 的实现决策、接口、安全、测试、发布和迁移方案。
 >
-> **最后更新**：2026-09-13
+> **最后更新**：2026-09-14
 
 [English](Stitch-Design-Technical-Solution.md) | [架构文档](Stitch-Design-Architecture.zh_CN.md)
 
@@ -146,7 +146,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Source["工作树"] --> Unit["16 项单元测试"]
+    Source["工作树"] --> Unit["单元测试套件"]
     Source --> Dist["分发校验器"]
     Source --> Skill["Skill 结构校验"]
     Source --> Shell["ShellCheck"]
@@ -166,7 +166,10 @@ flowchart LR
 ```bash
 python3 -m unittest discover -s tests -v
 python3 scripts/validate_distribution.py .
-shellcheck scripts/stitch_setup.sh
+for skill_dir in skills/*; do python3.13 /Users/wandl/.codex/skills/.system/skill-creator/scripts/quick_validate.py "$skill_dir" || exit 1; done
+find scripts skills -type f -name '*.sh' -exec shellcheck {} +
+python3 -m compileall -q scripts stitch_harness skills
+actionlint .github/workflows/validate.yml
 git diff --check
 ```
 
@@ -180,8 +183,8 @@ git diff --check
 | Portable manifest | 阻塞 | 可移植凭据引用或 OAuth |
 | 加密本地保险库 | 未实现 | 宿主提供秘密存储 |
 | Windows 实机 | 仅代码路径 | Windows 主机验收 |
-| 远端 CI | 无 Workflow | 新增并验证 GitHub Actions |
+| 远端 CI | Workflow 已配置，远端运行未验证 | 观察 GitHub Actions 成功运行 |
 
 ---
 
-**文档版本**：2.1.0 · **状态**：与 0.5.1 发布候选对齐
+**文档版本**：2.1.0 · **状态**：与 0.5.2 发布候选对齐

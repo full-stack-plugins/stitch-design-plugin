@@ -1,8 +1,8 @@
 # Stitch Design Technical Solution
 
-> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.5.1.
+> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.5.2.
 >
-> **Updated:** 2026-09-13
+> **Updated:** 2026-09-14
 
 [简体中文](Stitch-Design-Technical-Solution.zh_CN.md) | [Architecture](Stitch-Design-Architecture.md)
 
@@ -150,7 +150,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Source["Working tree"] --> Unit["16 unit tests"]
+    Source["Working tree"] --> Unit["Unit suite"]
     Source --> Dist["Distribution validator"]
     Source --> Skill["Skill structure validation"]
     Source --> Shell["ShellCheck"]
@@ -170,8 +170,10 @@ flowchart LR
 ```bash
 python3 -m unittest discover -s tests -v
 python3 scripts/validate_distribution.py .
-python3.13 /Users/wandl/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/stitch-local-setup
-shellcheck scripts/stitch_setup.sh
+for skill_dir in skills/*; do python3.13 /Users/wandl/.codex/skills/.system/skill-creator/scripts/quick_validate.py "$skill_dir" || exit 1; done
+find scripts skills -type f -name '*.sh' -exec shellcheck {} +
+python3 -m compileall -q scripts stitch_harness skills
+actionlint .github/workflows/validate.yml
 git diff --check
 ```
 
@@ -192,8 +194,8 @@ Release proof for 0.4.0:
 | Portable Agent Plugins manifest | Blocked | Portable credential reference or OAuth |
 | Encrypted local vault | Not implemented | Host-managed secret UI/store |
 | Windows live acceptance | Code path only | Real Windows host validation |
-| Continuous remote CI | No workflow present | Add and verify GitHub Actions |
+| Continuous remote CI | Workflow configured; remote run unverified | Observe successful GitHub Actions runs |
 
 ---
 
-**Document version:** 2.1.0 · **Status:** Aligned with the 0.5.1 release candidate
+**Document version:** 2.1.0 · **Status:** Aligned with the 0.5.2 release candidate

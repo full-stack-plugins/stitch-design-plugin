@@ -1,0 +1,66 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unix-offline:
+    name: Offline gates (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-harness.txt
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate distribution, all Skills, and scan for secret-like content
+        run: python scripts/validate_distribution.py .
+      - name: Compile Python sources
+        run: python -m compileall -q scripts stitch_harness skills
+      - name: Install ShellCheck on Ubuntu
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Install ShellCheck on macOS
+        if: runner.os == 'macOS'
+        run: brew install shellcheck
+      - name: Run ShellCheck
+        run: find scripts skills -type f -name '*.sh' -exec shellcheck {} +
+  windows-offline:
+    name: Windows gates (Python ${{ matrix.python-version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-harness.txt
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate distribution
+        run: python scripts/validate_distribution.py .
+      - name: Compile Python sources
+        run: python -m compileall -q scripts stitch_harness skills
+      - name: Smoke-test stdio proxy launch
+        shell: pwsh
+        run: |
+          $output = '{invalid-json' | python scripts/stitch_mcp_proxy.py
+          if ($LASTEXITCODE -ne 0) { throw "proxy exited with $LASTEXITCODE" }
+          if ($output -notmatch '"code":-32700') { throw "proxy did not return a JSON-RPC parse error" }
