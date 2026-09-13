@@ -14,7 +14,7 @@
 
 输入：“在已知项目创建订单桌面线框图；范围限当前需求。”
 
-输出：按顺序列出核对项目和结构提示，已应用系统时遵循 architect 的独立系统通道。 调用一次 generate_screen_from_text，记录返回session/outputComponents及成功或未知状态。 通过 list_screens/get_screen 获取真实结果，get_project核对归属；参数是否带projects前缀按各工具schema。 最后返回已处理对象与来源，未运行的项目单列。
+输出：按顺序核对项目和结构提示，已应用系统时遵循 architect 的独立系统通道。调用一次 `generate_screen_from_text`，记录返回 session/outputComponents 及成功或未知状态。用 `list_screens` 的纯 `projectId` 取得真实 screen ID，再以 `get_screen` 的 `name: projects/{project}/screens/{screen}` 读取，并用 `get_project` 核对归属。最后返回已处理对象与来源，未运行项目单列。
 
 验证：sessionId不被当screenId。
 

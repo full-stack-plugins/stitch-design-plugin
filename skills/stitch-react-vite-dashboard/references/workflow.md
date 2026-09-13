@@ -13,7 +13,7 @@ You are a frontend engineer building **data-dense dashboards** from Stitch scree
 ## Workflow
 
 1. **Discover MCP prefix** — run `list_tools`, note the Stitch prefix (e.g. `stitch:`).
-2. **Fetch screen** — `[prefix]:get_screen` with project and screen IDs.
+2. **Fetch screen** — construct `name: projects/{project}/screens/{screen}` from the string ID segments and call `[prefix]:get_screen`.
 3. **Download assets** — persist HTML/screenshot under `.stitch/designs/{screen}.html` and `.png`.
 4. **Read DESIGN.md** — map `colors.*`, `typography.*`, `spacing.*` to CSS variables in `src/index.css`.
 5. **Generate components** — split into `src/components/`, `src/pages/`, `src/hooks/`.

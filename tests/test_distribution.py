@@ -95,7 +95,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("SDK 仍然需要 `STITCH_API_KEY`", guide)
         self.assertIn("不需要克隆插件仓库", guide)
         self.assertIn("Windows", guide)
-        self.assertIn("默认流程不访问系统钥匙串", guide)
+        self.assertIn("所有平台默认写入当前用户的受限配置文件", guide)
         self.assertIn("ChatGPT 网页版", guide)
         self.assertIn("尚未通过端到端验证", guide)
         for text in (readme, readme_zh, guide):
@@ -105,6 +105,37 @@ class DistributionContractTests(unittest.TestCase):
     def test_bilingual_overview_counts_current_skill_inventory(self) -> None:
         self.assertIn("43 workflow-oriented Agent Skills", (ROOT / "README.md").read_text(encoding="utf-8"))
         self.assertIn("43 个面向工作流的 Agent Skills", (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"))
+
+    def test_public_docs_remove_native_store_and_describe_403_without_replay(self) -> None:
+        paths = (
+            ROOT / "README.md", ROOT / "README.zh-CN.md", ROOT / "PRIVACY.md",
+            ROOT / "docs/Stitch-Design-Architecture.md",
+            ROOT / "docs/Stitch-Design-Architecture.zh_CN.md",
+            ROOT / "docs/Stitch-Design-Technical-Solution.md",
+            ROOT / "docs/Stitch-Design-Technical-Solution.zh_CN.md",
+            ROOT / "docs/getting-started.zh-CN.md",
+        )
+        stale = (
+            "System Secret Store", "system secret store", "system-secret-store",
+            "Keychain", "Credential Manager", "Secret Service", "系统秘密存储", "系统钥匙串",
+        )
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(path=path.name):
+                for phrase in stale:
+                    self.assertNotIn(phrase, text)
+        privacy = (ROOT / "PRIVACY.md").read_text(encoding="utf-8")
+        self.assertIn("Only HTTP 401", privacy)
+        self.assertIn("HTTP 403 is permission denied and is not refreshed or replayed", privacy)
+
+    def test_manifest_and_readmes_remain_truthful_at_051(self) -> None:
+        manifest = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["version"], "0.5.1")
+        for path in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(path=path.name):
+                self.assertNotIn("current 0.5.2", text.lower())
+                self.assertNotIn("当前 0.5.2", text)
 
     def test_stitch_setup_check_never_prints_the_key(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
@@ -152,7 +183,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("scripts/stitch_setup.py ui", skill)
         self.assertIn("不要让用户把 key 粘贴到聊天", skill)
         self.assertIn("Windows", skill)
-        self.assertIn("默认配置不会访问系统钥匙串", skill)
+        self.assertIn("凭据仅来自当前进程或受限的用户配置文件", skill)
 
     def test_delivery_harness_skill_exposes_verified_handoff_contract(self) -> None:
         skill = (ROOT / "skills" / "stitch-delivery-harness" / "SKILL.md").read_text(encoding="utf-8")

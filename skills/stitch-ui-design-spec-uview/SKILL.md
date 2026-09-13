@@ -1,7 +1,6 @@
 ---
 name: stitch-ui-design-spec-uview
 description: uView 2 design spec for Stitch. Outputs hard-constraints prefix or selector JSON and assembled prompt.
-allowed-tools: stitch*:* Read Write
 ---
 
 

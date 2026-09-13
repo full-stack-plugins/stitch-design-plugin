@@ -8,13 +8,13 @@
 
 ## 1. Executive summary
 
-Stitch Design is a Codex compatibility plugin that packages 41 Agent Skills, a secret-safe local stdio proxy to Google Stitch MCP, a first-use credential wizard, and an evidence-driven delivery Harness. Codex owns tool invocation; Google Stitch owns project and screen data; the plugin owns secure connection, workflow state, validation, receipts, and local archival.
+Stitch Design is a Codex compatibility plugin that packages 43 Agent Skills, a secret-safe local stdio proxy to Google Stitch MCP, a first-use credential wizard, and an evidence-driven delivery Harness. Codex owns tool invocation; Google Stitch owns project and screen data; the plugin owns secure connection, workflow state, validation, receipts, and local archival.
 
 ```mermaid
 flowchart LR
     U["User intent"] --> C["Codex host"]
     C --> P["Stitch Design plugin"]
-    P --> S["41 Skills"]
+    P --> S["43 Skills"]
     P --> M["Local stdio MCP proxy"]
     P --> H["Delivery Harness"]
     P --> W["Local setup wizard"]
@@ -42,7 +42,7 @@ Non-goals: hosting Google Stitch, providing a shared author key, implementing OA
 flowchart LR
     User["User"] --> Codex["Codex host"]
     Codex --> Plugin["Stitch Design"]
-    Plugin --> Skills["41 Skills"]
+    Plugin --> Skills["43 Skills"]
     Plugin --> Setup["Loopback setup UI"]
     Plugin --> MCP["Google Stitch MCP"]
     Setup --> Config["System secret store"]
@@ -103,7 +103,7 @@ flowchart LR
     Plugin -->|"HTTPS + X-Goog-Api-Key"| MCP
 ```
 
-The API key is stored in a restricted current-user configuration file by default. The local stdio proxy reads it once per process, caches it until an authentication rejection, and sends it only to the exact Google Stitch HTTPS origin. Native system stores remain explicit advanced options. Plugin authors do not receive MCP traffic.
+The API key is stored in a restricted current-user configuration file. The local stdio proxy reads it once per process and sends it only to the exact Google Stitch HTTPS origin. Only HTTP 401 refreshes and retries once; HTTP 403 is permission denied and is not refreshed or replayed. Plugin authors do not receive MCP traffic.
 
 ## 4. Components and dependency direction
 
@@ -226,7 +226,7 @@ sequenceDiagram
 | Setup CSRF token | Setup process | Memory only | One process |
 | Tests and examples | Repository | `tests/`, Skill resources | Version controlled |
 
-Configuration precedence: explicit process `STITCH_API_KEY` → restricted user configuration → setup required. The runtime contains no native system-secret-store or credential-migration path.
+Configuration precedence: explicit process `STITCH_API_KEY` → restricted user configuration → setup required.
 
 ## 7. Security and privacy
 

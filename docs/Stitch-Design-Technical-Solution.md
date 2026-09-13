@@ -13,7 +13,7 @@
 | Host packaging | Codex compatibility manifest | Currently supported and verified |
 | Tool transport | Bundled stdio proxy to Google Stitch HTTP MCP | Reliable host integration and provider-owned execution |
 | Authentication | Process environment or restricted user configuration | Avoids interactive system prompts and keeps the key outside the package |
-| Workflow layer | 41 Agent Skills plus Delivery Harness | Precise discovery and verified delivery |
+| Workflow layer | 43 Agent Skills plus Delivery Harness | Precise discovery and verified delivery |
 | First-use UI | Python stdlib loopback server + static assets | No new runtime dependency |
 | Credential persistence | Cross-platform current-user JSON with restricted permissions | Predictable non-interactive behavior |
 | Validation | Python unittest + distribution validator + ShellCheck | Reproducible offline gates |
@@ -39,7 +39,7 @@ sequenceDiagram
     participant S as Setup Skill
     participant U as User
     participant L as Local Wizard
-    participant F as System Secret Store
+    participant F as Restricted User Config
     participant C as New Codex
     S->>S: check credential presence
     alt missing
@@ -81,7 +81,7 @@ flowchart TD
     Inject --> Ready
 ```
 
-The wizard writes to the restricted current-user configuration. The runtime contains no native system-secret-store implementation or migration command.
+The wizard writes to the restricted current-user configuration.
 
 Key rotation: open the UI, save the new key, start a new Codex process, run read-only `list_projects`, then revoke the old key in Stitch Settings.
 
@@ -108,7 +108,7 @@ sequenceDiagram
 
 ## 5. MCP, Harness, and Skill behavior
 
-The local stdio proxy owns MCP initialization, session headers, JSON/SSE responses, one authentication refresh, and secret redaction. The Delivery Harness owns page contracts, finite states, deterministic gates, receipt hashes, recovery, explicit approval, and archive publication. Agent Skills invoke the real Stitch, ImageGen, OCR, and visual tools and import normalized evidence; provider success text alone is never accepted.
+The local stdio proxy owns MCP initialization, session headers, JSON/SSE responses, secret redaction, and a single refresh/retry only for HTTP 401. HTTP 403 is permission denied and is never refreshed or replayed. The Delivery Harness owns page contracts, finite states, deterministic gates, receipt hashes, recovery, explicit approval, and archive publication. Agent Skills invoke the real Stitch, ImageGen, OCR, and visual tools and import normalized evidence; provider success text alone is never accepted.
 
 ```mermaid
 flowchart LR

@@ -70,7 +70,7 @@ python3 /path/to/installed/plugin/scripts/stitch_setup.py ui
 py C:\path\to\installed\plugin\scripts\stitch_setup.py ui
 ```
 
-The page binds only to `127.0.0.1`, loads no external assets, uses CSRF and Origin checks, never logs the key, and clears the input after every response. It stores the key in a restricted current-user configuration file on every supported platform; the runtime has no native system-secret-store path. See [Getting started](docs/getting-started.zh-CN.md) and [Privacy](PRIVACY.md).
+The page binds only to `127.0.0.1`, loads no external assets, uses CSRF and Origin checks, never logs the key, and clears the input after every response. It stores the key in a restricted current-user configuration file on every supported platform. See [Getting started](docs/getting-started.zh-CN.md) and [Privacy](PRIVACY.md).
 
 ## Example requests
 
@@ -102,7 +102,7 @@ Credential precedence:
 2. The current-user Stitch Design credential file.
 3. First-use setup.
 
-Default locations are `$XDG_CONFIG_HOME/stitch-design/credentials.json` (or `~/.config/...`) on Unix and `%APPDATA%\stitch-design\credentials.json` on Windows. The runtime never opens Keychain, Credential Manager, or Secret Service.
+Default locations are `$XDG_CONFIG_HOME/stitch-design/credentials.json` (or `~/.config/...`) on Unix and `%APPDATA%\stitch-design\credentials.json` on Windows.
 
 Run a secret-free check:
 
@@ -129,7 +129,7 @@ shellcheck scripts/stitch_setup.sh
 git diff --check
 ```
 
-The current 0.5.2 worktree contains 43 Skills, the stdio proxy and Delivery Harness, and uses non-interactive user configuration as the default credential path. Release publication and live Windows/Linux acceptance remain separate evidence.
+The current manifest and release-candidate status remain `0.5.1`. This source tree contains 43 Skills, the stdio proxy, and Delivery Harness; a `0.5.2` version bump, publication, and live Windows/Linux acceptance remain separate Task 4 gates.
 
 ## Troubleshooting
 

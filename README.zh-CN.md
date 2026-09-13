@@ -12,7 +12,7 @@
 | 已发布版本 | [v0.4.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.4.0) |
 | 发布候选 | `0.5.1` |
 | 宿主布局 | Codex compatibility plugin |
-| Skills | 41 |
+| Skills | 43 |
 | MCP Endpoint | `https://stitch.googleapis.com/mcp` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |
@@ -70,7 +70,7 @@ python3 /已安装插件路径/scripts/stitch_setup.py ui
 py C:\已安装插件路径\scripts\stitch_setup.py ui
 ```
 
-页面只监听 `127.0.0.1`，不加载外部资产，校验 CSRF 和 Origin，不记录 Key，并在每次响应后清空输入。所有平台默认保存到当前用户的受限配置文件；默认流程不会访问 macOS Keychain、Windows Credential Manager 或 Linux Secret Service。详见 [使用指南](docs/getting-started.zh-CN.md) 与 [隐私说明](PRIVACY.md)。
+页面只监听 `127.0.0.1`，不加载外部资产，校验 CSRF 和 Origin，不记录 Key，并在每次响应后清空输入。所有平台默认保存到当前用户的受限配置文件。详见 [使用指南](docs/getting-started.zh-CN.md) 与 [隐私说明](PRIVACY.md)。
 
 ## 使用示例
 
@@ -91,7 +91,7 @@ py C:\已安装插件路径\scripts\stitch_setup.py ui
 2. 当前用户的 Stitch Design 凭据文件。
 3. 首次设置页面。
 
-Unix 默认位置是 `$XDG_CONFIG_HOME/stitch-design/credentials.json`（未设置时为 `~/.config/...`），Windows 为 `%APPDATA%\stitch-design\credentials.json`。迁移到系统秘密存储仅作为高级用户显式操作；默认流程不会触发系统授权弹窗。
+Unix 默认位置是 `$XDG_CONFIG_HOME/stitch-design/credentials.json`（未设置时为 `~/.config/...`），Windows 为 `%APPDATA%\stitch-design\credentials.json`。
 
 只检查状态、不回显 Key：
 
@@ -118,7 +118,7 @@ shellcheck scripts/stitch_setup.sh
 git diff --check
 ```
 
-当前 0.5.2 工作树包含 43 个 Skills、stdio 代理与 Delivery Harness，并使用非交互用户配置作为默认凭据路径。发布和 Windows/Linux 实机验收仍属于独立证据。
+当前 manifest 与发布候选状态仍为 `0.5.1`。源码包含 43 个 Skills、stdio 代理与 Delivery Harness；`0.5.2` 版本升级、发布和 Windows/Linux 实机验收仍是 Task 4 的独立门禁。
 
 ## 故障排查
 
@@ -139,6 +139,6 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ## 来源与许可
 
-39 个上游 Skill 快照基于 `full-stack-skills/stitch-skills` 提交 `62ef81825ad6ddc85bb6b8426e65b1a9d07d109b`；`stitch-local-setup` 和 `stitch-delivery-harness` 为插件本地 Skill。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
+39 个上游 Skill 快照基于 `full-stack-skills/stitch-skills` 提交 `62ef81825ad6ddc85bb6b8426e65b1a9d07d109b`；`stitch-local-setup`、`stitch-delivery-harness`、`stitch-delete-project` 和 `stitch-design-use` 为插件本地 Skill。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
 
 详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

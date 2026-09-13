@@ -1,7 +1,6 @@
 ---
 name: stitch-design-use
 description: Stitch Design 根路由；当用户要用 Stitch 完成从认证、读取、生成、设计系统、资产处理到完整交付的任务时，选择最窄的下游 Skill，不直接扩大远程写入授权。
-allowed-tools: Read
 ---
 
 # 使用 Stitch Design
@@ -25,7 +24,9 @@ allowed-tools: Read
 | 读单屏详情/资源 | `stitch-mcp-get-screen` |
 | 创建、生成、编辑、变体 | `stitch-ui-designer` |
 | 创建、更新、列出或应用设计系统 | `stitch-manage-design-system` |
-| 本地 HTML/图片上传或资产操作 | `stitch-upload-to-stitch` |
+| 本地准备 HTML/图片，不发送远程请求 | `stitch-extract-static-html` 或目标转换 Skill |
+| 明确上传已审核 HTML/图片或 DESIGN.md | `stitch-upload-to-stitch` |
+| 明确下载单屏 HTML/截图 | `stitch-mcp-get-screen` 获取 URL，再按授权保存到指定目录 |
 | 删除远程项目 | `stitch-delete-project` |
 | 规格、双图比较、批准、归档的完整交付 | `stitch-delivery-harness` |
 
@@ -61,11 +62,13 @@ allowed-tools: Read
 
 **Q3：缺少凭据怎么办？** 转 `stitch-local-setup`，执行配置检查与隐藏输入流程。
 
-**Q4：上传 Markdown 怎么办？** 由 `stitch-upload-to-stitch` 按当前合同转到远程 `upload_design_md`。
+**Q4：本地资产任务会自动上传吗？** 不会。本地准备走提取或转换 Skill；只有用户明确上传并给出目标项目时才进入 `stitch-upload-to-stitch`。Markdown 由该 Skill 转到远程 `upload_design_md`。
 
 **Q5：何时用 Harness？** 用户要求从规格到比较、批准和归档的完整可验证交付时。
 
 **Q6：路由完成是否等于任务完成？** 不等于；必须以目标 Skill 的实际回执和验收证据为准。
+
+明确下载只读单屏资产时，先用 `stitch-mcp-get-screen` 获取当前 URL，再在用户指定目录内安全保存；批量本地资产工具属于后续 0.6.0 能力，当前 0.5.1 不宣称已提供。
 
 ## 按需参考
 

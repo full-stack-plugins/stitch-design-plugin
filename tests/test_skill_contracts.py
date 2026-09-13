@@ -35,7 +35,14 @@ class SkillContractTests(unittest.TestCase):
             "stitch-ui-designer": {"edit_screens", "generate_variants"},
         }
         for owner in ownership:
-            self.assertTrue((SKILLS / owner / "SKILL.md").is_file(), owner)
+            skill_file = SKILLS / owner / "SKILL.md"
+            self.assertTrue(skill_file.is_file(), owner)
+            package_text = "\n".join(
+                path.read_text(encoding="utf-8") for path in sorted((SKILLS / owner).rglob("*.md"))
+            )
+            for tool in ownership[owner]:
+                with self.subTest(owner=owner, tool=tool):
+                    self.assertRegex(package_text, rf"(?<![a-z0-9_]){re.escape(tool)}(?![a-z0-9_])")
         self.assertEqual(set().union(*ownership.values()), tools)
 
     def test_root_router_covers_setup_reads_writes_assets_and_delivery(self):
@@ -46,13 +53,20 @@ class SkillContractTests(unittest.TestCase):
             "stitch-manage-design-system", "stitch-upload-to-stitch", "stitch-delivery-harness",
         ):
             self.assertIn(route, router)
+        self.assertIn("本地准备", router)
+        self.assertIn("明确上传", router)
+        self.assertIn("明确下载", router)
+        self.assertIn("stitch-extract-static-html", router)
+        self.assertNotIn("本地 HTML/图片上传或资产操作", router)
 
     def test_canonical_screen_resource_arguments_are_used(self):
         bad_get = re.compile(
             r"get_screen`? with (?:the parsed )?`?projectId`? and `?screenId`?"
             r"|get_screen[^\n]*\{\s*[\"']projectId[\"']"
             r"|Numeric ID[^\n]*get_screen"
-            r"|get_screen`? with the selected `screenId`",
+            r"|get_screen`? with the selected `screenId`"
+            r"|get_screen`? with project and screen IDs"
+            r"|get_screen 获取真实结果[^\n]*参数是否带projects前缀",
             re.I,
         )
         bad_list = re.compile(
@@ -90,11 +104,23 @@ class SkillContractTests(unittest.TestCase):
             text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
             frontmatter = text.split("---", 2)[1]
             with self.subTest(skill=name):
-                self.assertNotRegex(frontmatter, r"(?m)^allowed-tools:.*\bWrite\b")
+                self.assertNotRegex(frontmatter, r"(?m)^allowed-tools:")
+
+    def test_prompt_and_destructive_skills_do_not_preapprove_wildcard_mcp(self):
+        no_preapproval = (
+            "stitch-delete-project", "stitch-design-use", "stitch-mcp-create-project", "stitch-ued-guide",
+            "stitch-ui-design-spec-generator", "stitch-ui-design-spec-layui",
+            "stitch-ui-design-spec-uview", "stitch-ui-design-spec-uviewpro",
+            "stitch-ui-design-spec-vant", "stitch-ui-design-variants",
+        )
+        for name in no_preapproval:
+            frontmatter = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1]
+            with self.subTest(skill=name):
+                self.assertNotRegex(frontmatter, r"(?m)^allowed-tools:")
 
     def test_delete_skill_requires_preview_approval_single_call_and_reconciliation(self):
         text = (SKILLS / "stitch-delete-project" / "SKILL.md").read_text(encoding="utf-8")
-        for phrase in ("projects/{project}", "明确批准", "仅调用一次", "list_projects", "删除前"):
+        for phrase in ("projects/{project}", "明确批准", "运行时批准", "仅调用一次", "list_projects", "删除前"):
             self.assertIn(phrase, text)
 
 

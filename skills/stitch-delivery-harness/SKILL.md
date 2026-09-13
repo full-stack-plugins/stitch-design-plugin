@@ -55,7 +55,7 @@ license: Apache-2.0
 - 回灌后必须重新下载 HTML 和渲染图，并完成探针编辑与恢复。
 - 自动门禁全部通过后只能进入 `AWAITING_USER_APPROVAL`。
 - 向用户同时展示最终 Stitch 渲染、美工稿和并排比较图；没有明确批准，不调用 `approve` 或 `archive`。
-- 凭据只经系统秘密存储和本地 stdio 代理使用；不读取、打印或写入 evidence。
+- 凭据只经当前进程或受限用户配置交给本地 stdio 代理；不读取、打印或写入 evidence。
 
 ## 停止条件
 

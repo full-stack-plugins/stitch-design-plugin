@@ -11,7 +11,7 @@ Read the current entrypoint first. Apply only the requested screen and platform 
 Capture provenance for requested screens; use authorized, matching cached assets when refresh is not requested.
 
 1. **Namespace discovery**: Run `list_tools` to find the Stitch MCP prefix. Use this prefix (e.g., `stitch:`) for all subsequent calls.
-2. **Metadata fetch**: Call `[prefix]:get_screen` for **each requested screen** to retrieve the design JSON with download URLs. Do not expand the selected screen scope.
+2. **Metadata fetch**: Call `[prefix]:get_screen` with `name: projects/{project}/screens/{screen}` for **each requested screen** to retrieve the design JSON with download URLs. Do not expand the selected screen scope.
 3. **Check for existing designs**: Before downloading, check if `.stitch/designs/{page}.html` and `.stitch/designs/{page}.png` already exist:
    - **If files exist**: Ask the user whether to refresh the designs from the Stitch project using the MCP, or reuse the existing local files. Use the existing refresh/reuse preference. Refresh only the authorized assets.
    - **If files do not exist**: Proceed to step 4.

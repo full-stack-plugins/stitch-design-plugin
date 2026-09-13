@@ -1,7 +1,6 @@
 ---
 name: stitch-ui-design-spec-layui
 description: Layui-Vue design spec for Stitch. Outputs hard-constraints prefix or selector JSON and assembled prompt.
-allowed-tools: stitch*:* Read Write
 ---
 
 

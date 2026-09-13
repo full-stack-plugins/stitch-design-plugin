@@ -1,7 +1,6 @@
 ---
 name: stitch-ui-design-spec-vant
 description: Vant 4 design spec for Stitch. Outputs hard-constraints prefix or selector JSON and assembled prompt.
-allowed-tools: stitch*:* Read Write
 ---
 
 

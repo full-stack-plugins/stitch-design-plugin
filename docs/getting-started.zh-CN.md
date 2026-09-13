@@ -43,7 +43,7 @@ Stitch SDK 不会消除凭据要求。官方教程所说的“不需要 MCP 配�
    py C:\absolute\plugin\root\scripts\stitch_setup.py ui
    ```
 
-   配置器使用隐藏输入，不修改 shell 或 PowerShell Profile。所有平台默认写入当前用户的受限配置文件：Unix 为 `$XDG_CONFIG_HOME/stitch-design/credentials.json`（未设置时使用 `~/.config/...`），Windows 为 `%APPDATA%\stitch-design\credentials.json`。默认流程不访问系统钥匙串，因此不会反复请求系统密码。
+   配置器使用隐藏输入，不修改 shell 或 PowerShell Profile。所有平台默认写入当前用户的受限配置文件：Unix 为 `$XDG_CONFIG_HOME/stitch-design/credentials.json`（未设置时使用 `~/.config/...`），Windows 为 `%APPDATA%\stitch-design\credentials.json`。
 
 4. 此后由配置器启动 Codex，它会读取凭据并仅注入子进程：
 

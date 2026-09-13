@@ -1,7 +1,6 @@
 ---
 name: stitch-mcp-get-project
 description: Retrieves the detailed metadata of a specific Stitch project.
-allowed-tools: stitch*:* Read
 ---
 
 

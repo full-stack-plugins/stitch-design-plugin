@@ -1,7 +1,6 @@
 ---
 name: stitch-delete-project
 description: 安全删除一个明确指定的 Stitch 项目；仅在用户明确要求删除远程项目时使用，先预览完整资源名并再次取得批准，删除后只读对账。
-allowed-tools: stitch*:* Read
 ---
 
 # 安全删除 Stitch 项目
@@ -39,7 +38,7 @@ allowed-tools: stitch*:* Read
 1. 用 `get_project` 读取 `name: projects/{project}`，确认项目存在和标题；不得从模糊名称猜 ID。
 2. 展示删除前预览：标题、纯项目 ID、准确完整目标 `projects/{project}`，说明远程删除不可撤销。
 3. 等待用户针对该准确目标的明确批准。既往创建授权、一般“继续”或其他项目的批准均不适用。
-4. 获批后仅调用一次 `delete_project`，参数为 `{"name":"projects/{project}"}`；超时、连接中断或未知响应时不得重发。
+4. 获得用户对准确目标的明确批准后，再取得宿主对这一次工具调用的运行时批准；Skill frontmatter 不预授权删除。随后仅调用一次 `delete_project`，参数为 `{"name":"projects/{project}"}`；超时、连接中断或未知响应时不得重发。
 5. 只用 `list_projects` 对账：目标不再出现才记录为已删除；仍存在则记录未删除；无法确认则记录未知结果并停止。
 
 ## 安全与结果验证

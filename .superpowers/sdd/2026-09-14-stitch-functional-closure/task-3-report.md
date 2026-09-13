@@ -69,3 +69,16 @@ The ordinary Homebrew `python3` lacks Pillow, so its full-suite run reported two
 - No live remote upload or deletion was performed; this task provides offline contract evidence only.
 - The loopback upload path is test-injected; production code remains pinned to the exact Google origin.
 - Task 4 must perform the version bump, release, installation parity, and host validation. Task 5 owns new executable local asset tools and wider Harness capability closure.
+
+## Review Round 1
+
+Reviewer findings were addressed in a second RED → GREEN cycle:
+
+- Removed every `allowed-tools` entry from read-only MCP Skills, prompt/spec/router Skills, `stitch-mcp-create-project`, and `stitch-delete-project`. Deletion now explicitly requires both target-bound user approval and host runtime approval; its Skill never preapproves a wildcard MCP namespace.
+- Strengthened repository tests to reject any `allowed-tools` frontmatter in those least-privilege Skills and to require each of the 15 live tools to be named by its owning Skill package.
+- Expanded negative resource-name scans and corrected the remaining React/Vite dashboard and generation local-validation wording. `get_screen` always uses the full `name`; `list_screens` always uses a bare project ID.
+- Removed native-store labels and migration claims from current public README, privacy, getting-started, architecture, technical, setup, and Harness Skill surfaces. Privacy and architecture now state that only HTTP 401 refreshes/retries once; HTTP 403 is permission denied and is never refreshed or replayed.
+- Split root routing into local preparation, explicit upload, and explicit download. Generic local asset work no longer selects the remote uploader, and the router states that batch local asset tools remain a later 0.6.0 capability.
+- Corrected current inventory references to 43 Skills while preserving manifest/release-candidate truth at `0.5.1`; Task 4 still owns the `0.5.2` bump and release.
+
+Round 1 verification: focused Skill/distribution tests `24/24`; full isolated-runtime suite `126/126`; uploader `13/13`; distribution `43` Skills; `quick_validate` `43/43`; relative links `266` files; ShellCheck, Python compilation, and diff whitespace gates passed.

@@ -79,7 +79,7 @@ flowchart TD
     Inject --> Ready
 ```
 
-优先级：显式进程环境变量 → 受限用户配置 → 打开设置页。运行时不包含系统秘密存储实现或凭据迁移命令。
+优先级：显式进程环境变量 → 受限用户配置 → 打开设置页。
 
 轮换步骤：打开向导 → 保存新 Key → 启动新 Codex → 只读 `list_projects` → 在 Stitch Settings 吊销旧 Key。
 
@@ -106,7 +106,7 @@ sequenceDiagram
 
 ## 5. MCP、Harness 与 Skill 责任
 
-本地 stdio 代理负责 MCP 初始化、会话 Header、JSON/SSE、一次认证刷新和秘密脱敏。交付 Harness 负责页面契约、有限状态、机器门禁、receipt 哈希链、恢复、明确批准和归档。Agent Skills 调用真实 Stitch、ImageGen、OCR和视觉工具并回填规范化 evidence；仅有供应商成功文本不能通过。
+本地 stdio 代理负责 MCP 初始化、会话 Header、JSON/SSE、秘密脱敏，以及仅对 HTTP 401 的一次刷新和重试。HTTP 403 表示权限不足，不刷新也不重放。交付 Harness 负责页面契约、有限状态、机器门禁、receipt 哈希链、恢复、明确批准和归档。Agent Skills 调用真实 Stitch、ImageGen、OCR和视觉工具并回填规范化 evidence；仅有供应商成功文本不能通过。
 
 ```mermaid
 flowchart LR
