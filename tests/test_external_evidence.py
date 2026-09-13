@@ -81,7 +81,6 @@ class ExternalEvidenceTests(unittest.TestCase):
     def test_sensitive_keys_and_embedded_sensitive_text_are_rejected_recursively(self):
         unsafe_values = (
             {"nested": {"sessionTokenValue": "private"}},
-            {"nested": {"monkey": "private"}},
             {"note": "Bearer private-value"},
             {"note": "use api-key private-value"},
             {"note": "access_token is private"},
@@ -92,6 +91,19 @@ class ExternalEvidenceTests(unittest.TestCase):
             payload["result"] = unsafe
             with self.subTest(unsafe=unsafe), self.assertRaisesRegex(EvidenceError, "sensitive|query or fragment"):
                 ExternalEvidence.from_dict(payload, "imagegen")
+
+    def test_safe_words_that_merely_contain_sensitive_substrings_are_allowed(self):
+        payload = self.payload()
+        payload["result"] = {
+            "designTheme": "light",
+            "keyboard_navigation": True,
+            "assignment": "reviewer",
+            "monkey": "demo",
+        }
+
+        evidence = ExternalEvidence.from_dict(payload, "imagegen")
+
+        self.assertEqual(evidence.result["designTheme"], "light")
 
 
 if __name__ == "__main__":

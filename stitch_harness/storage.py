@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
@@ -45,6 +46,8 @@ COMPARISON_ARTIFACTS = (
     "comparison/overlay.png",
     "comparison/diff-heatmap.png",
 )
+PENDING_RECEIPT_NAME = ".receipt-pending.json"
+RECEIPT_FILE_PATTERN = re.compile(r"^[0-9]{3}-[a-z0-9-]+\.json$")
 
 
 def sha256_file(path: Path) -> str:
@@ -198,6 +201,59 @@ class ChainVerification:
 class RunStore:
     """Create, update, and verify project-local Harness runs."""
 
+    def _checkpoint(self, name: str) -> None:
+        """Test-only failure boundary; production stores do nothing."""
+
+        del name
+
+    def _recover_pending(self, run_path: Path) -> None:
+        journal_path = run_path / PENDING_RECEIPT_NAME
+        if not journal_path.exists():
+            return
+        if journal_path.is_symlink() or not journal_path.is_file():
+            raise ValueError("pending receipt journal must be a regular file")
+        try:
+            journal = json.loads(journal_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError("pending receipt journal is invalid") from error
+        if not isinstance(journal, dict) or journal.get("schema_version") != 1:
+            raise ValueError("pending receipt journal schema mismatch")
+        receipt_name = journal.get("receipt_name")
+        receipt_payload = journal.get("receipt")
+        expected_hash = journal.get("receipt_sha256")
+        if (
+            not isinstance(receipt_name, str)
+            or RECEIPT_FILE_PATTERN.fullmatch(receipt_name) is None
+            or not isinstance(receipt_payload, dict)
+            or not isinstance(expected_hash, str)
+            or hashlib.sha256(_canonical_bytes(receipt_payload)).hexdigest() != expected_hash
+        ):
+            raise ValueError("pending receipt journal content mismatch")
+        manifest_path = run_path / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        step = receipt_payload.get("step")
+        if (
+            step not in RECEIPT_STEP_SLUGS
+            or not receipt_name.endswith(f"-{RECEIPT_STEP_SLUGS[step]}.json")
+            or receipt_payload.get("run_id") != manifest.get("run_id")
+            or receipt_payload.get("page_id") != manifest.get("page_id")
+        ):
+            raise ValueError("pending receipt journal identity mismatch")
+        previous = receipt_payload.get("previous_receipt_sha256")
+        current = manifest.get("latest_receipt_sha256")
+        if current not in {previous, expected_hash}:
+            raise ValueError("pending receipt journal does not extend the manifest chain")
+        receipt_path = run_path / "receipts" / receipt_name
+        if receipt_path.exists():
+            if receipt_path.is_symlink() or not receipt_path.is_file() or sha256_file(receipt_path) != expected_hash:
+                raise ValueError("pending receipt file does not match its journal")
+        else:
+            _atomic_json(receipt_path, receipt_payload)
+        if current != expected_hash:
+            manifest["latest_receipt_sha256"] = expected_hash
+            _atomic_json(manifest_path, manifest)
+        journal_path.unlink()
+
     def start(self, project_root: Path, spec: PageSpec, now: datetime) -> Run:
         timestamp = now.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
         run_id = f"{timestamp}-{spec.page_id}"
@@ -217,6 +273,10 @@ class RunStore:
         return Run(run_id, spec.page_id, run_path, RunState.DRAFT)
 
     def append_receipt(self, run: Run, receipt: Receipt) -> Run:
+        self._recover_pending(run.path)
+        manifest_path = run.path / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        run = replace(run, latest_receipt_sha256=manifest.get("latest_receipt_sha256"))
         if receipt.run_id != run.run_id or receipt.page_id != run.page_id:
             raise ValueError("receipt identity does not match run")
         expected_step = EXPECTED_RECEIPT_STEP.get(run.state)
@@ -226,12 +286,22 @@ class RunStore:
         sequence = len(list(receipts_dir.glob("*.json"))) + 1
         chained = replace(receipt, previous_receipt_sha256=run.latest_receipt_sha256)
         receipt_path = receipts_dir / f"{sequence:03d}-{RECEIPT_STEP_SLUGS[receipt.step]}.json"
-        _atomic_json(receipt_path, chained.to_dict())
-        receipt_hash = sha256_file(receipt_path)
-        manifest_path = run.path / "manifest.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        receipt_payload = chained.to_dict()
+        receipt_hash = hashlib.sha256(_canonical_bytes(receipt_payload)).hexdigest()
+        journal = {
+            "schema_version": 1,
+            "receipt_name": receipt_path.name,
+            "receipt_sha256": receipt_hash,
+            "receipt": receipt_payload,
+        }
+        _atomic_json(run.path / PENDING_RECEIPT_NAME, journal)
+        self._checkpoint("pending-written")
+        _atomic_json(receipt_path, receipt_payload)
+        self._checkpoint("receipt-written")
         manifest["latest_receipt_sha256"] = receipt_hash
         _atomic_json(manifest_path, manifest)
+        self._checkpoint("manifest-written")
+        (run.path / PENDING_RECEIPT_NAME).unlink()
         return replace(run, latest_receipt_sha256=receipt_hash)
 
     def load(self, project_root: Path, run_id: str) -> Run:
@@ -242,6 +312,7 @@ class RunStore:
 
         if not run_id or "/" in run_id or "\\" in run_id or ".." in run_id:
             raise ValueError("run_id must not contain a path")
+        self._recover_pending(run_path)
         manifest_path = run_path / "manifest.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         if payload.get("schema_version") != 1:
@@ -323,6 +394,18 @@ class RunStore:
         if run.latest_receipt_sha256 != previous:
             errors.append("manifest latest receipt hash mismatch")
         return ChainVerification(not errors, tuple(errors), approval_invalidated)
+
+    def has_accepted_receipt(self, run: Run, step: str) -> bool:
+        """Return whether a verified passed receipt already locks a workflow step."""
+
+        verification = self.verify_chain(run)
+        if not verification.valid:
+            raise ValueError("cannot inspect accepted receipts on an invalid chain")
+        for receipt_path in (run.path / "receipts").glob("*.json"):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if payload.get("step") == step and payload.get("result") == "passed":
+                return True
+        return False
 
     def required_approval_artifacts(self, run: Run) -> dict[str, str]:
         """Derive the exact review set from accepted producer receipts."""

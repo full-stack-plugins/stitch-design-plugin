@@ -68,3 +68,13 @@
 - Retryable compare：仅 `EDITABILITY_VERIFIED` 且尚无已接受 visual receipt 时允许重跑。新三图先完整写入私有 staging，旧完整目录先原子备份；替换失败恢复旧目录。visual receipt 接受并推进状态后，CLI 在任何写入前拒绝覆盖。
 - Round 2 TDD：首阶段 5 项 RED/GREEN 覆盖 editability receipt binding、敏感递归和 compare rollback；第二阶段 4 项 RED/GREEN 覆盖 typed probes、not_applied、applied 与 receipt 后崩溃；追加跨 unknown receipt 哈希绑定 RED/GREEN，防止误复用旧 reconciliation evidence。
 - Round 2 完整验证：185 tests PASS；distribution 0.6.0、43 Skills、Markdown links、secret scan、compileall、Pillow 12.3.0 runtime、ShellCheck、actionlint 与 `git diff --check` 均 PASS。未执行远程写入或 Task 6 发布动作。
+
+## Review Fix Round 3
+
+- Probe artifact 逐字段绑定：每个 artifact 必须位于 run 内且路径组件无 symlink；同一份读取字节同时用于 SHA-256 与 UTF-8 JSON 解析。artifact 的 tool/invoked_at/response_id/status 必须精确等于声明，`result` 只能是布尔 `target_found`，`result_sha256` 必须等于其规范 JSON 哈希。
+- 时序与结果互斥：三个 probe 时间都必须有时区且严格晚于当前最新 unknown-write receipt。`applied` 只接受三工具均 `found/true`；`not_applied` 只接受 project `found/true` 与 list/get screen `not_found/false`。陈旧、矛盾、重复、类型错误或未绑定证据均失败关闭。
+- Receipt journal：append 先原子写 pending journal，再写 receipt，再更新 manifest，最后删除 journal。下一次 load 对 journal identity、receipt name/payload/hash、previous chain 做验证并完成提交。TDD 在 `pending-written`、`receipt-written`、`manifest-written` 三个边界注入崩溃，均恢复为单一有效 receipt 与有效链。
+- 敏感词元：camelCase、snake_case、连字符和标点先规范化为独立词元；只匹配真实敏感 token/组合。`designTheme`、`keyboard_navigation`、`assignment`、`monkey` 允许；API key、access token、bearer、password、credential、signature 和带 query/fragment URL 拒绝。
+- Compare receipt lock：CLI 在替换前检查通过的 `visual-judge` receipt；receipt 已写但状态提交中断时仍拒绝覆盖。未接受 receipt 时保留原子重试/回滚能力。
+- CLI：probe tool/status 在集合操作前先完成类型校验；顶层捕获 `TypeError` 并返回 contract exit 2，不泄漏 traceback。
+- Round 3 TDD：probe stale/exact/outcome/symlink/type、safe token normalization、journal 三边界、compare interrupted-state lock 均先观察 RED 后转 GREEN；完整回归当前为 191 tests PASS。

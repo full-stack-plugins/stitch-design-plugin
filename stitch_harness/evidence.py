@@ -57,12 +57,21 @@ class EvidenceArtifact:
         return cls(path, digest, mime, width, height, semantic_role)
 
 
-SENSITIVE_KEY_PARTS = (
+SENSITIVE_KEY_TOKENS = frozenset({
     "token", "key", "secret", "password", "credential", "bearer",
     "signature", "sig", "authorization", "cookie", "header", "base64",
-)
-SENSITIVE_TEXT_PARTS = ("bearer", "api-key", "api_key", "access_token", "authorization")
+    "apikey", "accesstoken",
+})
+SENSITIVE_TEXT_TOKENS = frozenset({
+    "bearer", "password", "credential", "signature", "secret", "authorization",
+    "apikey", "accesstoken",
+})
 EMBEDDED_URL_PATTERN = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+
+
+def _normalized_tokens(value: str) -> tuple[str, ...]:
+    camel_split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", value)
+    return tuple(token for token in re.split(r"[^A-Za-z0-9]+", camel_split.lower()) if token)
 
 
 def reject_sensitive_content(value: Any) -> None:
@@ -70,16 +79,18 @@ def reject_sensitive_content(value: Any) -> None:
 
     if isinstance(value, dict):
         for key, child in value.items():
-            normalized_key = str(key).lower().replace("-", "_")
-            if any(marker in normalized_key for marker in SENSITIVE_KEY_PARTS):
+            key_tokens = set(_normalized_tokens(str(key)))
+            if key_tokens.intersection(SENSITIVE_KEY_TOKENS):
                 raise EvidenceError("evidence contains a sensitive key name")
             reject_sensitive_content(child)
     elif isinstance(value, list):
         for child in value:
             reject_sensitive_content(child)
     elif isinstance(value, str):
-        lowered = value.lower()
-        if any(marker in lowered for marker in SENSITIVE_TEXT_PARTS):
+        tokens = _normalized_tokens(value)
+        token_set = set(tokens)
+        pairs = set(zip(tokens, tokens[1:]))
+        if token_set.intersection(SENSITIVE_TEXT_TOKENS) or ("api", "key") in pairs or ("access", "token") in pairs:
             raise EvidenceError("evidence contains sensitive text")
         for remote in EMBEDDED_URL_PATTERN.findall(value):
             parsed = urlsplit(remote.rstrip(").,;"))

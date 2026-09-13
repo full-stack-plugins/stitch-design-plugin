@@ -92,6 +92,8 @@ def main(arguments: list[str] | None = None) -> int:
             run = harness.store.load(args.project, args.run)
             if run.state != RunState.EDITABILITY_VERIFIED:
                 raise ValueError("compare requires the current run to be EDITABILITY_VERIFIED")
+            if harness.store.has_accepted_receipt(run, "visual-judge"):
+                raise ValueError("compare cannot overwrite an accepted visual-judge receipt")
             art, stitch = harness.store.required_comparison_artifacts(run)
             comparison = compare_images(
                 run.path / stitch.path,
@@ -134,7 +136,7 @@ def main(arguments: list[str] | None = None) -> int:
             state, destination = _archive_or_recover(harness, args.project, args.run)
             print(json.dumps({"run_id": args.run, "state": state.value, "archive": str(destination)}, ensure_ascii=False, separators=(",", ":")))
             return 0
-    except (OSError, ValueError, ContractError, ApprovalRequired, json.JSONDecodeError) as error:
+    except (OSError, TypeError, ValueError, ContractError, ApprovalRequired, json.JSONDecodeError) as error:
         print(str(error), file=sys.stderr)
         return 2
     print(json.dumps(status.to_dict(), ensure_ascii=False, separators=(",", ":")))

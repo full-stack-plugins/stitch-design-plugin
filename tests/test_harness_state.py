@@ -88,6 +88,32 @@ class RunStoreTests(unittest.TestCase):
                 Receipt.passed(run.run_id, run.page_id, "imagegen"),
             )
 
+    def test_receipt_journal_recovers_crashes_at_every_append_boundary(self):
+        class CrashingStore(RunStore):
+            def __init__(self, crash_at):
+                self.crash_at = crash_at
+
+            def _checkpoint(self, name):
+                if name == self.crash_at:
+                    raise OSError(f"crash at {name}")
+
+        for checkpoint in ("pending-written", "receipt-written", "manifest-written"):
+            with self.subTest(checkpoint=checkpoint), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                run = RunStore().start(root, self.spec, FIXED_TIME)
+                store = CrashingStore(checkpoint)
+                with self.assertRaisesRegex(OSError, checkpoint):
+                    store.append_receipt(
+                        run,
+                        Receipt.passed(run.run_id, run.page_id, "preflight"),
+                    )
+
+                recovered = RunStore().load(root, run.run_id)
+
+                self.assertTrue(RunStore().verify_chain(recovered).valid)
+                self.assertEqual(len(list((run.path / "receipts").glob("*.json"))), 1)
+                self.assertFalse((run.path / ".receipt-pending.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

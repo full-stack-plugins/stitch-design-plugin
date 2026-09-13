@@ -20,4 +20,8 @@ OCR 的 `result.texts` 保存识别文本数组；视觉评估的 `result.scores
 
 使用 `EvidenceWriter` 的 `stitch_generation`、`imagegen`、`ocr`、`roundtrip`、`editability` 和 `visual_review` 方法生成类型化 envelope。`imagegen` 必须传真实 `width`/`height`。`editability` 必须输入 before/edited/restored HTML 与 render 六个文件，写出六个唯一 `semantic_role`；任一 result 哈希不等于实际 artifact 哈希、edited 未变化或 restored 不等于 before，Harness 均拒绝。`visual_review` 的 source artifacts 只能来自当前 run 的 imagegen/roundtrip receipts。
 
-`not_applied` 与 `applied` reconciliation 都必须包含三条类型化 `read_probes`：每条使用唯一的 `get_project`、`list_screens` 或 `get_screen`，并提供带时区 `invoked_at`、唯一 `response_id`、枚举 `status`、`result_sha256` 和唯一的 run-local `application/json` artifact。结果哈希必须等于 artifact 哈希；artifact JSON 也执行递归敏感信息检查。裸工具名列表不能授权重试。
+`not_applied` 与 `applied` reconciliation 都必须包含三条类型化 `read_probes`：每条使用唯一的 `get_project`、`list_screens` 或 `get_screen`，并提供带时区 `invoked_at`、唯一 `response_id`、枚举 `status`、`result_sha256` 和唯一的 run-local `application/json` artifact。artifact 自身 SHA 必须匹配文件，result SHA 必须匹配解析后的规范结果；artifact JSON 也执行递归敏感信息检查。裸工具名列表不能授权重试。
+
+每个 probe artifact 的 JSON 必须逐字段等于声明的 tool、invoked_at、response_id、status，并包含唯一布尔结果 `result.target_found`；`result_sha256` 是该 result 的规范 JSON SHA-256。三个时间都必须晚于当前 unknown-write receipt。`applied` 要求三工具均为 `found + target_found:true`；`not_applied` 要求 `get_project` 为 `found + true`，且 `list_screens`、`get_screen` 均为 `not_found + false`。矛盾、陈旧、symlink 或路径逃逸 evidence 一律拒绝。
+
+receipt 追加使用 run-local pending journal：journal、receipt、manifest 三个持久化边界中的任一中断，下一次加载都会校验 identity/hash/previous-chain 后完成该追加或失败关闭。比较图覆盖锁同时检查通过的 `visual-judge` receipt；即使状态提交中断，只要 receipt 已接受，就禁止重写三张比较图。

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -243,11 +244,11 @@ class Harness:
         return None
 
     @staticmethod
-    def _latest_unknown_receipt_hash(run: Run, step: str) -> str | None:
+    def _latest_unknown_receipt(run: Run, step: str) -> tuple[str, dict] | None:
         for receipt_path in reversed(sorted((run.path / "receipts").glob("*.json"))):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             if payload.get("step") == step and payload.get("result") == "unknown":
-                return sha256_file(receipt_path)
+                return sha256_file(receipt_path), payload
         return None
 
     def _commit_evidence(
@@ -294,6 +295,9 @@ class Harness:
         self,
         run: Run,
         probes: object,
+        *,
+        outcome: str,
+        unknown_ended_at: datetime,
     ) -> tuple[tuple[ArtifactRecord, ...], tuple[dict, ...]]:
         if not isinstance(probes, list) or len(probes) != 3 or not all(isinstance(item, dict) for item in probes):
             raise ValueError("reconciliation requires three typed read probe entries")
@@ -308,6 +312,8 @@ class Harness:
                 raise ValueError("reconciliation probe fields do not match the typed contract")
             reject_sensitive_content(probe)
             tool = probe["tool"]
+            if not isinstance(tool, str):
+                raise ValueError("reconciliation probe tool must be a string")
             tools.append(tool)
             timestamp = probe["invoked_at"]
             if not isinstance(timestamp, str):
@@ -318,6 +324,8 @@ class Harness:
                 raise ValueError("reconciliation probe requires a timezone timestamp") from error
             if parsed_time.tzinfo is None or parsed_time.utcoffset() is None:
                 raise ValueError("reconciliation probe requires a timezone timestamp")
+            if parsed_time <= unknown_ended_at:
+                raise ValueError("reconciliation probe timestamp is stale")
             response_id = probe["response_id"]
             if isinstance(response_id, bool) or not isinstance(response_id, (str, int)) or not str(response_id).strip() or len(str(response_id)) > 128:
                 raise ValueError("reconciliation probe response id is invalid")
@@ -325,6 +333,8 @@ class Harness:
                 raise ValueError("reconciliation probe response ids must be unique")
             response_ids.add(str(response_id))
             status = probe["status"]
+            if not isinstance(status, str):
+                raise ValueError("reconciliation probe status must be a string")
             if status not in {"found", "empty", "not_found", "unavailable"}:
                 raise ValueError("reconciliation probe status is invalid")
             artifact_data = probe["artifact"]
@@ -336,23 +346,70 @@ class Harness:
             if artifact.path in paths:
                 raise ValueError("reconciliation probe artifacts must be unique")
             paths.add(artifact.path)
-            if probe["result_sha256"] != artifact.sha256:
-                raise ValueError("reconciliation result hash must bind its artifact")
             candidate = run.path / artifact.path
-            if not candidate.is_file() or sha256_file(candidate) != artifact.sha256:
+            root = run.path.resolve()
+            current = run.path
+            for component in Path(artifact.path).parts:
+                current = current / component
+                if current.is_symlink():
+                    raise ValueError("reconciliation probe artifact path must not contain a symlink")
+            try:
+                candidate.resolve(strict=True).relative_to(root)
+            except (FileNotFoundError, ValueError) as error:
+                raise ValueError("reconciliation probe artifact must stay contained under the run") from error
+            if not candidate.is_file():
+                raise ValueError("reconciliation probe artifact is missing")
+            try:
+                artifact_bytes = candidate.read_bytes()
+            except OSError as error:
+                raise ValueError("reconciliation probe artifact could not be read") from error
+            if hashlib.sha256(artifact_bytes).hexdigest() != artifact.sha256:
                 raise ValueError("reconciliation probe artifact hash mismatch")
             try:
-                artifact_payload = json.loads(candidate.read_text(encoding="utf-8"))
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+                artifact_payload = json.loads(artifact_bytes.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
                 raise ValueError("reconciliation probe artifact must be valid UTF-8 JSON") from error
             reject_sensitive_content(artifact_payload)
+            expected_payload_keys = {"tool", "invoked_at", "response_id", "status", "result"}
+            if not isinstance(artifact_payload, dict) or set(artifact_payload) != expected_payload_keys:
+                raise ValueError("reconciliation probe artifact content does not match its declaration")
+            result = artifact_payload["result"]
+            if not isinstance(result, dict) or set(result) != {"target_found"} or not isinstance(result["target_found"], bool):
+                raise ValueError("reconciliation probe result contract is invalid")
+            if (
+                artifact_payload["tool"] != tool
+                or artifact_payload["invoked_at"] != timestamp
+                or artifact_payload["response_id"] != response_id
+                or artifact_payload["status"] != status
+            ):
+                raise ValueError("reconciliation probe artifact content does not match its declaration")
+            result_hash = hashlib.sha256(
+                json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            if probe["result_sha256"] != result_hash:
+                raise ValueError("reconciliation result hash does not match the parsed result")
             records.append(ArtifactRecord(artifact.path, artifact.sha256, artifact.mime))
             checks.append({
                 "tool": tool, "invoked_at": timestamp, "response_id": response_id,
-                "status": status, "result_sha256": artifact.sha256,
+                "status": status, "result_sha256": result_hash,
+                "target_found": result["target_found"],
             })
         if set(tools) != {"get_project", "list_screens", "get_screen"} or len(set(tools)) != 3:
             raise ValueError("reconciliation requires get_project, list_screens, and get_screen")
+        contracts = {
+            check["tool"]: (check["status"], check["target_found"])
+            for check in checks
+        }
+        if outcome == "applied":
+            valid_contract = all(contracts[tool] == ("found", True) for tool in contracts)
+        else:
+            valid_contract = (
+                contracts.get("get_project") == ("found", True)
+                and contracts.get("list_screens") == ("not_found", False)
+                and contracts.get("get_screen") == ("not_found", False)
+            )
+        if not valid_contract:
+            raise ValueError(f"reconciliation {outcome} probe contract is contradictory")
         return tuple(records), tuple(checks)
 
     def start(self, project_root: Path, page_id: str, *, now: datetime | None = None) -> RunStatus:
@@ -470,8 +527,19 @@ class Harness:
         outcome = reconciliation.get("outcome")
         if outcome not in {"not_applied", "applied"}:
             raise ValueError("reconciliation outcome must be not_applied or applied")
+        unknown_receipt = self._latest_unknown_receipt(run, manifest["reconciliation_step"])
+        if unknown_receipt is None:
+            raise ValueError("reconciliation cannot find the current unknown write receipt")
+        unknown_receipt_hash, unknown_payload = unknown_receipt
+        try:
+            unknown_ended_at = datetime.fromisoformat(str(unknown_payload["ended_at"]).replace("Z", "+00:00"))
+        except (KeyError, ValueError) as error:
+            raise ValueError("unknown write receipt timestamp is invalid") from error
         probe_records, probe_checks = self._validate_reconciliation_probes(
-            run, reconciliation.get("read_probes")
+            run,
+            reconciliation.get("read_probes"),
+            outcome=outcome,
+            unknown_ended_at=unknown_ended_at,
         )
         reason = self._sanitize_reason(reconciliation.get("reason"))
         reconciliation_receipt = Receipt.passed(
@@ -482,11 +550,6 @@ class Harness:
             checks=probe_checks,
             attempt=self._attempts(run),
         )
-        unknown_receipt_hash = self._latest_unknown_receipt_hash(
-            run, manifest["reconciliation_step"]
-        )
-        if unknown_receipt_hash is None:
-            raise ValueError("reconciliation cannot find the current unknown write receipt")
         reconciliation_receipt_hash = self._matching_receipt_hash(
             run,
             reconciliation_receipt,
