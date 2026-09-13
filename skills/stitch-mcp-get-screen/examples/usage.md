@@ -9,10 +9,7 @@
 ```json
 {
   "name": "get_screen",
-  "arguments": {
-    "projectId": "3780309359108792857",
-    "screenId": "88805318abe84d16add098fae3add91e"
-  }
+  "arguments": {"name": "projects/3780309359108792857/screens/88805318abe84d16add098fae3add91e"}
 }
 ```
 
@@ -33,5 +30,4 @@
 ```
 
 ## 2. Note on IDs
-*   **projectId**: Must be the numeric/string ID (e.g., `37803...`), NOT `projects/37803...`.
-*   **screenId**: Must be the UUID (e.g., `88805...`), NOT `projects/.../screens/88805...`.
+*   **name**: Must be the full string `projects/{project}/screens/{screen}`.

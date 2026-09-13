@@ -1,90 +1,66 @@
 ---
 name: stitch-ui-design-spec-generator
-description: Translates user requirements into structured Design Specs for Theme, Color, and Typography.
-allowed-tools: stitch*:* Read Write
+description: 将 Stitch 页面需求或 PRD 转为可审阅的本地 UI 设计规格；只产出设计决策，不调用远程写工具，也不冻结 MCP 模型、设备、字体或颜色变体枚举。
+allowed-tools: Read
 ---
 
+# Stitch UI 设计规格生成
 
-# Design Spec Generator
+## 快速开始
 
-**Constraint**: Only use this skill when the user explicitly mentions "Stitch" or when orchestrating a Stitch design task.
+- “把门店预约 PRD 转成 Stitch 的 Mobile 390x884 设计规格。”
+- “为后台订单页整理 Desktop 1280x1024 的主题、密度和组件规则。”
+- “同时给 Phone、Tablet、Desktop 三份适配规格，不调用远程生成。”
 
-This skill acts as a **Creative Director**. It takes a high-level user request and outputs a structured **Design Specification**.
+面向产品、设计师、前端开发者和交付团队。输出是本地设计决策，不是远程 schema 参数或已应用的设计系统。
 
-## Input
+## 能力边界说明
 
-Input may be either:
+### ✅ 擅长处理
 
-*   **User Request** (one-shot): e.g., "A cyberpunk login page" or "A clean medical dashboard".
-*   **PRD document or PRD summary**: When the user provides a PRD file path or pasted PRD content, first extract **function overview** and **page/screen list** (and any visual/theme preferences from non-functional requirements), then apply the Logic Rules below to produce the design spec. For the full PRD-driven workflow (spec-generator → framework spec → prompt-architect → MCP), see [`docs/prd-to-stitch-workflow.md`](https://github.com/full-stack-skills/stitch-skills/blob/main/docs/prd-to-stitch-workflow.md).
+- 从需求提取页面目标、用户、任务和状态。
+- 为 Mobile 390x884、Tablet 768x1024、Desktop 1280x1024 形成布局规格。
+- 给出颜色角色、字体角色、密度、圆角和交互状态的可审阅建议。
 
-## Output Format (JSON)
-The skill must produce a JSON block like this:
+### ⚠️ 需要素材
 
-```json
-{
-  "theme": "DARK" | "LIGHT",
-  "primaryColor": "Hex Code",
-  "font": "Font Name",
-  "roundness": "High" | "Medium" | "Low",
-  "density": "COMPACT" | "COMFORTABLE" | "SPACIOUS",
-  "designMode": "WIREFRAME" | "HIGH_FIDELITY",
-  "styleKeywords": ["Keyword1", "Keyword2"],
-  "deviceType": "MOBILE" | "TABLET" | "DESKTOP" | "SMART_WATCH"
-}
-```
+- 业务目标、页面清单和主要用户任务。
+- 品牌色、字体许可或现有设计系统（如有）。
+- 目标平台、无障碍要求和内容密度偏好。
 
-## Logic Rules
-1.  **Analyze Tone**:
-    *   "Corporate/Medical/Finance" -> Clean, Blue/Grey, Low Roundness, Inter font.
-    *   "Creative/Gaming" -> Dark Mode, Neon colors, High Contrast.
-    *   "Lifestyle/Food" -> Warm colors, High Roundness, Serif fonts.
-2.  **Determine Device**:
-    *   "Dashboard/Admin" -> DESKTOP.
-    *   "App/Instagram-like" -> MOBILE.
-    *   "Watch Face" -> SMART_WATCH.
-    *   Default to MOBILE if unspecified.
-3.  **Determine Mode**:
-    *   "Sketch/Blueprint/Draft" -> WIREFRAME.
-    *   Default to HIGH_FIDELITY.
+### ❌ 不适用场景及交接
 
-## Usage
-Call this skill *internally* (by thinking) before creating a project or generating a prompt.
+- 直接调用 Stitch 生成屏幕 → `stitch-mcp-generate-screen-from-text`。
+- 将系统写入远程项目 → `stitch-manage-design-system`。
+- 把设计转换为代码 → 对应的组件转换 Skill。
 
-## 国内适配
+## 输出合同
 
-- 支持中文文档和中文注释
-- 示例代码兼容国内开发环境
-- 提供中文 FAQ 和常见问题解答
+输出 JSON 或 Markdown，至少包含：页面目的、关键任务、目标 viewport、布局区域、语义颜色、字体角色、密度、圆角、组件状态、交互与无障碍要求、来源和未确认假设。viewport 仅使用 Mobile 390x884、Tablet 768x1024、Desktop 1280x1024。
 
-## 能力边界
+这是本地语义规格。调用远程工具前必须读取实时 schema：只传它当前暴露的字段及枚举；不得把本规格中的字体名称、设备称呼或颜色风格直接当成 MCP enum。
 
-### ✅ 适用场景
-- 当你需要使用此技能对应的技术栈时
-- 当项目需要遵循最佳实践时
-- 当需要快速上手或深入理解核心概念时
+## 安全与验证
 
-### ⚠️ 需要注意
-- 复杂业务逻辑需要结合具体场景调整
-- 性能优化需要根据实际数据量评估
+使用演示内容代替姓名、电话、订单和账号数据。没有品牌来源时把颜色/字体标成建议，不伪造“官方”或“已应用”。检查三种 viewport 的导航、触控尺寸、键盘路径、文本缩放和空/错/加载状态。
 
-### ❌ 不适用场景
-- 不相关的技术栈或框架
-- 需要完全自定义的特殊场景
+## FAQ
 
-## 使用流程
+**Q1：没有 PRD 能做吗？** 可以，先给带假设标记的最小规格并列缺项。
 
-### Step 1: 环境准备
-确保开发环境已安装必要的依赖和工具。
+**Q2：默认哪个 viewport？** 不猜；根据明确场景选择，仍不确定时给三端差异表。
 
-### Step 2: 配置初始化
-根据项目需求进行基础配置。
+**Q3：会自动生成 Stitch 页面吗？** 不会，本 Skill 只读并产出本地规格。
 
-### Step 3: 核心功能使用
-按照示例代码实现核心功能。
+**Q4：字体名能直接传给 MCP 吗？** 不能，必须与连接工具的实时 schema 核对。
 
-### Step 4: 测试验证
-运行测试确保功能正常。
+**Q5：如何处理现有设计系统？** 保留其语义 token 和来源，远程状态由管理 Skill 验证。
 
-### Step 5: 部署上线
-完成开发后进行部署和监控。
+**Q6：何时算完成？** 规格覆盖目标、布局、视觉角色、状态、交互、无障碍、来源和假设。
+
+## 按需参考
+
+- 规格推导见 [工作流](references/workflow.md)。
+- 常见误用见 [反模式](references/anti-patterns.md)。
+- 边缘场景见 [深度 FAQ](references/faq-deep.md)。
+- 具体样例见 [Examples](examples/usage.md)。

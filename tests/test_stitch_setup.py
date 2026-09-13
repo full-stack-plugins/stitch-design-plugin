@@ -6,7 +6,10 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
+import contextlib
+import io
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("stitch_setup", ROOT / "scripts" / "stitch_setup.py")
@@ -26,6 +29,26 @@ class FakeSecretProvider:
 
 
 class CredentialTests(unittest.TestCase):
+    def test_check_detects_config_only_credential(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "credentials.json"
+            target.write_text(json.dumps({"STITCH_API_KEY": "config-only-secret"}), encoding="utf-8")
+            with patch.dict(os.environ, {"STITCH_DESIGN_CONFIG": str(target)}, clear=True), \
+                 patch.object(setup, "PLUGIN_ROOT", ROOT), \
+                 contextlib.redirect_stdout(io.StringIO()) as output:
+                result = setup.check()
+
+        self.assertEqual(result, 0)
+        self.assertIn("available through the configured secret provider", output.getvalue())
+        self.assertNotIn("config-only-secret", output.getvalue())
+
+    def test_migrate_is_not_a_user_facing_command(self):
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            result = setup.main(["migrate"])
+
+        self.assertEqual(result, 2)
+        self.assertNotIn("migrate", errors.getvalue())
+
     def test_blank_key_is_rejected_without_changing_provider(self):
         provider = FakeSecretProvider("existing")
 

@@ -8,13 +8,13 @@
 
 ## 1. 执行摘要
 
-Stitch Design 是 Codex compatibility plugin，包含 41 个 Agent Skills、连接 Google Stitch MCP 的本地安全 stdio 代理、首次设置向导和证据驱动的交付 Harness。Codex 负责工具调用，Google Stitch 负责项目和屏幕数据，插件负责安全连接、工作流状态、门禁、receipts 和本地归档。
+Stitch Design 是 Codex compatibility plugin，包含 43 个 Agent Skills、连接 Google Stitch MCP 的本地安全 stdio 代理、首次设置向导和证据驱动的交付 Harness。Codex 负责工具调用，Google Stitch 负责项目和屏幕数据，插件负责安全连接、工作流状态、门禁、receipts 和本地归档。
 
 ```mermaid
 flowchart LR
     U["用户意图"] --> C["Codex 宿主"]
     C --> P["Stitch Design 插件"]
-    P --> S["41 个 Skills"]
+    P --> S["43 个 Skills"]
     P --> M["本地 stdio MCP 代理"]
     P --> H["交付 Harness"]
     P --> W["本地设置向导"]
@@ -42,7 +42,7 @@ flowchart LR
 flowchart LR
     User["用户"] --> Codex["Codex 宿主"]
     Codex --> Plugin["Stitch Design"]
-    Plugin --> Skills["41 个 Skills"]
+    Plugin --> Skills["43 个 Skills"]
     Plugin --> Setup["Loopback 设置页"]
     Plugin --> MCP["Google Stitch MCP"]
     Setup --> Config["用户受限配置"]

@@ -81,7 +81,7 @@ flowchart TD
     Inject --> Ready
 ```
 
-The wizard writes to the restricted current-user configuration. Native system stores are accessed only by an explicit advanced migration command; successful migration is verified before the source is atomically scrubbed.
+The wizard writes to the restricted current-user configuration. The runtime contains no native system-secret-store implementation or migration command.
 
 Key rotation: open the UI, save the new key, start a new Codex process, run read-only `list_projects`, then revoke the old key in Stitch Settings.
 

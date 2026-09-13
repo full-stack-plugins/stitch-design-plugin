@@ -226,7 +226,7 @@ sequenceDiagram
 | Setup CSRF token | Setup process | Memory only | One process |
 | Tests and examples | Repository | `tests/`, Skill resources | Version controlled |
 
-Configuration precedence: explicit process `STITCH_API_KEY` → restricted user configuration → setup required. Native system stores are never accessed by the default path; migration to one requires an explicit advanced command and write-and-read verification.
+Configuration precedence: explicit process `STITCH_API_KEY` → restricted user configuration → setup required. The runtime contains no native system-secret-store or credential-migration path.
 
 ## 7. Security and privacy
 

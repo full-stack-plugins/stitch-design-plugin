@@ -36,7 +36,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("validated 41 skills", result.stdout)
+        self.assertIn("validated 43 skills", result.stdout)
 
     def test_repository_marketplace_targets_public_root_plugin(self) -> None:
         marketplace = json.loads(
@@ -98,6 +98,13 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("默认流程不访问系统钥匙串", guide)
         self.assertIn("ChatGPT 网页版", guide)
         self.assertIn("尚未通过端到端验证", guide)
+        for text in (readme, readme_zh, guide):
+            self.assertNotIn("stitch_setup.py migrate", text)
+            self.assertNotIn("Native system-store migration", text)
+
+    def test_bilingual_overview_counts_current_skill_inventory(self) -> None:
+        self.assertIn("43 workflow-oriented Agent Skills", (ROOT / "README.md").read_text(encoding="utf-8"))
+        self.assertIn("43 个面向工作流的 Agent Skills", (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"))
 
     def test_stitch_setup_check_never_prints_the_key(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"

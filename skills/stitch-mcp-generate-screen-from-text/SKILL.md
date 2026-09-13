@@ -26,7 +26,7 @@ license: Apache-2.0
 
 - 真实纯 projectId 字符串。
 - 结构明确且无敏感内容的 prompt。
-- 当前工具schema接受的deviceType及可选modelId。
+- 目标 viewport 与当前工具实时 schema。
 
 ### ❌ 不适用场景及交接
 
@@ -36,10 +36,10 @@ license: Apache-2.0
 
 ## 工作流程
 
-1. 读取当前 MCP schema，保留 ID 为字符串；不要按旧文档猜设备或模型枚举。
+1. 读取当前 MCP schema，保留 ID 为字符串；只发送 schema 当前暴露的字段，未暴露 `deviceType` 或 `modelId` 时必须省略。
 2. 核对项目和结构提示，已应用系统时遵循 architect 的独立系统通道。
 3. 调用一次 generate_screen_from_text，记录返回session/outputComponents及成功或未知状态。
-4. 通过 list_screens/get_screen 获取真实结果，get_project核对归属；参数是否带projects前缀按各工具schema。
+4. 通过 `list_screens` 的纯 `projectId` 获取真实 screen ID，再用 `get_screen` 的 `name: projects/{project}/screens/{screen}` 读取结果，并用 `get_project` 核对归属。
 5. 验证截图和HTML；中断不重发同一写调用，先 get_project/list_screens/get_screen 对账；无候选记明 get_screen 未执行原因。
 
 按依赖排序：来源核对 → 本地产物 → 已授权外部操作 → 验证交接。多任务先做当前主路径；缺信息先输出假设草案，再精确列明缺少什么以及用途，不使用“请提供更多背景”的空泛提示。
@@ -56,11 +56,11 @@ license: Apache-2.0
 
 ## FAQ
 
-**Q1：交付的主要结果是什么？** 本地输入 projectId='123'、deviceType='TABLET'、三段预约提示 → 待调用参数草案；没有工具回执则 screenId 未确认，不虚构。
+**Q1：交付的主要结果是什么？** 本地输入 projectId='123'、Tablet 768x1024、三段预约提示 → 只含 projectId/prompt 的待调用参数草案；没有工具回执则 screenId 未确认，不虚构。
 
 **Q2：什么时候应换用其他入口？** 仅写或改提示词 → stitch-ui-prompt-architect；修改既有屏幕/生成变体 → stitch-ui-designer；输出可运行程序 → 对应组件转换技能，交付实际屏幕HTML。
 
-**Q3：缺少输入会怎样？** 先给明确标记的本地假设草案，并列出“需要补充：真实纯 projectId 字符串；结构明确且无敏感内容的 prompt；当前工具schema接受的deviceType及可选modelId”。依赖这些输入的写操作不执行。
+**Q3：缺少输入会怎样？** 先给明确标记的本地假设草案，并列出“需要补充：真实纯 projectId 字符串；结构明确且无敏感内容的 prompt；目标 viewport 与当前实时 schema”。依赖这些输入的写操作不执行。
 
 **Q4：怎样判断完成？** 模型和设备属于当前schema而非历史猜测；sessionId不被当screenId；写成功与资产下载/视觉验证分开记录。
 

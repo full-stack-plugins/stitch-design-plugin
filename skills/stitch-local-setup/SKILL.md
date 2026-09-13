@@ -14,7 +14,7 @@ license: Apache-2.0
 2. “Stitch 提示缺少 STITCH_API_KEY。”
 3. “帮我配置 Stitch key，但不要写进 shell profile。”
 
-面向 Windows、macOS、Linux 的本地 Codex 用户。插件已内置本地 stdio MCP 代理；本 Skill 只处理用户凭据缺失、用户级配置和可选的系统秘密存储迁移。
+面向 Windows、macOS、Linux 的本地 Codex 用户。插件已内置本地 stdio MCP 代理；本 Skill 只处理用户凭据缺失和受限的用户级配置。
 
 ## 能力边界说明
 
@@ -38,14 +38,14 @@ license: Apache-2.0
 
 ## 首次使用工作流
 
-1. 先做布尔检查，不读取或打印 key：
+1. 先用配置器做布尔检查；它会检查当前进程和用户配置，但不打印 key：
 
    ```bash
-   test -n "$STITCH_API_KEY" && echo "STITCH_API_KEY is set" || echo "STITCH_API_KEY is not set"
+   python3 /absolute/plugin/root/scripts/stitch_setup.py check
    ```
 
-2. 如果当前环境已设置，继续原来的 Stitch 任务。
-3. 如果没有设置，暂停远程调用，告诉用户从 Stitch Settings 创建 key；不要让用户把 key 粘贴到聊天。
+2. 检查通过后继续原来的 Stitch 任务。
+3. 检查失败时暂停远程调用，告诉用户从 Stitch Settings 创建 key；不要让用户把 key 粘贴到聊天。
 4. 从当前 `SKILL.md` 向上两级定位插件根目录，打开极简本地设置向导：
 
    - Windows：
@@ -61,7 +61,7 @@ license: Apache-2.0
      ```
 
 5. 用户在同一张卡片中完成“获取 Key → 保存到本机 → 打开 Codex”；高级命令默认折叠。
-6. 默认配置不会访问系统钥匙串。只有高级用户明确要求时，才执行 `stitch_setup.py migrate` 将当前用户配置迁移到平台秘密存储；回读验证成功后才脱敏原文件。
+6. 默认配置不会访问系统钥匙串，高级命令也没有迁移入口；凭据仅来自当前进程或受限的用户配置文件。
 7. 设置后启动 Codex：
 
    ```bash
@@ -86,7 +86,7 @@ license: Apache-2.0
 
 **Q3：会修改 shell 配置吗？** 不会。配置器使用独立的用户凭据文件。
 
-**Q4：保存在哪里？** Unix 使用 `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/...`，Windows 使用 `%APPDATA%\stitch-design\credentials.json`；系统秘密存储仅为显式高级选项。
+**Q4：保存在哪里？** Unix 使用 `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/...`，Windows 使用 `%APPDATA%\stitch-design\credentials.json`。
 
 **Q5：如何验证？** 运行 `stitch_setup.py check`，重启后只读调用 `list_projects`。
 

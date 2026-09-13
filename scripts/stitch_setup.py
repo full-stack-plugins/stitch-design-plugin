@@ -24,9 +24,7 @@ from stitch_harness.secrets import (  # noqa: E402
     SecretProvider,
     SecretStoreError,
     default_config_path,
-    migrate_legacy_key,
     platform_secret_provider,
-    system_secret_provider,
 )
 
 
@@ -240,7 +238,7 @@ def run_ui() -> int:
 
 def usage() -> None:
     print(
-        "Usage: stitch_setup.py ui | setup | check | migrate | cli [args...] | "
+        "Usage: stitch_setup.py ui | setup | check | cli [args...] | "
         "run -- <command> [args...] | desktop",
         file=sys.stderr,
     )
@@ -255,14 +253,6 @@ def main(arguments: list[str]) -> int:
         return setup()
     if command == "check":
         return check()
-    if command == "migrate":
-        try:
-            result = migrate_legacy_key(config_path(), system_secret_provider())
-        except SecretStoreError as error:
-            print(f"Could not migrate Stitch credentials: {error}", file=sys.stderr)
-            return 1
-        print(result.reason)
-        return 0
     if command == "cli":
         if rest and rest[0] == "--":
             rest = rest[1:]

@@ -31,10 +31,7 @@ The skill expects you to extract the following information from the user request
 
 *   **`projectId`** (required): The numeric Project ID. **Format**: Pure ID (e.g., `37803...`), **NO** `projects/` prefix.
 *   **`prompt`** (required): The structured text description of the screen (see "Constructing the Prompt" below).
-*   **`deviceType`** (optional): The target device.
-    *   Use only values accepted by the connected tool schema. Do not assume a device enum from a historical snapshot.
-*   **`modelId`** (optional): The model to use.
-    *   Omit unless the current tool exposes it and the selected value is accepted.
+The current live schema exposes only these two fields. If a future connected schema adds device or model fields, use only the exact values it exposes; do not reuse a historical list.
 
 ## How to use this skill
 
@@ -44,8 +41,6 @@ Invoke `generate_screen_from_text` with:
 
 *   `projectId` (pure numeric string, no `projects/`)
 *   `prompt`
-*   `deviceType` (optional)
-*   `modelId` (optional)
 
 ### 1. Constructing the Prompt (The Art of Prompting)
 The `prompt` argument is the most critical factor for quality. Do not just pass the user's raw input. You **MUST** enrich it using the **Structure Strategy**:
@@ -57,21 +52,16 @@ The `prompt` argument is the most critical factor for quality. Do not just pass 
 *   **Layout**: "Center-aligned vertical stack."
 *   **Components**: "Glitch-effect Logo. Input fields with glowing borders. Primary 'Jack In' button."
 
-### 2. Choosing Device Type (`deviceType`)
-*   `MOBILE` (Default): Vertical layouts, ~375px width. Best for consumer apps.
-*   `DESKTOP`: Horizontal layouts, ~1440px width. Best for SaaS, Dashboards, Landing Pages.
-*   `TABLET`: Hybrid layouts.
-*   Other devices require explicit support in the current tool schema.
+### 2. Describe the viewport in the prompt
 
-### 3. Choosing Model (`modelId`)
-Use the user's selected supported model or the tool default. This snapshot does not establish current availability, quality or pricing comparisons.
+Use the product targets Mobile 390x884, Tablet 768x1024, or Desktop 1280x1024 in the prompt. These are design requirements, not extra MCP arguments.
 
 ## Best Practices
 
 1.  **Detailed Components**: Don't just say "Form". Say "Form with Email, Password, and Eye toggle icon".
 2.  **Color Precision**: Mention specific colors (e.g., "Emerald Green", "#FF5733") if the user specifies them.
 3.  **Content Realism**: Ask for realistic text placeholders (e.g., "Welcome back, Alice" instead of "Lorem Ipsum").
-4.  **Device Alignment**: Ensure the `prompt` description matches the `deviceType` (e.g., don't ask for a "Sidebar" on `MOBILE`).
+4.  **Viewport Alignment**: Ensure the prompt's layout matches the selected target dimensions.
 5.  **No Code Generation**: This skill generates **Visual Designs**, not implementation code. Do not confuse with coding skills (like `uniappx-project-creator`).
 
 ## Output Handling
@@ -81,7 +71,7 @@ Use the user's selected supported model or the tool default. This snapshot does 
 After the generation completes, retrieve the resulting screen(s) via:
 
 1.  `list_screens` with the project identifier in the format required by that tool's current schema.
-2.  `get_screen` with the selected `screenId` to fetch screenshot / html assets.
+2.  `get_screen` with `name: projects/{project}/screens/{screen}` to fetch screenshot / HTML assets.
 
 ## Interrupted writes and deletion safety
 

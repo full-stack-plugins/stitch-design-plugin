@@ -55,8 +55,7 @@ print("HTML 请求构造通过；远程未执行")
 
 ```json
 {
-  "screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
-  "screenInstances": [{"id": "11111111111111111111111111111111", "sourceScreen": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]
+  "screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]
 }
 ```
 
@@ -80,7 +79,7 @@ print("HTML 请求构造通过；远程未执行")
 
 本地草案：“文件类型 text/html，拟用标题 /orders；请求尚未发送。需要补充真实 projectId，以确定上传归属；环境中的 STITCH_API_KEY 仅由运行环境读取。”
 
-收到 {}、[]、空 screens、对象型 name 或错误 sourceScreen 时，输出“上传结果未知：响应标识缺失或结构异常，请先对账，勿重复提交”。不打印异常字段值，不返回空成功摘要，不重发。先读 get_project、list_screens、get_screen；无候选时记录最后一项无法执行的原因。
+收到 {}、[]、空 `results`、缺失 `results[].screen` 或对象型 name 时，输出“上传结果未知：响应标识缺失或结构异常，请先对账，勿重复提交”。不打印异常字段值，不返回空成功摘要，不重发。先读 get_project、list_screens、get_screen；无候选时记录最后一项无法执行的原因。
 
 ## 避免误触发与验证
 

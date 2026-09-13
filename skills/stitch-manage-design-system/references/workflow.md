@@ -18,7 +18,7 @@ Stitch MCP tools:
 1. **Project lookup**: Use `list_projects` to find the target `projectId`.
 2. **Screen lookup**: Use `list_screens` for that `projectId` to find
    representative screens (e.g., "Home", "Main Dashboard").
-3. **Metadata fetch**: Call `get_screen` for the target screen to get
+3. **Metadata fetch**: Call `get_screen` with `name: projects/{project}/screens/{screen}` to get
    `screenshot.downloadUrl` and `htmlCode.downloadUrl`.
 4. **Asset download**: Use `read_url_content` to fetch the HTML code.
 
@@ -47,22 +47,8 @@ design system in Stitch.
 Check that existing authorization covers the target project, design summary and upload. Prepare those concrete details if new authorization is needed.
 
 1. **Upload `DESIGN.md`**:
-   - **Option A (Recommended - Uploader Script)**: Use the `stitch-upload-to-stitch` Python script, which natively handles `.md` files. It base64-encodes the markdown file in-process and sends it to the `/v1/projects/{projectId}/screens:batchCreate` endpoint, bypassing output token limits.
-     ```bash
-     python3 skills/stitch-upload-to-stitch/scripts/upload_to_stitch.py \
-       --project-id <PROJECT_ID> \
-       --file-path /path/to/DESIGN.md \
-       --generated-by <GENERATED_BY>
-     ```
-     Set `<GENERATED_BY>` to identify the skill or tool that produced the
-     `DESIGN.md`. Use the calling skill name when invoked from another skill
-     (e.g. `stitch-code-to-design`), or the agent/tool name for standalone
-     use (e.g. `Gemini`, `Claude Code`). If omitted, the script defaults to
-     `UserUploadedDesignMd`.
-
-     This returns the `sourceScreen` ID and the `screenInstance` ID.
-   - **Option B (Direct MCP Tool)**: If the `DESIGN.md` is small (under ~5KB), you can call the `upload_design_md` MCP tool directly, passing the base64-encoded design markdown content as `designMdBase64`.
-2. **Create Design System**: Call the `create_design_system_from_design_md` tool immediately after the upload, passing the `projectId` and the `selectedScreenInstance` (containing the `id` and `sourceScreen` returned from the upload step).
+   - Read the approved `DESIGN.md`, encode it in-process, and call `upload_design_md` with the bare `projectId` plus `designMdBase64`. Do not put base64 in chat, logs, argv, or reports. The local REST helper intentionally does not accept Markdown.
+2. **Create Design System**: Read the project to resolve the corresponding instance, then call `create_design_system_from_design_md` with only the current-schema `selectedScreenInstance` (`id` and `sourceScreen`).
 
 Once the upload script and `create_design_system_from_design_md` have both completed,
 Stitch holds the design tokens at the project level — you do NOT need to repeat
@@ -80,8 +66,6 @@ Use `apply_design_system` to apply a design system to existing screens.
 
 ```json
 {
-  "projectId": "...",
-  "assetId": "...",
   "selectedScreenInstances": [
     {
       "id": "...",

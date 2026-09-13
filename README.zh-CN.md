@@ -1,6 +1,6 @@
 # Stitch Design for Codex
 
-> 通过 41 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
+> 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [技术方案](docs/Stitch-Design-Technical-Solution.zh_CN.md)
 
@@ -22,7 +22,7 @@ Codex
   │ 用户请求
   ▼
 Stitch Design
-  ├─ 41 个 Skills：路由、安全、设计、转换、交付
+  ├─ 43 个 Skills：路由、安全、设计、转换、交付
   ├─ Delivery Harness：契约 → 门禁 → receipts → 批准
   ├─ 本地设置页：获取 Key → 用户受限配置
   └─ 内置 stdio 代理 → Google Stitch HTTPS MCP
@@ -118,7 +118,7 @@ shellcheck scripts/stitch_setup.sh
 git diff --check
 ```
 
-0.5.1 新增 41 个 Skills、stdio 代理与 Delivery Harness，并恢复非交互的用户配置作为默认凭据路径。跨平台代码路径已有测试，Windows/Linux 实机验收仍属于独立证据。
+当前 0.5.2 工作树包含 43 个 Skills、stdio 代理与 Delivery Harness，并使用非交互用户配置作为默认凭据路径。发布和 Windows/Linux 实机验收仍属于独立证据。
 
 ## 故障排查
 

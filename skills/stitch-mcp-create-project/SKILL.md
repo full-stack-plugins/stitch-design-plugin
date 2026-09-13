@@ -2,7 +2,7 @@
 name: stitch-mcp-create-project
 description: Creates a new Stitch project container. Use this when starting a new design task, app idea, or fresh workspace.
 license: Complete terms in LICENSE.txt
-allowed-tools: stitch*:* Read Write
+allowed-tools: stitch*:* Read
 ---
 
 
@@ -37,8 +37,9 @@ allowed-tools: stitch*:* Read Write
     *   *Example*: `projects/123456` -> `123456`.
     *   Store **BOTH** the full name (`projects/123...`) and the numeric ID (`123...`) in your context.
     *   **Usage Rule**:
-    *   Use **Numeric ID** (`123...`) for `generate_screen_from_text` and `get_screen`.
-    *   Use **Full Name** (`projects/123...`) for `list_screens` and `get_project`.
+    *   Use **Numeric ID** (`123...`) for `generate_screen_from_text` and `list_screens`.
+    *   Use **Full Name** (`projects/123...`) for `get_project`.
+    *   Use **Screen Full Name** (`projects/123.../screens/abc...`) as the `name` for `get_screen`.
 
 ## Best Practices
 

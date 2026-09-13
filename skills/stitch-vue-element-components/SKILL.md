@@ -26,7 +26,7 @@ You are a **frontend engineer** turning Stitch designs into clean, modular Vue 3
 
 1. **Discover Stitch MCP prefix**: Run `list_tools` to find the prefix (e.g. `mcp_stitch__stitch:`).
 2. **Resolve projectId and screenId**: (1) If the user provided a **Stitch design URL**, parse **projectId** from the path and **screenId** from the `node-id` query. (2) Otherwise, or when the user wants to choose a project/screen, call **list_projects** (e.g. filter `view=owned`) then **list_screens** with the chosen projectId to get screenIds.
-3. **Fetch screen metadata**: Call `[prefix]:get_screen` with `projectId` and `screenId` to get design JSON, `htmlCode.downloadUrl`, `screenshot.downloadUrl`, dimensions, deviceType.
+3. **Fetch screen metadata**: Construct `name: projects/{project}/screens/{screen}` from the string ID segments and call `[prefix]:get_screen` to get design JSON, `htmlCode.downloadUrl`, `screenshot.downloadUrl`, dimensions, deviceType.
 4. **High-reliability HTML download**: AI fetch tools can fail on Google Cloud Storage URLs. Use Bash to run the skill script:
    ```bash
    bash scripts/fetch-stitch.sh "<htmlCode.downloadUrl>" "temp/source.html"
@@ -52,7 +52,7 @@ You are a **frontend engineer** turning Stitch designs into clean, modular Vue 3
 
 ## Integration with This Repo
 
-- **Get screen**: Use **stitch-mcp-get-screen** (or MCP `get_screen`) with projectId and screenId. Obtain IDs either by parsing a **Stitch design URL** or by using **stitch-mcp-list-projects** and **stitch-mcp-list-screens** when no URL is given or when the user needs to browse/select.
+- **Get screen**: Use **stitch-mcp-get-screen** (or MCP `get_screen`) with `name: projects/{project}/screens/{screen}`. Obtain the ID segments from a Stitch URL or the list Skills.
 - **Design spec**: If Stitch was generated with **stitch-ui-design-spec-element-plus** constraints, map to Vue SFC and Element Plus components. If converting from Stitch HTML (e.g. get_screen htmlCode), use [references/tailwind-to-element-plus.md](references/tailwind-to-element-plus.md) for Tailwind utility → px/theme, then [references/contract.md](references/contract.md) for component API.
 - **Design system**: If the project has DESIGN.md (from **stitch-design-md**), align colors and typography with that semantic system when mapping to Element tokens.
 

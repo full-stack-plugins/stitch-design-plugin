@@ -19,7 +19,7 @@ Use this skill internally (by thinking) before creating a Stitch project or gene
   "density": "COMFORTABLE",
   "designMode": "HIGH_FIDELITY",
   "styleKeywords": ["Cyberpunk", "Neon", "Gaming", "High contrast"],
-  "deviceType": "DESKTOP"
+  "viewport": "Desktop 1280x1024"
 }
 ```
 
@@ -36,7 +36,7 @@ Use this skill internally (by thinking) before creating a Stitch project or gene
   "density": "COMPACT",
   "designMode": "HIGH_FIDELITY",
   "styleKeywords": ["Medical", "Clean", "Professional", "Data-dense"],
-  "deviceType": "DESKTOP"
+  "viewport": "Desktop 1280x1024"
 }
 ```
 
@@ -61,7 +61,7 @@ When the user provides a PRD file path or pasted PRD content, extract **function
   "density": "COMFORTABLE",
   "designMode": "HIGH_FIDELITY",
   "styleKeywords": ["Auth", "Secure", "Multi-device", "Clean"],
-  "deviceType": "MOBILE"
+  "viewport": "Mobile 390x884"
 }
 ```
 
@@ -80,7 +80,7 @@ When the user provides a PRD file path or pasted PRD content, extract **function
   "density": "COMFORTABLE",
   "designMode": "HIGH_FIDELITY",
   "styleKeywords": ["Food", "Warm", "Friendly", "Cards"],
-  "deviceType": "MOBILE"
+  "viewport": "Mobile 390x884"
 }
 ```
 

@@ -10,7 +10,7 @@
 {
   "name": "list_screens",
   "arguments": {
-    "projectId": "projects/123456789"
+    "projectId": "123456789"
   }
 }
 ```

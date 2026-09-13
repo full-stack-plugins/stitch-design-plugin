@@ -32,7 +32,7 @@ If the user pastes a **Stitch design page link** (e.g. `https://stitch.withgoogl
 1. **Parse the URL**:
    - **projectId** = segment after `/projects/` and before `?` (e.g. `3492931393329678076`)
    - **screenId** = query parameter `node-id` (e.g. `375b1aadc9cb45209bee8ad4f69af450`)
-2. **Fetch the screen**: Call `[prefix]:get_screen` with the parsed `projectId` and `screenId` (no need to call list_projects or list_screens).
+2. **Fetch the screen**: Construct `name: projects/{project}/screens/{screen}` from the parsed string segments and call `[prefix]:get_screen` (no list call is needed).
 3. **Continue** with step 5 below (asset download) and then Analysis & Synthesis.
 
 ### When project/screen IDs are unknown
@@ -48,7 +48,7 @@ If the user pastes a **Stitch design page link** (e.g. `https://stitch.withgoogl
    - Identify target screen by title; extract Screen ID from `name`
 
 4. **Metadata fetch**:
-   - Call `[prefix]:get_screen` with `projectId` and `screenId` as the exact returned ID strings
+   - Construct `name: projects/{project}/screens/{screen}` from the exact returned ID strings and call `[prefix]:get_screen`
    - Use returned `screenshot.downloadUrl`, `htmlCode.downloadUrl`, `width`, `height`, `deviceType`, and project `designTheme`. Preserve IDs as strings rather than coercing hexadecimal screen IDs to numbers; do not assume cached HTML is current.
 
 5. **Asset download** (also after URL-based get_screen):

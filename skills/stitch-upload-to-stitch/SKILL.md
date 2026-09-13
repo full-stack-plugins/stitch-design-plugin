@@ -1,6 +1,6 @@
 ---
 name: stitch-upload-to-stitch
-description: 将已授权的本地图片、HTML 或 DESIGN.md 上传到指定 Stitch 项目；文件较大或直接 MCP 的 base64 参数不适合传输时使用。只生成本地文件、检索项目或部署网站时不触发。
+description: 将已授权的本地图片或 HTML 安全上传到指定 Stitch 项目，并将 Markdown 路由到远程 upload_design_md；只生成本地文件、检索项目或部署网站时不触发。
 license: Apache-2.0
 ---
 
@@ -19,14 +19,14 @@ license: Apache-2.0
 ### ✅ 擅长处理
 
 - 上传脱敏的门店预约页 HTML。
-- 上传品牌 DESIGN.md 供系统创建。
+- 将品牌 DESIGN.md 路由到 MCP `upload_design_md`。
 - 上传用户提供的演示稿 PNG。
 
 ### ⚠️ 需要素材
 
 - 真实 projectId。
 - 支持格式的已审核本地文件。
-- 通过运行环境注入的 STITCH_API_KEY 与上传授权。
+- 通过 `platform_secret_provider()` 读取的凭据与上传授权。
 
 ### ❌ 不适用场景及交接
 
@@ -37,10 +37,10 @@ license: Apache-2.0
 ## 工作流程
 
 1. 核对文件路径、大小、类型和目标项目，确保授权覆盖这些内容。
-2. 从 STITCH_API_KEY 环境变量取凭据；不搜索其他客户端配置，不让用户把密钥粘到会话。
-3. 执行脚本前用 --help 核对参数；HTML title 使用路由，generated-by 使用实际生产者。
-4. 脚本通过 HTTPS 单次发送；禁止自动跟随重定向及重复写入，响应只输出下游所需标识。
-5. 读取 get_project、list_screens、get_screen 确认上传结果；超时或空响应保留输入和未知状态，先对账再决定新操作。
+2. 图片/HTML 脚本通过 `platform_secret_provider()` 使用环境优先、用户配置兜底的凭据链；CLI 不接受密钥或服务根地址参数。
+3. Markdown 不走私有 REST 脚本；读取文件后在进程内编码，并调用当前 MCP `upload_design_md`。
+4. 私有 REST 固定到 `https://stitch.googleapis.com` 并单次发送；禁止重定向和自动重试。
+5. 用 `get_project` 的项目资源名、`list_screens` 的纯项目 ID、`get_screen` 的 `name: projects/{project}/screens/{screen}` 对账。
 
 按依赖排序：来源核对 → 本地产物 → 已授权外部操作 → 验证交接。多任务先做当前主路径；缺信息先输出假设草案，再精确列明缺少什么以及用途，不使用“请提供更多背景”的空泛提示。
 
@@ -49,10 +49,10 @@ license: Apache-2.0
 不读取无关账号配置，不收集用户密码；凭据只由环境或已授权连接器提供。示例只用演示数据；上传前将客户姓名、电话、订单号替换为演示值，并检查 HTML、截图和文件元数据。禁止将密钥、会话 cookie、base64 全文或签名下载 URL 写入报告/版本库。未经验证的参数、视觉效果、业务数字不得编造；输出注明来源、决策依据、实际执行与尚未验证部分。
 
 - argv/日志/报告不含密钥、base64 或完整响应。
-- PNG/HTML/Markdown 分别映射 screenshot/htmlCode。
-- 返回的 screen/instance 标识可用于后续流程。
+- PNG/JPG/JPEG/WEBP 映射 screenshot，HTML/HTM 映射 htmlCode；Markdown 使用 `upload_design_md`。
+- REST 只接受当前 `results[].screen` 响应并输出校验后的 screen name。
 
-可定制：title、generated-by、文件路径、经确认的 HTTPS 服务根地址。增值检查：环境凭据；小输出 ID 交接；无自动重试和重定向。
+可定制：title、generated-by、文件路径。服务根地址不可定制。增值检查：配置凭据；小输出 ID 交接；无自动重试和重定向。
 
 ## FAQ
 
@@ -62,9 +62,9 @@ license: Apache-2.0
 
 **Q3：缺少输入会怎样？** 先给明确标记的本地假设草案，并列出“需要补充：真实 projectId；支持格式的已审核本地文件；通过运行环境注入的 STITCH_API_KEY 与上传授权”。依赖这些输入的写操作不执行。
 
-**Q4：怎样判断完成？** argv/日志/报告不含密钥、base64 或完整响应；PNG/HTML/Markdown 分别映射 screenshot/htmlCode；返回的 screen/instance 标识可用于后续流程。
+**Q4：怎样判断完成？** argv/日志/报告不含密钥、base64 或完整响应；本地 REST 和远程 Markdown 路径分离；返回的 screen name 已经只读对账。
 
-**Q5：怎样定制？** title、generated-by、文件路径、经确认的 HTTPS 服务根地址；未提供时沿用现有项目值并标明假设。
+**Q5：怎样定制？** title、generated-by、文件路径；服务根地址固定为 Google 官方 origin。
 
 **Q6：是否自动上传、安装或上线？** 只执行当前请求与已有授权覆盖的动作；没有远程回执不称上传成功，没有运行验证不称上线。额外安装或扩大范围需先说明具体影响。
 

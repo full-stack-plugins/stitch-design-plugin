@@ -21,9 +21,22 @@ class Response(io.BytesIO):
 
 
 class UploadTests(unittest.TestCase):
-    def test_key_from_environment(self):
-        with patch.dict(os.environ, {"STITCH_API_KEY": "offline-test-key"}), patch("sys.argv", ["upload", "--project-id", "123", "--file-path", "demo.html"]):
-            self.assertEqual(upload.parse_args().api_key, "offline-test-key")
+    def test_cli_has_no_api_key_or_api_url_surface(self):
+        with patch("sys.argv", ["upload", "--project-id", "123", "--file-path", "demo.html", "--api-key", "leaked"]), \
+             contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                upload.parse_args()
+        with patch("sys.argv", ["upload", "--project-id", "123", "--file-path", "demo.html", "--api-url", "https://example.invalid"]), \
+             contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                upload.parse_args()
+
+    def test_key_comes_from_platform_secret_provider(self):
+        provider = unittest.mock.Mock()
+        provider.get.return_value = "config-secret"
+        with patch.object(upload, "platform_secret_provider", return_value=provider), \
+             patch("sys.argv", ["upload", "--project-id", "123", "--file-path", "demo.html"]):
+            self.assertEqual(upload.parse_args().api_key, "config-secret")
 
     def test_reject_insecure_endpoint_before_transport(self):
         called = []
@@ -31,11 +44,28 @@ class UploadTests(unittest.TestCase):
             upload.call_batch_create_screens("http://example.invalid", "test", "123", [], urlopen=lambda *a, **k: called.append(a))
         self.assertEqual(called, [])
 
+    def test_reject_non_google_https_origin_before_transport(self):
+        called = []
+        with self.assertRaisesRegex(ValueError, "stitch.googleapis.com"):
+            upload.call_batch_create_screens(
+                "https://example.invalid", "test", "123", [],
+                urlopen=lambda *a, **k: called.append(a),
+            )
+        self.assertEqual(called, [])
+
+    def test_injected_loopback_origin_is_available_only_for_tests(self):
+        response = {"results": [{"screen": {"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}]}
+        result = upload.call_batch_create_screens(
+            "http://127.0.0.1:8765", "test", "123", [],
+            urlopen=lambda *a, **k: Response(json.dumps(response).encode()),
+        )
+        self.assertEqual(result["screens"][0]["name"], "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+
     def test_request_and_no_payload_logging(self):
         captured = []
         def transport(req, **kwargs):
             captured.append((req, kwargs))
-            return Response(json.dumps({"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "privateNote": "PRIVATE_CONTENT"}]}).encode())
+            return Response(json.dumps({"results": [{"screen": {"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "privateNote": "PRIVATE_CONTENT"}}]}).encode())
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout):
             result = upload.call_batch_create_screens("https://stitch.googleapis.com", "offline-test-key", "123", [], urlopen=transport)
@@ -51,23 +81,26 @@ class UploadTests(unittest.TestCase):
         self.assertIsNone(handler.redirect_request(req, None, 307, "redirect", {}, "https://example.invalid"))
 
     def test_payload_mappings(self):
-        for mime, field in [("image/png", "screenshot"), ("text/html", "htmlCode"), ("text/markdown", "htmlCode")]:
+        for mime, field in [("image/png", "screenshot"), ("text/html", "htmlCode")]:
             screen = upload.build_screen_request(mime, "eA==", title="/orders")["screen"]
             self.assertEqual(screen[field]["mimeType"], mime)
             self.assertEqual(screen["title"], "/orders")
 
+    def test_markdown_is_not_accepted_by_private_rest_upload(self):
+        self.assertNotIn(".md", upload._MIME_TYPES)
+
     def test_malformed_response_is_unknown_and_never_logged(self):
         malformed = [
             {}, [], None,
-            {"screens": [{"name": "projects/123/screens/PRIVATE_CONTENT"}]},
+            {"results": [{"screen": {"name": "projects/123/screens/PRIVATE_CONTENT"}}]},
             {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}], "screenInstances": [{"id": "PRIVATE_CONTENT", "sourceScreen": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]},
-            {"screens": []},
-            {"screens": {}},
-            {"screens": ["PRIVATE_CONTENT"]},
-            {"screens": [{"name": {"secret": "PRIVATE_CONTENT"}}]},
-            {"screens": [{"name": "PRIVATE_CONTENT"}]},
-            {"screens": [{"name": "projects/999/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]},
-            {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?key=PRIVATE_CONTENT"}]},
+            {"results": []},
+            {"results": {}},
+            {"results": ["PRIVATE_CONTENT"]},
+            {"results": [{"screen": {"name": {"secret": "PRIVATE_CONTENT"}}}]},
+            {"results": [{"screen": {"name": "PRIVATE_CONTENT"}}]},
+            {"results": [{"screen": {"name": "projects/999/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}]},
+            {"results": [{"screen": {"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?key=PRIVATE_CONTENT"}}]},
             {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}], "screenInstances": {}},
             {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}], "screenInstances": [None]},
             {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}], "screenInstances": [{"id": {}, "sourceScreen": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]},
@@ -89,25 +122,14 @@ class UploadTests(unittest.TestCase):
 
     def test_valid_response_returns_only_validated_identifiers(self):
         body = {
-            "screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "htmlCode": {"private": "PRIVATE_CONTENT"}}],
-            "screenInstances": [{"id": "11111111111111111111111111111111", "sourceScreen": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "private": "PRIVATE_CONTENT"}],
+            "results": [{"screen": {"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "htmlCode": {"private": "PRIVATE_CONTENT"}}}],
             "private": "PRIVATE_CONTENT",
         }
         result = upload.call_batch_create_screens(
             "https://stitch.googleapis.com", "offline-test-key", "123", [],
-            create_screen_instances=True, urlopen=lambda *args, **kwargs: Response(json.dumps(body).encode()),
+            urlopen=lambda *args, **kwargs: Response(json.dumps(body).encode()),
         )
-        self.assertEqual(result, {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
-                                  "screenInstances": [{"id": "11111111111111111111111111111111", "sourceScreen": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]})
-
-    def test_requested_instances_must_be_present(self):
-        for body in [{"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]},
-                     {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}], "screenInstances": []}]:
-            with self.subTest(body=body), self.assertRaisesRegex(ValueError, "结果未知.*对账"):
-                upload.call_batch_create_screens(
-                    "https://stitch.googleapis.com", "offline-test-key", "123", [],
-                    create_screen_instances=True, urlopen=lambda *args, **kwargs: Response(json.dumps(body).encode()),
-                )
+        self.assertEqual(result, {"screens": [{"name": "projects/123/screens/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]})
 
     def test_cli_unknown_response_exits_without_private_output_or_retry(self):
         for body in [{}, [], {"screens": [{"name": {"secret": "PRIVATE_CONTENT"}}]}]:

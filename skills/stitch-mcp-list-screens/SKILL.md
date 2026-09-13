@@ -1,7 +1,7 @@
 ---
 name: stitch-mcp-list-screens
 description: Lists all screens contained within a specific project.
-allowed-tools: stitch*:* Read Write
+allowed-tools: stitch*:* Read
 ---
 
 
@@ -18,7 +18,7 @@ Invoke this skill to browse the history of generated designs in a project or to 
 ## Input Parameters
 
 The skill expects you to extract the following information from the user request:
-*   `projectId` (required): The ID of the project. **Format**: `projects/{project_id}`.
+*   `projectId` (required): Bare project ID string, for example `123456`; never add the `projects/` prefix.
 
 ## Output Schema
 
@@ -35,7 +35,7 @@ User Input: "Show me all screens in this project."
 
 Agent Action:
 1.  Extract project ID.
-2.  Call `list_screens` tool with arguments `{"projectId": "projects/123456"}`.
+2.  Call `list_screens` with the bare ID: `{"projectId": "123456"}`.
 
 ## References
 

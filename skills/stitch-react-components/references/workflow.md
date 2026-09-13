@@ -15,7 +15,7 @@ You are a **frontend engineer** turning Stitch designs into clean, modular React
 ## Retrieval and Networking
 
 1. **Discover Stitch MCP prefix**: Run `list_tools` to find the prefix (e.g. `mcp_stitch__stitch:`).
-2. **Fetch screen metadata**: Use `list_screens` to enumerate the requested screens, then call `[prefix]:get_screen` for each with `projectId` and `screenId` preserved as strings (screen IDs may be hexadecimal). Obtain `htmlCode.downloadUrl`, `screenshot.downloadUrl`, dimensions and deviceType. Do not assume local HTML exists or is current.
+2. **Fetch screen metadata**: Use `list_screens` with a bare project ID, then call `[prefix]:get_screen` for each with `name: projects/{project}/screens/{screen}`. Preserve both ID segments as strings. Obtain `htmlCode.downloadUrl`, `screenshot.downloadUrl`, dimensions and deviceType.
 3. **High-reliability HTML download**: AI fetch tools can fail on Google Cloud Storage URLs. Use Bash to run the skill script:
    ```bash
    bash scripts/fetch-stitch.sh "<htmlCode.downloadUrl>" "temp/source.html"
@@ -46,7 +46,7 @@ You are a **frontend engineer** turning Stitch designs into clean, modular React
 
 ## Integration with This Repo
 
-- **Get screen**: Use **stitch-mcp-get-screen** (or MCP `get_screen`) with projectId and screenId. Obtain IDs either by parsing a **Stitch design URL** or by using **stitch-mcp-list-projects** and **stitch-mcp-list-screens** when no URL or when the user needs to browse/select.
+- **Get screen**: Use **stitch-mcp-get-screen** (or MCP `get_screen`) with `name: projects/{project}/screens/{screen}`. Obtain the ID segments from a Stitch URL or the list Skills.
 - **Design system**: If the project has DESIGN.md (from **stitch-design-md**), align colors and typography with that semantic system when mapping to Tailwind. When converting Stitch HTML to React, use [references/tailwind-to-react.md](../references/tailwind-to-react.md) for theme-mapped Tailwind (tokens → tailwind.config); keep Tailwind classes in output, map Stitch tokens to project theme.
 
 ## Troubleshooting

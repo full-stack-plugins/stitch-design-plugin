@@ -26,7 +26,7 @@ You are a **frontend engineer** turning Stitch designs into clean, modular uni-a
 
 1. **Discover Stitch MCP prefix**: Run `list_tools` to find the prefix (e.g. `mcp_stitch__stitch:`).
 2. **Resolve projectId and screenId**: (1) If the user provided a **Stitch design URL**, parse **projectId** from the path (segment after `/projects/`) and **screenId** from the `node-id` query parameter. (2) Otherwise, or when the user wants to choose a project/screen, call **list_projects** (e.g. filter `view=owned`) then **list_screens** with the chosen projectId to get screenIds.
-3. **Fetch screen metadata**: Call `[prefix]:get_screen` with `projectId` and `screenId` to get design JSON, `htmlCode.downloadUrl`, `screenshot.downloadUrl`, dimensions, deviceType.
+3. **Fetch screen metadata**: Construct `name: projects/{project}/screens/{screen}` from the string ID segments and call `[prefix]:get_screen` to get design JSON, `htmlCode.downloadUrl`, `screenshot.downloadUrl`, dimensions, deviceType.
 4. **High-reliability HTML download**: AI fetch tools can fail on Google Cloud Storage URLs. Use Bash to run the skill script:
    ```bash
    bash scripts/fetch-stitch.sh "<htmlCode.downloadUrl>" "temp/source.html"
@@ -85,7 +85,7 @@ Testing is triggered by user instruction, not by calling MCP directly. Flow: use
   ```text
   Use the Stitch skill to convert https://stitch.withgoogle.com/projects/3492931393329678076?node-id=375b1aadc9cb45209bee8ad4f69af450 into a uView Pro page
   ```
-- **Expected**: Parse projectId and screenId from URL → call Stitch MCP get_screen → generate uni-app + uView Pro .vue (u-navbar, u-tabs, u-form, u-picker, u-radio, etc.) per contract and stitch-html-patterns.
+- **Expected**: Parse the two ID segments from the URL → call Stitch MCP get_screen with `name: projects/{project}/screens/{screen}` → generate uni-app + uView Pro .vue per contract and stitch-html-patterns.
 
 ## Keywords
 

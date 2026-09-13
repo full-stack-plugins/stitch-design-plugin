@@ -13,7 +13,7 @@
 | 宿主打包 | Codex compatibility manifest | 当前已支持并验证 |
 | 工具传输 | 内置 stdio 代理连接 Google Stitch HTTP MCP | 宿主连接可靠，工具执行仍由供应商负责 |
 | 认证 | 显式进程环境或受限用户配置 | 避免交互式系统弹窗，Key 不进入插件包 |
-| 工作流 | 41 个 Agent Skills + 交付 Harness | 精确发现与可验证交付 |
+| 工作流 | 43 个 Agent Skills + 交付 Harness | 精确发现与可验证交付 |
 | 首次设置 | Python 标准库 Loopback 服务 + 静态页面 | 不增加第三方运行依赖 |
 | 凭据保存 | 跨平台当前用户 JSON，使用受限权限 | 行为可预测且非交互 |
 | 验证 | unittest、分发校验、ShellCheck | 可复现离线门禁 |
@@ -79,7 +79,7 @@ flowchart TD
     Inject --> Ready
 ```
 
-优先级：显式进程环境变量 → 受限用户配置 → 打开设置页。系统秘密存储只由高级用户显式执行 `migrate` 时访问，写入并回读一致后才原子脱敏源文件。
+优先级：显式进程环境变量 → 受限用户配置 → 打开设置页。运行时不包含系统秘密存储实现或凭据迁移命令。
 
 轮换步骤：打开向导 → 保存新 Key → 启动新 Codex → 只读 `list_projects` → 在 Stitch Settings 吊销旧 Key。
 

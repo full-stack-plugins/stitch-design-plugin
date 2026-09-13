@@ -1,7 +1,7 @@
 ---
 name: stitch-mcp-get-screen
 description: Retrieves the full details of a specific screen, including HTML code.
-allowed-tools: stitch*:* Read Write
+allowed-tools: stitch*:* Read
 ---
 
 
@@ -18,10 +18,9 @@ Invoke this skill when the user wants to "export" the code, view the full design
 ## Input Parameters
 
 The skill expects you to extract the following information from the user request:
-*   `projectId` (required): The project ID. **Format**: Pure ID (e.g., `37803...`), no `projects/` prefix.
-*   `screenId` (required): The screen ID. **Format**: Pure ID (e.g., `88805...`), no `screens/` prefix.
+*   `name` (required): Full resource name `projects/{project}/screens/{screen}`.
 
-**CRITICAL:** When `projectId` and `screenId` are both available, call `stitch-mcp-get-screen` directly. Do NOT call `stitch-mcp-get-project`.
+**CRITICAL:** When both ID segments are available, construct the full `name` and call this read directly. Do not call `stitch-mcp-get-project` first.
 
 ## Resource Path Parsing
 
@@ -36,8 +35,8 @@ If the user provides a resource path or URL, use the following rules to extract 
 
 **Agent flow:**
 1.  Recognize the user input matches one of the above formats.
-2.  Extract `projectId` and `screenId`.
-3.  Call `get_screen` with `{"projectId": "<extracted projectId>", "screenId": "<extracted screenId>"}`.
+2.  Extract both ID segments as strings and construct the canonical resource name.
+3.  Call `get_screen` with `{"name": "projects/{project}/screens/{screen}"}`.
 4.  Use the returned `htmlCode.downloadUrl`, `screenshot.downloadUrl`, and metadata for design-to-code (e.g. stitch-design-md or a framework conversion skill).
 
 ## Output Schema
@@ -99,7 +98,7 @@ User Input: "Give me the code for the login screen we just made."
 
 Agent Action:
 1.  Identify target screen.
-2.  Call `get_screen` tool with arguments `{"projectId": "37803...", "screenId": "88805..."}`.
+2.  Call `get_screen` with `{"name":"projects/37803.../screens/88805..."}`.
 
 ## References
 
