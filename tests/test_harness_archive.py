@@ -9,7 +9,7 @@ from pathlib import Path
 from stitch_harness.archive import ArchiveManager
 from stitch_harness.contracts import PageSpec
 from stitch_harness.state import InvalidTransition, RunState
-from stitch_harness.storage import ArtifactRecord, Receipt, Run, RunStore, sha256_file
+from stitch_harness.storage import ArtifactRecord, ChainVerification, Receipt, Run, RunStore, sha256_file
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "page-spec.json"
@@ -146,6 +146,23 @@ class ArchiveTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "contained"):
                 self.manager.archive(run, unsafe_spec)
+
+    def test_reported_archive_failure_leaves_no_final_destination(self):
+        run = self.approved_run()
+
+        class FailOnlyAfterPublicationStore(RunStore):
+            def verify_chain(self, candidate):
+                if candidate.path != run.path and candidate.path.name == run.run_id:
+                    return ChainVerification(False, ("forced published verification failure",))
+                return super().verify_chain(candidate)
+
+        manager = ArchiveManager(self.project, store=FailOnlyAfterPublicationStore())
+        destination = self.project / self.spec.archive / run.run_id
+
+        with self.assertRaisesRegex(ValueError, "published archive"):
+            manager.archive(run, self.spec)
+
+        self.assertFalse(destination.exists())
 
 
 if __name__ == "__main__":

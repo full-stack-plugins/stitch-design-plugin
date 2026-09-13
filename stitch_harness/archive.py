@@ -91,9 +91,13 @@ class ArchiveManager:
                 if sha256_file(temporary / relative) != digest:
                     raise ValueError(f"archive copy hash mismatch: {relative}")
             temporary.replace(destination)
-            published_run = self.store.load_from_path(destination, run.run_id)
-            if not self.store.verify_chain(published_run).valid or not self.store.verify_approval(published_run).valid:
-                raise ValueError("published archive failed receipt or approval verification")
+            try:
+                published_run = self.store.load_from_path(destination, run.run_id)
+                if not self.store.verify_chain(published_run).valid or not self.store.verify_approval(published_run).valid:
+                    raise ValueError("published archive failed receipt or approval verification")
+            except Exception:
+                destination.replace(temporary)
+                raise
         finally:
             if temporary.exists():
                 shutil.rmtree(temporary)
