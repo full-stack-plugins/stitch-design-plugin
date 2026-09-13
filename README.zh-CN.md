@@ -1,6 +1,6 @@
 # Stitch Design for Codex
 
-> 通过 40 个面向工作流的 Agent Skills，在 Codex 中设计、编辑、检查和转换 Google Stitch 项目。
+> 通过 41 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [技术方案](docs/Stitch-Design-Technical-Solution.zh_CN.md)
 
@@ -10,8 +10,9 @@
 |:---|:---|
 | 插件 ID | `stitch-design` |
 | 发布版本 | [v0.4.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.4.0) |
+| 本地候选 | `0.5.0`（尚未发布） |
 | 宿主布局 | Codex compatibility plugin |
-| Skills | 40 |
+| Skills | 41 |
 | MCP Endpoint | `https://stitch.googleapis.com/mcp` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |
@@ -21,9 +22,10 @@ Codex
   │ 用户请求
   ▼
 Stitch Design
-  ├─ 40 个 Skills：路由、安全、设计、代码转换
-  ├─ 本地设置页：获取 Key → 保存 → 打开 Codex
-  └─ MCP 映射：STITCH_API_KEY → X-Goog-Api-Key
+  ├─ 41 个 Skills：路由、安全、设计、转换、交付
+  ├─ Delivery Harness：契约 → 门禁 → receipts → 批准
+  ├─ 本地设置页：获取 Key → 系统秘密存储
+  └─ 内置 stdio 代理 → Google Stitch HTTPS MCP
                          │
                          ▼
                  Google Stitch MCP
@@ -37,6 +39,7 @@ Stitch Design
 - 转换为 React、React Native、shadcn/ui、Vue、Vant、Element Plus、Bootstrap、Layui、uView、uView Pro 和 uview-plus。
 - 生成站点规格、提示词、视觉规范和 Remotion 演示。
 - 写操作结果不明时先读取远端状态，再决定是否恢复。
+- 执行 Stitch → ImageGen → OCR/业务 → 回灌 → 对比 → 批准的门禁闭环。
 
 插件不托管 Stitch、不内置共享 Key，也不把 ChatGPT 网页认证描述为生产可用。
 
@@ -67,7 +70,7 @@ python3 /已安装插件路径/scripts/stitch_setup.py ui
 py C:\已安装插件路径\scripts\stitch_setup.py ui
 ```
 
-页面只监听 `127.0.0.1`，不加载外部资产，校验 CSRF 和 Origin，不记录 Key，并在每次响应后清空输入。凭据文件依赖本机权限保护，不是加密系统密钥库。详见 [使用指南](docs/getting-started.zh-CN.md) 与 [隐私说明](PRIVACY.md)。
+页面只监听 `127.0.0.1`，不加载外部资产，校验 CSRF 和 Origin，不记录 Key，并在每次响应后清空输入。Key 保存到 macOS Keychain、Windows Credential Manager 或 Linux Secret Service。详见 [使用指南](docs/getting-started.zh-CN.md) 与 [隐私说明](PRIVACY.md)。
 
 ## 使用示例
 
@@ -82,16 +85,13 @@ py C:\已安装插件路径\scripts\stitch_setup.py ui
 
 ## 配置
 
-`.mcp.json` 将 `STITCH_API_KEY` 映射到 `X-Goog-Api-Key`。优先级为：
+`.mcp.json` 从安装后的插件根目录启动内置 stdio 代理。凭据优先级为：
 
 1. 当前进程中的 `STITCH_API_KEY`。
-2. Stitch Design 用户凭据文件。
+2. 当前平台的系统秘密存储。
 3. 首次设置页面。
 
-默认路径：
-
-- Unix：`$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/stitch-design/credentials.json`。
-- Windows：`%APPDATA%\stitch-design\credentials.json`。
+旧 JSON 凭据必须显式执行 `stitch_setup.py migrate`，且只有系统存储回读验证成功后才会脱敏。
 
 只检查状态、不回显 Key：
 
@@ -118,7 +118,7 @@ shellcheck scripts/stitch_setup.sh
 git diff --check
 ```
 
-0.4.0 证据：16 项自动化测试通过，40 个 Skills 校验通过，公开 Marketplace 安装解析为 0.4.0，设置页面完成 390×884、768×1024 和 1280×1024 视觉检查。Stitch 实时可用性仍是外部依赖。
+已发布 0.4.0 的证据保留为历史记录。本地 0.5.0 候选新增 41 个 Skills、stdio 代理和 Harness；离线及当前主机证据不能冒充推送、Release、Marketplace 升级或跨平台验证。
 
 ## 故障排查
 
@@ -139,6 +139,6 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ## 来源与许可
 
-39 个上游 Skill 快照基于 `full-stack-skills/stitch-skills` 提交 `62ef81825ad6ddc85bb6b8426e65b1a9d07d109b`；`stitch-local-setup` 为插件本地 Skill。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
+39 个上游 Skill 快照基于 `full-stack-skills/stitch-skills` 提交 `62ef81825ad6ddc85bb6b8426e65b1a9d07d109b`；`stitch-local-setup` 和 `stitch-delivery-harness` 为插件本地 Skill。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
 
 详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

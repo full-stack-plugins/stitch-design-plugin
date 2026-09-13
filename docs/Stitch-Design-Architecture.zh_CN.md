@@ -2,22 +2,23 @@
 
 > **文档目的**：定义 Stitch Design 已验证的架构、信任边界、生命周期、失败语义与演进约束。
 >
-> **适用版本**：0.4.0 · **状态**：已发布 · **事实核验日期**：2026-09-13
+> **适用版本**：0.5.0 · **状态**：本地候选 · **事实核验日期**：2026-09-14
 
 [English](Stitch-Design-Architecture.md) | [技术方案](Stitch-Design-Technical-Solution.zh_CN.md) | [README 中文](../README.zh-CN.md)
 
 ## 1. 执行摘要
 
-Stitch Design 是 Codex compatibility plugin，包含 40 个 Agent Skills、Google 托管的 Stitch MCP 连接和本地首次设置向导。Codex 负责插件发现与工具调用，Google Stitch 负责项目和屏幕数据，插件负责工作流指令、安全的本地凭据引导、分发验证与发布元数据。
+Stitch Design 是 Codex compatibility plugin，包含 41 个 Agent Skills、连接 Google Stitch MCP 的本地安全 stdio 代理、首次设置向导和证据驱动的交付 Harness。Codex 负责工具调用，Google Stitch 负责项目和屏幕数据，插件负责安全连接、工作流状态、门禁、receipts 和本地归档。
 
 ```mermaid
 flowchart LR
     U["用户意图"] --> C["Codex 宿主"]
     C --> P["Stitch Design 插件"]
-    P --> S["40 个 Skills"]
-    P --> M["MCP 配置"]
+    P --> S["41 个 Skills"]
+    P --> M["本地 stdio MCP 代理"]
+    P --> H["交付 Harness"]
     P --> W["本地设置向导"]
-    M -->|"X-Goog-Api-Key"| G["Google Stitch MCP"]
+    M -->|"HTTPS + 受保护 Key"| G["Google Stitch MCP"]
     G --> D["项目 · 屏幕 · 资产"]
 ```
 
@@ -41,10 +42,10 @@ flowchart LR
 flowchart LR
     User["用户"] --> Codex["Codex 宿主"]
     Codex --> Plugin["Stitch Design"]
-    Plugin --> Skills["40 个 Skills"]
+    Plugin --> Skills["41 个 Skills"]
     Plugin --> Setup["Loopback 设置页"]
     Plugin --> MCP["Google Stitch MCP"]
-    Setup --> Config["用户凭据文件"]
+    Setup --> Config["系统秘密存储"]
     MCP --> Stitch["Stitch 项目与屏幕"]
     subgraph Local["用户设备"]
       Codex
@@ -86,7 +87,7 @@ flowchart LR
     subgraph Device["用户控制的设备"]
       Browser["Loopback 浏览器页面"]
       Setup["设置服务"]
-      Store[("用户凭据文件")]
+      Store[("系统秘密存储")]
       Codex["Codex 进程"]
       Plugin["插件 Skills 与 MCP 配置"]
       Browser -->|"Key 经 127.0.0.1 + CSRF"| Setup
@@ -102,7 +103,7 @@ flowchart LR
     Plugin -->|"HTTPS + X-Goog-Api-Key"| MCP
 ```
 
-本地凭据文件依赖文件权限保护，不是加密密钥库。API Key 只作为 `X-Goog-Api-Key` 请求头直接发送给 Google Stitch，插件作者不接收 MCP 流量。
+API Key 保存到 macOS Keychain、Windows Credential Manager 或 Linux Secret Service。本地 stdio 代理在请求时读取，并只发送到 Google Stitch 的精确 HTTPS 源；插件作者不接收 MCP 流量。
 
 ## 4. 组件与依赖方向
 
@@ -131,7 +132,8 @@ flowchart TB
 | Marketplace | 仓库发现和安装策略 | 运行时认证 |
 | Compatibility manifest | 身份、版本、界面元数据、组件路径 | 工具实现 |
 | Skill 目录 | 路由、工作流、安全、恢复、代码转换 | 宿主生命周期 |
-| MCP 配置 | Endpoint 与环境变量 Header 映射 | 凭据持久化 |
+| MCP 配置 | 从插件根目录启动内置 stdio 代理 | 凭据持久化 |
+| 交付 Harness | 页面契约、状态、门禁、receipts、批准与归档 | 供应商生成能力 |
 | 设置服务 | 本地页面、原子保存、子进程注入 | 系统全局环境 |
 | 分发校验器 | 清单、资产、Skill 数量和秘密模式 | Stitch 实时可用性 |
 | Google Stitch MCP | 工具 Schema 与设计操作 | 插件打包 |
@@ -159,7 +161,7 @@ sequenceDiagram
     participant P as 插件
     U->>C: 添加市场并安装插件
     C->>M: 解析 main
-    M-->>C: stitch-design 0.4.0
+    M-->>C: stitch-design 0.5.0
     C->>P: 加载 manifest、Skills、MCP
     P-->>C: 注册能力
 ```
@@ -169,7 +171,7 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> 检查凭据
-    检查凭据 --> 可用: 环境变量或用户配置存在
+    检查凭据 --> 可用: 环境变量或系统秘密存储存在
     检查凭据 --> 需要设置: 缺失
     需要设置 --> 打开向导
     打开向导 --> 已保存: 本地请求合法
@@ -213,12 +215,13 @@ sequenceDiagram
 | 数据 | 权威来源 | 位置 | 生命周期 |
 |:---|:---|:---|:---|
 | 插件元数据 | Git 仓库 | manifest/marketplace | 随版本 |
-| API Key | 用户 | 环境变量或用户配置 | 直到替换/清除 |
+| API Key | 用户 | 环境变量或系统秘密存储 | 直到替换/清除 |
+| Harness receipts | 本地运行 | 业务项目 `.stitch/runs` | 直到项目清理 |
 | 设计数据 | Google Stitch | 远程账号 | Google/用户策略 |
 | CSRF Token | 设置进程 | 仅内存 | 单进程 |
 | 测试与示例 | Git 仓库 | `tests/`、Skill 资源 | 随版本 |
 
-配置优先级：当前进程 `STITCH_API_KEY` → 用户凭据文件 → 进入首次设置。Unix 默认路径为 `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/stitch-design/credentials.json`；Windows 使用 `%APPDATA%\stitch-design\credentials.json`。
+配置优先级：显式进程 `STITCH_API_KEY` → 系统秘密存储 → 进入首次设置。旧 JSON 凭据只由显式迁移命令读取，并在写入后回读验证成功时脱敏。
 
 ## 7. 安全与隐私
 
@@ -226,7 +229,7 @@ sequenceDiagram
 - 页面使用密码输入框，每次响应后清空。
 - Loopback 页面不加载外部脚本、字体、图片和分析服务。
 - Unix 目录为 `0700`、文件为 `0600`；Windows 继承当前用户目录 ACL。
-- 文档明确说明凭据文件不是系统密钥库。
+- 旧凭据文件不会被静默加载，也不被视为系统秘密存储。
 - 远程写操作只在用户请求范围和宿主审批规则内执行。
 
 ## 8. 可靠性与运维
@@ -298,4 +301,4 @@ flowchart LR
 
 ---
 
-**文档版本**：1.1.0 · **状态**：已对照 0.4.0 评审 · **最后更新**：2026-09-13
+**文档版本**：2.0.0 · **状态**：已对齐本地 0.5.0 候选 · **最后更新**：2026-09-14

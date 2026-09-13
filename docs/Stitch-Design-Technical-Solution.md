@@ -1,6 +1,6 @@
 # Stitch Design Technical Solution
 
-> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.4.0.
+> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.5.0.
 >
 > **Updated:** 2026-09-13
 
@@ -11,11 +11,11 @@
 | Area | Selected solution | Reason |
 |:---|:---|:---|
 | Host packaging | Codex compatibility manifest | Currently supported and verified |
-| Tool transport | Google Stitch remote HTTP MCP | Provider-owned tool schema and execution |
-| Authentication | `env_http_headers` from `STITCH_API_KEY` | Keeps key outside package |
-| Workflow layer | 40 independent Agent Skills | Precise discovery and progressive disclosure |
+| Tool transport | Bundled stdio proxy to Google Stitch HTTP MCP | Reliable host integration and provider-owned execution |
+| Authentication | Process environment or native system secret store | Keeps key outside config and package |
+| Workflow layer | 41 Agent Skills plus Delivery Harness | Precise discovery and verified delivery |
 | First-use UI | Python stdlib loopback server + static assets | No new runtime dependency |
-| Credential persistence | User-scoped JSON with restricted permissions | Cross-platform compatibility |
+| Credential persistence | Keychain, Credential Manager, or Secret Service | Native user-scoped protection |
 | Validation | Python unittest + distribution validator + ShellCheck | Reproducible offline gates |
 
 ## 2. Repository mapping
@@ -24,7 +24,8 @@
 |:---|:---|
 | `.codex-plugin/plugin.json` | Plugin identity, version, presentation, MCP path |
 | `.agents/plugins/marketplace.json` | Public Git source and `ON_USE` policy |
-| `.mcp.json` | Stitch URL and API-key header mapping |
+| `.mcp.json` | Bundled stdio proxy command and plugin-root working directory |
+| `stitch_harness/` | Contracts, proxy, gates, receipts, state and archive |
 | `skills/` | Workflow and conversion contracts |
 | `scripts/stitch_setup.py` | Setup, check, run, CLI, desktop, UI server |
 | `assets/setup/` | Single-card onboarding page |
@@ -38,7 +39,7 @@ sequenceDiagram
     participant S as Setup Skill
     participant U as User
     participant L as Local Wizard
-    participant F as User Config
+    participant F as System Secret Store
     participant C as New Codex
     S->>S: check credential presence
     alt missing
@@ -71,16 +72,16 @@ The server overrides request logging and never returns submitted values. The UI 
 flowchart TD
     Start(["First Stitch use"]) --> Env{"STITCH_API_KEY in current process?"}
     Env -->|Yes| Direct["Use process value"]
-    Env -->|No| File{"User credential file exists?"}
-    File -->|Yes| Inject["Load into a newly launched Codex process"]
-    File -->|No| Wizard["Open local setup wizard"]
+    Env -->|No| Store{"System secret store contains key?"}
+    Store -->|Yes| Inject["Read inside local stdio proxy"]
+    Store -->|No| Wizard["Open local setup wizard"]
     Wizard --> Save["Validate and save key"]
     Save --> Inject
     Direct --> Ready(["Invoke Stitch MCP"])
     Inject --> Ready
 ```
 
-The writer creates the parent directory before an atomic temporary-file replacement. Unix applies `0700` to the directory and `0600` to the file. Windows stores under the current user's `APPDATA` and inherits its ACL. This mechanism is a compatibility store, not an encrypted vault.
+The wizard writes to the platform secret store. Legacy JSON is read only by the explicit migration command and is atomically scrubbed after write-and-read verification.
 
 Key rotation: open the UI, save the new key, start a new Codex process, run read-only `list_projects`, then revoke the old key in Stitch Settings.
 
@@ -91,7 +92,7 @@ sequenceDiagram
     participant B as Browser
     participant H as 127.0.0.1 server
     participant V as Request validator
-    participant F as Credential file
+    participant F as System secret store
     B->>H: GET / with per-run CSRF token
     H-->>B: local assets + no-store + CSP
     B->>H: POST /api/save (Origin, CSRF, JSON)
@@ -105,7 +106,19 @@ sequenceDiagram
     end
 ```
 
-## 5. MCP and Skill behavior
+## 5. MCP, Harness, and Skill behavior
+
+The local stdio proxy owns MCP initialization, session headers, JSON/SSE responses, one authentication refresh, and secret redaction. The Delivery Harness owns page contracts, finite states, deterministic gates, receipt hashes, recovery, explicit approval, and archive publication. Agent Skills invoke the real Stitch, ImageGen, OCR, and visual tools and import normalized evidence; provider success text alone is never accepted.
+
+```mermaid
+flowchart LR
+    Codex --> Proxy[Local stdio MCP proxy]
+    Proxy --> Stitch[Google Stitch MCP]
+    Codex --> Skill[Delivery Harness Skill]
+    Skill --> Core[Local state and gates]
+    Skill --> Providers[Stitch / ImageGen / OCR]
+    Core --> Receipts[Project receipts and archive]
+```
 
 The plugin does not reimplement Stitch SDK methods. It delegates live project, screen, design-system, generation, editing, variant, upload, and artifact behavior to the discovered Stitch MCP tools. Skills own task routing, local preparation, parameter checks, scope control, and ambiguous-write recovery.
 
@@ -183,4 +196,4 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 1.1.0 · **Status:** Implementation-aligned
+**Document version:** 2.0.0 · **Status:** Aligned with local 0.5.0 candidate

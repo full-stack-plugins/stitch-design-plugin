@@ -1,6 +1,6 @@
 # Stitch Design 技术方案
 
-> **范围**：说明 Stitch Design 0.4.0 的实现决策、接口、安全、测试、发布和迁移方案。
+> **范围**：说明 Stitch Design 0.5.0 的实现决策、接口、安全、测试、发布和迁移方案。
 >
 > **最后更新**：2026-09-13
 
@@ -11,11 +11,11 @@
 | 领域 | 选型 | 理由 |
 |:---|:---|:---|
 | 宿主打包 | Codex compatibility manifest | 当前已支持并验证 |
-| 工具传输 | Google Stitch 远程 HTTP MCP | 工具 Schema 与执行由供应商负责 |
-| 认证 | `STITCH_API_KEY` → `env_http_headers` | Key 不进入插件包 |
-| 工作流 | 40 个独立 Agent Skills | 精确发现与渐进式披露 |
+| 工具传输 | 内置 stdio 代理连接 Google Stitch HTTP MCP | 宿主连接可靠，工具执行仍由供应商负责 |
+| 认证 | 显式进程环境或系统秘密存储 | Key 不进入配置和插件包 |
+| 工作流 | 41 个 Agent Skills + 交付 Harness | 精确发现与可验证交付 |
 | 首次设置 | Python 标准库 Loopback 服务 + 静态页面 | 不增加第三方运行依赖 |
-| 凭据保存 | 用户级受限 JSON | 跨平台兼容 |
+| 凭据保存 | Keychain、Credential Manager 或 Secret Service | 当前用户系统级保护 |
 | 验证 | unittest、分发校验、ShellCheck | 可复现离线门禁 |
 
 ## 2. 工程映射
@@ -24,7 +24,8 @@
 |:---|:---|
 | `.codex-plugin/plugin.json` | 身份、版本、展示、MCP 路径 |
 | `.agents/plugins/marketplace.json` | Git 来源和 `ON_USE` 策略 |
-| `.mcp.json` | Stitch URL 与 Header 映射 |
+| `.mcp.json` | 内置 stdio 代理命令和插件根工作目录 |
+| `stitch_harness/` | 契约、代理、门禁、receipts、状态和归档 |
 | `skills/` | 工作流和转换合同 |
 | `scripts/stitch_setup.py` | setup/check/run/cli/desktop/ui |
 | `assets/setup/` | 中央单卡片首次设置页 |
@@ -38,7 +39,7 @@ sequenceDiagram
     participant S as Setup Skill
     participant U as 用户
     participant L as 本地向导
-    participant F as 用户配置
+    participant F as 系统秘密存储
     participant C as 新 Codex 进程
     S->>S: 检查凭据
     alt 缺失
@@ -69,16 +70,16 @@ sequenceDiagram
 flowchart TD
     Start(["首次使用 Stitch"]) --> Env{"当前进程存在 STITCH_API_KEY？"}
     Env -->|是| Direct["直接使用进程变量"]
-    Env -->|否| File{"用户凭据文件存在？"}
-    File -->|是| Inject["加载到新启动的 Codex 进程"]
-    File -->|否| Wizard["打开本地设置向导"]
+    Env -->|否| Store{"系统秘密存储存在 Key？"}
+    Store -->|是| Inject["本地 stdio 代理按需读取"]
+    Store -->|否| Wizard["打开本地设置向导"]
     Wizard --> Save["校验并保存 Key"]
     Save --> Inject
     Direct --> Ready(["调用 Stitch MCP"])
     Inject --> Ready
 ```
 
-优先级：当前进程环境变量 → 用户凭据文件 → 打开设置页。写入使用同目录临时文件后原子替换。Unix 目录为 `0700`、文件为 `0600`；Windows 使用 `APPDATA` 并继承 ACL。它是兼容存储，不是加密保险库。
+优先级：显式进程环境变量 → 系统秘密存储 → 打开设置页。旧 JSON 凭据只由显式 `migrate` 读取，写入系统存储并回读一致后才原子脱敏旧文件。
 
 轮换步骤：打开向导 → 保存新 Key → 启动新 Codex → 只读 `list_projects` → 在 Stitch Settings 吊销旧 Key。
 
@@ -89,7 +90,7 @@ sequenceDiagram
     participant B as 浏览器
     participant H as 127.0.0.1 服务
     participant V as 请求校验器
-    participant F as 凭据文件
+    participant F as 系统秘密存储
     B->>H: GET / 并携带单次 CSRF Token
     H-->>B: 本地资产 + no-store + CSP
     B->>H: POST /api/save（Origin、CSRF、JSON）
@@ -103,7 +104,19 @@ sequenceDiagram
     end
 ```
 
-## 5. MCP 与 Skill 责任
+## 5. MCP、Harness 与 Skill 责任
+
+本地 stdio 代理负责 MCP 初始化、会话 Header、JSON/SSE、一次认证刷新和秘密脱敏。交付 Harness 负责页面契约、有限状态、机器门禁、receipt 哈希链、恢复、明确批准和归档。Agent Skills 调用真实 Stitch、ImageGen、OCR和视觉工具并回填规范化 evidence；仅有供应商成功文本不能通过。
+
+```mermaid
+flowchart LR
+    Codex --> Proxy[本地 stdio MCP 代理]
+    Proxy --> Stitch[Google Stitch MCP]
+    Codex --> Skill[Delivery Harness Skill]
+    Skill --> Core[本地状态与门禁]
+    Skill --> Providers[Stitch / ImageGen / OCR]
+    Core --> Receipts[项目 receipts 与归档]
+```
 
 插件不重复实现 Stitch SDK。项目、屏幕、设计系统、生成、编辑、变体、上传和资产操作由实际发现的 Stitch MCP 工具执行。Skill 负责意图路由、本地准备、参数核验、范围控制和不确定写入恢复。
 
@@ -171,4 +184,4 @@ git diff --check
 
 ---
 
-**文档版本**：1.1.0 · **状态**：与实现对齐
+**文档版本**：2.0.0 · **状态**：与本地 0.5.0 候选对齐

@@ -73,7 +73,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(manifest["name"], "stitch-design")
-        self.assertEqual(manifest["version"], "0.4.0")
+        self.assertEqual(manifest["version"], "0.5.0")
         self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
@@ -161,6 +161,22 @@ class DistributionContractTests(unittest.TestCase):
         loop = (ROOT / "skills" / "stitch-loop" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("stitch-delivery-harness", loop)
         self.assertIn("不能以工具成功文本标记完成", loop)
+
+    def test_architecture_documents_describe_secure_harness_boundaries(self) -> None:
+        paths = [
+            ROOT / "docs" / "Stitch-Design-Architecture.md",
+            ROOT / "docs" / "Stitch-Design-Architecture.zh_CN.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.md",
+            ROOT / "docs" / "Stitch-Design-Technical-Solution.zh_CN.md",
+        ]
+
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(path=path.name):
+                self.assertIn("0.5.0", text)
+                self.assertIn("stdio", text)
+                self.assertIn("Harness", text)
+                self.assertNotIn("env_http_headers", text)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"

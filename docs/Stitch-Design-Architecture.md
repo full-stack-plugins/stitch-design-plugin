@@ -2,22 +2,23 @@
 
 > **Purpose:** Define the verified architecture, trust boundaries, lifecycle, failure semantics, and evolution constraints of Stitch Design.
 >
-> **Version:** 0.4.0 · **Status:** Released · **Evidence date:** 2026-09-13
+> **Version:** 0.5.0 · **Status:** Local candidate · **Evidence date:** 2026-09-14
 
 [简体中文](Stitch-Design-Architecture.zh_CN.md) | [Technical solution](Stitch-Design-Technical-Solution.md) | [README](../README.md)
 
 ## 1. Executive summary
 
-Stitch Design is a Codex compatibility plugin that packages 40 Agent Skills, a Google-hosted Stitch MCP connection, and a local first-use credential wizard. Codex owns plugin discovery and tool invocation; Google Stitch owns project and screen data; the plugin owns workflow instructions, safe local credential bootstrap, validation, and distribution metadata.
+Stitch Design is a Codex compatibility plugin that packages 41 Agent Skills, a secret-safe local stdio proxy to Google Stitch MCP, a first-use credential wizard, and an evidence-driven delivery Harness. Codex owns tool invocation; Google Stitch owns project and screen data; the plugin owns secure connection, workflow state, validation, receipts, and local archival.
 
 ```mermaid
 flowchart LR
     U["User intent"] --> C["Codex host"]
     C --> P["Stitch Design plugin"]
-    P --> S["40 Skills"]
-    P --> M["MCP configuration"]
+    P --> S["41 Skills"]
+    P --> M["Local stdio MCP proxy"]
+    P --> H["Delivery Harness"]
     P --> W["Local setup wizard"]
-    M -->|"X-Goog-Api-Key"| G["Google Stitch MCP"]
+    M -->|"HTTPS + protected key"| G["Google Stitch MCP"]
     G --> D["Projects · screens · assets"]
 ```
 
@@ -41,10 +42,10 @@ Non-goals: hosting Google Stitch, providing a shared author key, implementing OA
 flowchart LR
     User["User"] --> Codex["Codex host"]
     Codex --> Plugin["Stitch Design"]
-    Plugin --> Skills["40 Skills"]
+    Plugin --> Skills["41 Skills"]
     Plugin --> Setup["Loopback setup UI"]
     Plugin --> MCP["Google Stitch MCP"]
-    Setup --> Config["User credential file"]
+    Setup --> Config["System secret store"]
     MCP --> Stitch["Stitch projects and screens"]
     subgraph Local["User device"]
       Codex
@@ -86,7 +87,7 @@ flowchart LR
     subgraph Device["User-controlled device"]
       Browser["Loopback browser UI"]
       Setup["Setup service"]
-      Store[("User credential file")]
+      Store[("System secret store")]
       Codex["Codex process"]
       Plugin["Plugin Skills and MCP config"]
       Browser -->|"key over 127.0.0.1 + CSRF"| Setup
@@ -102,7 +103,7 @@ flowchart LR
     Plugin -->|"HTTPS + X-Goog-Api-Key"| MCP
 ```
 
-The local credential file is permission-restricted, not an encrypted vault. The API key crosses the local boundary only as the `X-Goog-Api-Key` request header sent directly to Google Stitch. Plugin authors do not receive MCP traffic.
+The API key is stored in macOS Keychain, Windows Credential Manager, or Linux Secret Service. The local stdio proxy reads it at request time and sends it only to the exact Google Stitch HTTPS origin. Plugin authors do not receive MCP traffic.
 
 ## 4. Components and dependency direction
 
@@ -131,7 +132,8 @@ flowchart TB
 | Marketplace | Repository discovery and install policy | Runtime authentication |
 | Compatibility manifest | Identity, version, UI metadata, component paths | Tool implementation |
 | Skill catalog | Routing, workflows, safety, recovery, code conversion | Host lifecycle |
-| MCP configuration | Endpoint and environment-header mapping | Secret persistence |
+| MCP configuration | Start the bundled stdio proxy from the plugin root | Secret persistence |
+| Delivery Harness | Page contracts, states, gates, receipts, approval and archive | Provider-side generation |
 | Setup service | Local UI, atomic credential save, child-process injection | Global system environment |
 | Distribution validator | Manifest, assets, Skill count, secret-like patterns | Live Stitch availability |
 | Google Stitch MCP | Tool schema and design operations | Plugin packaging |
@@ -161,7 +163,7 @@ sequenceDiagram
     participant P as Plugin
     U->>C: add marketplace and plugin
     C->>M: resolve main
-    M-->>C: stitch-design 0.4.0
+    M-->>C: stitch-design 0.5.0
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -171,7 +173,7 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> CredentialCheck
-    CredentialCheck --> Ready: environment or user config found
+    CredentialCheck --> Ready: environment or system store found
     CredentialCheck --> SetupRequired: missing
     SetupRequired --> WizardOpen
     WizardOpen --> Saved: valid local submission
@@ -218,12 +220,13 @@ sequenceDiagram
 | Data | Authority | Location | Lifecycle |
 |:---|:---|:---|:---|
 | Plugin metadata | Repository | Manifest/marketplace | Release controlled |
-| API key | User | Environment or user config | Until replaced/removed |
+| API key | User | Environment or system secret store | Until replaced/removed |
+| Harness receipts | Local run | Business project `.stitch/runs` | Until project cleanup |
 | Design data | Google Stitch | Remote account | Google/user policy |
 | Setup CSRF token | Setup process | Memory only | One process |
 | Tests and examples | Repository | `tests/`, Skill resources | Version controlled |
 
-Configuration precedence: current process `STITCH_API_KEY` → configured credential file → setup required. Unix defaults to `$XDG_CONFIG_HOME/stitch-design/credentials.json` or `~/.config/stitch-design/credentials.json`; Windows uses `%APPDATA%\stitch-design\credentials.json`.
+Configuration precedence: explicit process `STITCH_API_KEY` → native system secret store → setup required. Legacy JSON credentials are read only by the explicit migration command and are scrubbed only after write-and-read verification.
 
 ## 7. Security and privacy
 
@@ -231,7 +234,7 @@ Configuration precedence: current process `STITCH_API_KEY` → configured creden
 - The wizard uses a password input and clears it after each response.
 - The loopback server loads no external scripts, fonts, images, or analytics.
 - Unix configuration directories use `0700` and files `0600`; Windows inherits the current user's profile ACL.
-- The credential file is explicitly documented as not being a system secret vault.
+- Legacy credential files are never loaded silently and are not treated as a system secret vault.
 - Remote write operations require the user's requested scope and normal host approval behavior.
 
 ## 8. Reliability and operations
@@ -305,4 +308,4 @@ Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 
 
 ---
 
-**Document version:** 1.1.0 · **Status:** Reviewed against release 0.4.0 · **Updated:** 2026-09-13
+**Document version:** 2.0.0 · **Status:** Aligned with local 0.5.0 candidate · **Updated:** 2026-09-14
