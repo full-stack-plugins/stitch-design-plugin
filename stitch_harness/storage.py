@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .contracts import PageSpec
-from .state import RunState
+from .state import RunState, transition
 
 
 def sha256_file(path: Path) -> str:
@@ -194,6 +194,30 @@ class RunStore:
         manifest["latest_receipt_sha256"] = receipt_hash
         _atomic_json(manifest_path, manifest)
         return replace(run, latest_receipt_sha256=receipt_hash)
+
+    def load(self, project_root: Path, run_id: str) -> Run:
+        if not run_id or "/" in run_id or "\\" in run_id or ".." in run_id:
+            raise ValueError("run_id must not contain a path")
+        run_path = project_root / ".stitch" / "runs" / run_id
+        manifest_path = run_path / "manifest.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if payload.get("run_id") != run_id:
+            raise ValueError("run manifest identity mismatch")
+        return Run(
+            run_id,
+            str(payload["page_id"]),
+            run_path,
+            RunState(payload["state"]),
+            payload.get("latest_receipt_sha256"),
+        )
+
+    def update_state(self, run: Run, target: RunState) -> Run:
+        next_state = transition(run.state, target)
+        manifest_path = run.path / "manifest.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        payload["state"] = next_state.value
+        _atomic_json(manifest_path, payload)
+        return replace(run, state=next_state)
 
     def verify_chain(self, run: Run) -> ChainVerification:
         errors: list[str] = []
