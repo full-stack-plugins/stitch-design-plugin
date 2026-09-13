@@ -9,8 +9,7 @@
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 已发布版本 | [v0.5.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.1) |
-| 发布候选 | `0.5.2` |
+| 已发布版本 | [v0.5.2](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.2) |
 | 宿主布局 | Codex compatibility plugin |
 | Skills | 43 |
 | MCP Endpoint | `https://stitch.googleapis.com/mcp` |
@@ -125,7 +124,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-当前 manifest 与发布候选状态为 `0.5.2`，最新已发布版本仍为 `0.5.1`。源码包含 43 个 Skills、stdio 代理、Delivery Harness 和跨平台验证 Workflow；0.5.2 发布和 Windows/Linux 实机验收仍是 Task 4 的独立门禁。
+0.5.2 包含 43 个 Skills、强化后的 stdio 代理、Delivery Harness 和跨平台验证 Workflow。GitHub 托管矩阵结果及 Windows/Linux 安装实机验收仍属于独立证据。
 
 ## 故障排查
 

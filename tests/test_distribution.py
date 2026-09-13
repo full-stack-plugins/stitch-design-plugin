@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DistributionContractTests(unittest.TestCase):
-    def test_release_candidate_uses_052_across_active_surfaces(self) -> None:
+    def test_release_uses_052_across_active_surfaces(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["version"], "0.5.2")
 
@@ -45,11 +45,11 @@ class DistributionContractTests(unittest.TestCase):
                 self.assertIn("0.5.2", text)
 
         self.assertIn(
-            "Published release | [v0.5.1]",
+            "Published release | [v0.5.2]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "已发布版本 | [v0.5.1]",
+            "已发布版本 | [v0.5.2]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 
@@ -366,8 +366,7 @@ class DistributionContractTests(unittest.TestCase):
         architecture = paths[0].read_text(encoding="utf-8")
         self.assertNotIn("environment or system store found", architecture)
         self.assertIn("environment or restricted user config found", architecture)
-        self.assertIn("published stitch-design 0.5.1", architecture)
-        self.assertIn("local 0.5.2 release candidate", architecture)
+        self.assertIn("stitch-design 0.5.2", architecture)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"

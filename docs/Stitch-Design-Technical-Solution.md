@@ -203,4 +203,4 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 2.1.0 · **Status:** Aligned with the 0.5.2 release candidate
+**Document version:** 2.2.0 · **Status:** Aligned with release 0.5.2
