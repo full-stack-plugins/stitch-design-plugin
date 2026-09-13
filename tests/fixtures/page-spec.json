@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "page_id": "login",
+  "title": "WeKefu Desktop 登录",
+  "canvas": {"width": 1350, "height": 768, "scale": 1},
+  "theme": "light",
+  "fixed_copy": ["WeKefu Desktop", "统一接待多个客户渠道"],
+  "editable_regions": ["headline", "account-form", "feature-strip"],
+  "forbidden_patterns": ["AIza[0-9A-Za-z_-]{20,}"],
+  "business_assertions": [
+    {
+      "id": "promo-unboxed",
+      "type": "dom-style",
+      "selector": "[data-purpose='feature-strip'] > *",
+      "count": 3,
+      "forbidden_properties": ["background-image", "box-shadow", "border-radius"]
+    }
+  ],
+  "comparison": {
+    "critical_copy_recall": 1.0,
+    "layout_score_min": 0.95,
+    "visual_quality_score_min": 4
+  },
+  "archive": "docs/design-v1/desktop/login"
+}
