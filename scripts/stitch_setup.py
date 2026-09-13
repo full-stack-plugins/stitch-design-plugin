@@ -10,15 +10,25 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 import webbrowser
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import SimpleNamespace
 
-
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+if str(PLUGIN_ROOT) not in sys.path:
+    sys.path.insert(0, str(PLUGIN_ROOT))
+
+from stitch_harness.secrets import (  # noqa: E402
+    SecretProvider,
+    SecretStoreError,
+    migrate_legacy_key,
+    platform_secret_provider,
+    system_secret_provider,
+)
+
+
 SETUP_ASSETS = PLUGIN_ROOT / "assets" / "setup"
 
 
@@ -33,71 +43,45 @@ def config_path() -> Path:
     return base / "stitch-design" / "credentials.json"
 
 
-def save_key(key: str, destination: Path) -> None:
+def save_key(key: str, provider: SecretProvider | None = None) -> None:
     value = key.strip()
     if not value:
         raise ValueError("STITCH_API_KEY cannot be empty")
-    destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if os.name != "nt":
-        destination.parent.chmod(0o700)
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=destination.parent,
-        prefix=".credentials-",
-        text=True,
-    )
-    temporary = Path(temporary_name)
-    try:
-        if os.name != "nt":
-            os.chmod(descriptor, 0o600)
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            json.dump({"STITCH_API_KEY": value}, stream)
-            stream.write("\n")
-        temporary.replace(destination)
-        if os.name != "nt":
-            destination.chmod(0o600)
-    finally:
-        temporary.unlink(missing_ok=True)
+    target = provider or system_secret_provider()
+    target.set(value)
+    stored = target.get()
+    if stored != value:
+        raise SecretStoreError("system secret store verification failed")
 
 
-def load_key() -> str | None:
-    environment_key = os.environ.get("STITCH_API_KEY", "").strip()
-    if environment_key:
-        return environment_key
-    source = config_path()
-    try:
-        data = json.loads(source.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return None
-    value = data.get("STITCH_API_KEY")
-    return value.strip() if isinstance(value, str) and value.strip() else None
+def load_key(provider: SecretProvider | None = None) -> str | None:
+    return (provider or platform_secret_provider()).get()
 
 
-def setup() -> int:
+def setup(secret_provider: SecretProvider | None = None) -> int:
     print("Create a Stitch API key at https://stitch.withgoogle.com/settings")
     print("Paste it only into the hidden prompt below; never paste it into chat.")
     key = getpass.getpass("Stitch API key (hidden): ")
     try:
-        save_key(key, config_path())
-    except (OSError, ValueError) as error:
+        save_key(key, secret_provider)
+    except (SecretStoreError, ValueError) as error:
         print(f"Could not save Stitch credentials: {error}", file=sys.stderr)
         return 1
-    print(f"Saved Stitch credentials to {config_path()}")
-    if os.name != "nt":
-        print("The directory is mode 0700 and the credential file is mode 0600.")
-    else:
-        print("The credential file is stored under the current Windows user profile.")
+    print("Saved Stitch credentials to the current user's system secret store.")
     print("Run this setup command again to replace the saved key.")
     return 0
 
 
-def check() -> int:
-    if os.environ.get("STITCH_API_KEY", "").strip():
-        print("STITCH_API_KEY is set in the current environment")
-    elif load_key():
-        print(f"STITCH_API_KEY is available in {config_path()}")
-    else:
+def check(secret_provider: SecretProvider | None = None) -> int:
+    try:
+        available = load_key(secret_provider)
+    except SecretStoreError as error:
+        print(f"Stitch credential check failed: {error}", file=sys.stderr)
+        return 1
+    if not available:
         print("STITCH_API_KEY is not configured")
         return 1
+    print("STITCH_API_KEY is available through the configured secret provider")
     if (PLUGIN_ROOT / ".mcp.json").is_file():
         print("Stitch MCP configuration is present")
         return 0
@@ -105,8 +89,12 @@ def check() -> int:
     return 1
 
 
-def command_environment() -> dict[str, str] | None:
-    key = load_key()
+def command_environment(secret_provider: SecretProvider | None = None) -> dict[str, str] | None:
+    try:
+        key = load_key(secret_provider)
+    except SecretStoreError as error:
+        print(f"Could not read Stitch credentials: {error}", file=sys.stderr)
+        return None
     if not key:
         print("STITCH_API_KEY is not configured. Run the setup command first.", file=sys.stderr)
         return None
@@ -161,8 +149,14 @@ def desktop() -> int:
     return 1
 
 
-def create_setup_server(host: str = "127.0.0.1", port: int = 0):
+def create_setup_server(
+    host: str = "127.0.0.1",
+    port: int = 0,
+    *,
+    secret_provider: SecretProvider | None = None,
+):
     state = SimpleNamespace(csrf_token=secrets.token_urlsafe(32), completed=False)
+    target_provider = secret_provider or system_secret_provider()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
@@ -215,8 +209,8 @@ def create_setup_server(host: str = "127.0.0.1", port: int = 0):
                 return
             if self.path == "/api/save":
                 try:
-                    save_key(str(data.get("apiKey", "")), config_path())
-                except (OSError, ValueError):
+                    save_key(str(data.get("apiKey", "")), target_provider)
+                except (SecretStoreError, ValueError):
                     self.send_content(400, b'{"ok":false,"message":"Key could not be saved"}', "application/json")
                     return
                 state.completed = True
@@ -252,7 +246,7 @@ def run_ui() -> int:
 
 def usage() -> None:
     print(
-        "Usage: stitch_setup.py ui | setup | check | cli [args...] | "
+        "Usage: stitch_setup.py ui | setup | check | migrate | cli [args...] | "
         "run -- <command> [args...] | desktop",
         file=sys.stderr,
     )
@@ -267,6 +261,14 @@ def main(arguments: list[str]) -> int:
         return setup()
     if command == "check":
         return check()
+    if command == "migrate":
+        try:
+            result = migrate_legacy_key(config_path(), system_secret_provider())
+        except SecretStoreError as error:
+            print(f"Could not migrate Stitch credentials: {error}", file=sys.stderr)
+            return 1
+        print(result.reason)
+        return 0
     if command == "cli":
         if rest and rest[0] == "--":
             rest = rest[1:]

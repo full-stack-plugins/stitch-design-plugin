@@ -97,7 +97,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("STITCH_API_KEY is set", result.stdout)
+        self.assertIn("STITCH_API_KEY is available", result.stdout)
         self.assertNotIn(secret, result.stdout + result.stderr)
 
     def test_stitch_setup_cli_forwards_the_key_without_printing_it(self) -> None:
@@ -133,9 +133,19 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("Windows", skill)
         self.assertNotIn("钥匙串", skill)
 
-    def test_stitch_setup_stores_key_in_restricted_user_config(self) -> None:
+    def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"
         secret = "config-secret-must-not-appear"
+
+        class FakeSecretProvider:
+            value = None
+
+            def get(self):
+                return self.value
+
+            def set(self, value):
+                self.value = value
+
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / "credentials.json"
             spec = importlib.util.spec_from_file_location("stitch_setup", script)
@@ -143,43 +153,36 @@ class DistributionContractTests(unittest.TestCase):
             self.assertIsNotNone(spec.loader)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            module.save_key(secret, config)
+            provider = FakeSecretProvider()
+            module.save_key(secret, provider)
 
-            saved = json.loads(config.read_text(encoding="utf-8"))
-            mode = config.stat().st_mode & 0o777
+        self.assertEqual(provider.get(), secret)
+        self.assertFalse(config.exists())
 
-        self.assertEqual(saved, {"STITCH_API_KEY": secret})
-        if os.name != "nt":
-            self.assertEqual(mode, 0o600)
-
-    def test_stitch_setup_cli_loads_key_from_user_config(self) -> None:
+    def test_stitch_setup_does_not_silently_load_legacy_user_config(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"
         secret = "config-secret-must-not-appear"
+
+        class EmptySecretProvider:
+            def get(self):
+                return None
+
+            def set(self, value):
+                raise AssertionError("read test must not write")
+
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / "credentials.json"
-            fake_codex = Path(directory) / "codex"
             config.write_text(json.dumps({"STITCH_API_KEY": secret}), encoding="utf-8")
-            fake_codex.write_text(
-                "#!/bin/sh\n"
-                "test \"$STITCH_API_KEY\" = \"$CONFIG_TEST_SECRET\" && printf 'key:set\\n'\n",
-                encoding="utf-8",
-            )
-            fake_codex.chmod(0o755)
-            result = subprocess.run(
-                [sys.executable, str(script), "cli"],
-                env={
-                    "PATH": f"{directory}:/usr/bin:/bin",
-                    "CONFIG_TEST_SECRET": secret,
-                    "STITCH_DESIGN_CONFIG": str(config),
-                },
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            spec = importlib.util.spec_from_file_location("stitch_setup", script)
+            self.assertIsNotNone(spec)
+            self.assertIsNotNone(spec.loader)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            value = module.load_key(EmptySecretProvider())
+            preserved = config.read_text(encoding="utf-8")
 
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("key:set", result.stdout)
-        self.assertNotIn(secret, result.stdout + result.stderr)
+        self.assertIsNone(value)
+        self.assertIn(secret, preserved)
 
 
 if __name__ == "__main__":

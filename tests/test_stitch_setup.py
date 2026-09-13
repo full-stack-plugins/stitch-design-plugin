@@ -14,18 +14,38 @@ setup = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(setup)
 
 
-class CredentialTests(unittest.TestCase):
-    def test_blank_key_is_rejected(self):
-        with tempfile.TemporaryDirectory() as directory:
-            with self.assertRaises(ValueError):
-                setup.save_key("   ", Path(directory) / "credentials.json")
+class FakeSecretProvider:
+    def __init__(self, value=None):
+        self.value = value
 
-    def test_saved_key_uses_private_mode(self):
+    def get(self):
+        return self.value
+
+    def set(self, value):
+        self.value = value
+
+
+class CredentialTests(unittest.TestCase):
+    def test_blank_key_is_rejected_without_changing_provider(self):
+        provider = FakeSecretProvider("existing")
+
+        with self.assertRaises(ValueError):
+            setup.save_key("   ", provider)
+
+        self.assertEqual(provider.get(), "existing")
+
+    def test_saved_key_uses_system_provider_not_legacy_file(self):
+        provider = FakeSecretProvider()
         with tempfile.TemporaryDirectory() as directory:
-            destination = Path(directory) / "credentials.json"
-            setup.save_key("secret", destination)
-            if os.name != "nt":
-                self.assertEqual(destination.stat().st_mode & 0o777, 0o600)
+            legacy = Path(directory) / "credentials.json"
+            os.environ["STITCH_DESIGN_CONFIG"] = str(legacy)
+            try:
+                setup.save_key("secret", provider)
+            finally:
+                os.environ.pop("STITCH_DESIGN_CONFIG", None)
+
+        self.assertEqual(provider.get(), "secret")
+        self.assertFalse(legacy.exists())
 
 
 class SetupServerTests(unittest.TestCase):
@@ -33,7 +53,8 @@ class SetupServerTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.config = Path(self.temp.name) / "credentials.json"
         os.environ["STITCH_DESIGN_CONFIG"] = str(self.config)
-        self.server, self.state = setup.create_setup_server()
+        self.provider = FakeSecretProvider()
+        self.server, self.state = setup.create_setup_server(secret_provider=self.provider)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.origin = f"http://127.0.0.1:{self.server.server_port}"
@@ -63,6 +84,23 @@ class SetupServerTests(unittest.TestCase):
         body = failure.exception.read().decode()
         failure.exception.close()
         self.assertEqual(failure.exception.code, 403)
+        self.assertNotIn(secret, body)
+
+    def test_valid_save_uses_system_provider_and_never_writes_legacy_file(self):
+        secret = "secret-must-not-appear"
+        request = urllib.request.Request(
+            self.origin + "/api/save",
+            data=json.dumps({"apiKey": secret, "csrfToken": self.state.csrf_token}).encode(),
+            headers={"Content-Type": "application/json", "Origin": self.origin},
+            method="POST",
+        )
+
+        with urllib.request.urlopen(request) as response:
+            body = response.read().decode()
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(self.provider.get(), secret)
+        self.assertFalse(self.config.exists())
         self.assertNotIn(secret, body)
 
 
