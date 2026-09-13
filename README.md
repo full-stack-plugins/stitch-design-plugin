@@ -2,7 +2,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[English](README.md) | [简体中文](README.zh-CN.md) · [Architecture](docs/Stitch-Design-Architecture.md) · [Technical solution](docs/Stitch-Design-Technical-Solution.md) · [0.6.0 canary acceptance](docs/live-canary-acceptance.md)
+[English](README.md) | [简体中文](README.zh-CN.md) · [Architecture](docs/Stitch-Design-Architecture.md) · [Technical solution](docs/Stitch-Design-Technical-Solution.md) · [0.6.0 live-smoke acceptance](docs/live-canary-acceptance.md)
 
 ## Project status
 
@@ -140,7 +140,7 @@ git diff --check
 
 The local 0.6.0 candidate contains 43 Skills, two namespaced local asset tools, typed Harness evidence writers, isolated comparison, explicit reconciliation/recovery, and recoverable archive publication. Release, Marketplace installation, live canary, and installed-host evidence remain separate Task 6 gates; v0.5.4 is the published baseline.
 
-Repository preparation for the controlled Canary is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely. See the [live-canary acceptance register](docs/live-canary-acceptance.md).
+Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md).
 
 ## Troubleshooting
 

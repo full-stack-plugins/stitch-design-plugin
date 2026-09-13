@@ -2,7 +2,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[English](README.md) | [简体中文](README.zh-CN.md) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [技术方案](docs/Stitch-Design-Technical-Solution.zh_CN.md) · [0.6.0 Canary 验收](docs/live-canary-acceptance.zh_CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [技术方案](docs/Stitch-Design-Technical-Solution.zh_CN.md) · [0.6.0 真实 smoke 验收](docs/live-canary-acceptance.zh_CN.md)
 
 ## 项目状态
 
@@ -127,7 +127,7 @@ git diff --check
 
 本地 0.6.0 候选包含 43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。正式发布、Marketplace 安装、真实 Canary 与安装宿主证据仍属于 Task 6 门禁；v0.5.4 是已发布基线。
 
-受控 Canary 的仓库准备已完成：仅手动触发的 workflow 使用 `STITCH_API_KEY` Repository Secret、runner 私有状态、脱敏输出，并在最后一个 `always()` 步骤删除远端项目后只读确认不存在。该 workflow 尚未远端实跑，详见 [真实 Canary 验收台账](docs/live-canary-acceptance.zh_CN.md)。
+Provider + asset 真实 smoke 的仓库准备已完成：仅手动触发的 workflow 使用 `STITCH_API_KEY` Repository Secret、runner 私有状态、脱敏输出，并在最后一个 `always()` 步骤执行单次删除后只读确认不存在。该 workflow 尚未远端实跑，也不是 Harness 验收；完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
 
 ## 故障排查
 

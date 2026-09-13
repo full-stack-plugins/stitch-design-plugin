@@ -1,4 +1,4 @@
-name: Live Canary
+name: Live Provider and Asset Smoke
 
 on:
   workflow_dispatch:
@@ -12,11 +12,13 @@ concurrency:
 
 jobs:
   live-canary:
-    name: Controlled Stitch live canary
+    name: Controlled Stitch provider and asset smoke
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -35,15 +37,17 @@ jobs:
           --state "$RUNNER_TEMP/stitch-live-canary/private-state.json"
           --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"
           --workspace "$RUNNER_TEMP/stitch-live-canary/workspace"
-      - name: Validate sanitized evidence contract
+      - name: Validate sanitized evidence schema
         run: >-
-          python scripts/live_canary.py verify-evidence
+          python scripts/live_canary.py validate-evidence-schema
           --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"
       - name: Cleanup remote project and prove absence
         if: ${{ always() }}
         env:
           STITCH_API_KEY: ${{ secrets.STITCH_API_KEY }}
-        run: >-
-          python scripts/live_canary.py cleanup
-          --state "$RUNNER_TEMP/stitch-live-canary/private-state.json"
-          --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"
+        run: |
+          python scripts/live_canary.py cleanup \
+            --state "$RUNNER_TEMP/stitch-live-canary/private-state.json" \
+            --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"
+          python scripts/live_canary.py validate-acceptance \
+            --evidence "$RUNNER_TEMP/stitch-live-canary/sanitized-evidence.json"

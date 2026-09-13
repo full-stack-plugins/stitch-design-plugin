@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Run one bounded, secret-safe Stitch live canary and clean it up separately."""
+"""Run one bounded Stitch provider/asset smoke and clean it up separately."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
-import tarfile
 import tempfile
 import uuid
 from datetime import UTC, datetime
@@ -20,36 +20,31 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 if str(PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT))
 
-from stitch_harness.mcp_proxy import McpHttpSession, ProxyError, UnknownWriteResult  # noqa: E402
+from stitch_harness.assets import local_tool_definitions  # noqa: E402
+from stitch_harness.mcp_proxy import McpHttpSession, PROTOCOL_VERSION, ProxyError, UnknownWriteResult  # noqa: E402
 from stitch_harness.secrets import platform_secret_provider  # noqa: E402
-from stitch_harness.storage import sha256_file  # noqa: E402
-from stitch_harness.visual_gate import compare_images  # noqa: E402
+from stitch_harness.tool_catalog import REQUIRED_TOOL_NAMES, ToolCatalog  # noqa: E402
 
 
 STAGES = (
-    "create_project",
-    "generate",
-    "read",
-    "edit",
-    "variant",
-    "design_system_create",
-    "design_system_update",
-    "design_system_list",
-    "design_system_apply",
-    "upload",
-    "download",
-    "harness_compare_archive",
+    "create_project", "generate", "read", "edit", "variant",
+    "design_system_create", "design_system_update", "design_system_list",
+    "design_system_apply", "upload", "download",
 )
 PROJECT_PATTERN = re.compile(r"^projects/([0-9]+)$")
-SCREEN_PATTERN = re.compile(r"^projects/[0-9]+/screens/[A-Fa-f0-9]{32}$")
+SCREEN_PATTERN = re.compile(r"^projects/([0-9]+)/screens/([A-Fa-f0-9]{32})$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+LOCAL_TOOL_NAMES = frozenset(tool["name"] for tool in local_tool_definitions())
+EXPECTED_TOOL_NAMES = REQUIRED_TOOL_NAMES | LOCAL_TOOL_NAMES
 PUBLIC_STAGE_KEYS = frozenset(
     {
         "project_created", "screen_generated", "screen_read", "screen_edited",
         "one_variant_generated", "design_system_created", "design_system_updated",
-        "design_system_listed", "design_system_applied", "asset_uploaded",
-        "assets_downloaded", "comparison_created", "archive_created",
+        "design_system_listed", "design_system_applied", "asset_uploaded", "assets_downloaded",
     }
+)
+PUBLIC_COUNT_KEYS = frozenset(
+    {"screens_read", "variant_screens", "design_systems", "uploaded_screens", "downloaded_files"}
 )
 
 
@@ -83,36 +78,32 @@ def _public_template(started_at: str) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "release_candidate": "0.6.0",
+        "smoke_scope": "provider-and-assets",
         "started_at": started_at,
         "finished_at": None,
-        "stages": {
-            "project_created": False,
-            "screen_generated": False,
-            "screen_read": False,
-            "screen_edited": False,
-            "one_variant_generated": False,
-            "design_system_created": False,
-            "design_system_updated": False,
-            "design_system_listed": False,
-            "design_system_applied": False,
-            "asset_uploaded": False,
-            "assets_downloaded": False,
-            "comparison_created": False,
-            "archive_created": False,
-        },
-        "counts": {"downloaded_files": 0, "comparison_files": 0},
-        "hashes": {"archive_sha256": None},
+        "stages": {key: False for key in sorted(PUBLIC_STAGE_KEYS)},
+        "counts": {key: 0 for key in sorted(PUBLIC_COUNT_KEYS)},
+        "hashes": {"download_manifest_sha256": None},
         "cleanup": {"delete_requested": False, "project_absent": False},
     }
 
 
-def _validate_public_evidence(payload: dict[str, Any]) -> None:
-    expected = {"schema_version", "release_candidate", "started_at", "finished_at", "stages", "counts", "hashes", "cleanup"}
-    if set(payload) != expected or payload.get("schema_version") != 1 or payload.get("release_candidate") != "0.6.0":
+def _validate_evidence_schema(payload: dict[str, Any]) -> None:
+    expected = {
+        "schema_version", "release_candidate", "smoke_scope", "started_at", "finished_at",
+        "stages", "counts", "hashes", "cleanup",
+    }
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != expected
+        or payload.get("schema_version") != 1
+        or payload.get("release_candidate") != "0.6.0"
+        or payload.get("smoke_scope") != "provider-and-assets"
+    ):
         raise ValueError("sanitized evidence has an invalid top-level contract")
     if set(payload.get("stages", {})) != PUBLIC_STAGE_KEYS:
         raise ValueError("sanitized evidence has invalid stage fields")
-    if set(payload.get("counts", {})) != {"downloaded_files", "comparison_files"}:
+    if set(payload.get("counts", {})) != PUBLIC_COUNT_KEYS:
         raise ValueError("sanitized evidence has invalid count fields")
     if set(payload.get("cleanup", {})) != {"delete_requested", "project_absent"}:
         raise ValueError("sanitized evidence has invalid cleanup fields")
@@ -123,10 +114,12 @@ def _validate_public_evidence(payload: dict[str, Any]) -> None:
         isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in payload["counts"].values()
     ):
         raise ValueError("sanitized evidence counts must be non-negative integers")
-    archive_hash = payload.get("hashes", {}).get("archive_sha256")
-    if archive_hash is not None and (not isinstance(archive_hash, str) or SHA256_PATTERN.fullmatch(archive_hash) is None):
+    manifest_hash = payload.get("hashes", {}).get("download_manifest_sha256")
+    if manifest_hash is not None and (
+        not isinstance(manifest_hash, str) or SHA256_PATTERN.fullmatch(manifest_hash) is None
+    ):
         raise ValueError("sanitized evidence hashes must be SHA-256 values")
-    if set(payload.get("hashes", {})) != {"archive_sha256"}:
+    if set(payload.get("hashes", {})) != {"download_manifest_sha256"}:
         raise ValueError("sanitized evidence contains an unsupported hash field")
     for key in ("started_at", "finished_at"):
         value = payload.get(key)
@@ -134,133 +127,237 @@ def _validate_public_evidence(payload: dict[str, Any]) -> None:
             raise ValueError("sanitized evidence timestamps must be UTC strings")
 
 
+def _validate_public_evidence(payload: dict[str, Any]) -> None:
+    """Backward-compatible alias for schema validation."""
+
+    _validate_evidence_schema(payload)
+
+
+def _validate_acceptance_evidence(payload: dict[str, Any]) -> None:
+    _validate_evidence_schema(payload)
+    if not all(payload["stages"].values()):
+        raise ValueError("provider-and-assets acceptance requires every stage to pass")
+    if not all(value > 0 for value in payload["counts"].values()):
+        raise ValueError("provider-and-assets acceptance requires positive observed counts")
+    if payload["hashes"]["download_manifest_sha256"] is None:
+        raise ValueError("provider-and-assets acceptance requires a download manifest hash")
+    if payload["finished_at"] is None:
+        raise ValueError("provider-and-assets acceptance requires a completion timestamp")
+    if not all(payload["cleanup"].values()):
+        raise ValueError("provider-and-assets acceptance requires verified cleanup")
+
+
 def _write_public_evidence(path: Path, payload: dict[str, Any]) -> None:
-    _validate_public_evidence(payload)
+    _validate_evidence_schema(payload)
     _atomic_private_json(path, payload)
 
 
-def _structured(messages: list[dict[str, Any]]) -> dict[str, Any]:
-    if len(messages) != 1 or not isinstance(messages[0].get("result"), dict):
+def _response_result(messages: list[dict[str, Any]], identifier: str, *, tool_call: bool) -> dict[str, Any]:
+    if len(messages) != 1 or not isinstance(messages[0], dict):
         raise ProxyError("Stitch returned an invalid canary response")
-    result = messages[0]["result"]
+    response = messages[0]
+    if (
+        response.get("jsonrpc") != "2.0"
+        or type(response.get("id")) is not type(identifier)
+        or response.get("id") != identifier
+        or "error" in response
+        or not isinstance(response.get("result"), dict)
+    ):
+        raise ProxyError("Stitch returned an invalid canary response")
+    result = response["result"]
+    if not tool_call:
+        return result
+    if result.get("isError") is True:
+        raise ProxyError("Stitch returned a failed tool result")
     structured = result.get("structuredContent")
-    if isinstance(structured, dict):
-        return structured
-    return result
+    if not isinstance(structured, dict):
+        raise ProxyError("Stitch tool result has no valid structuredContent")
+    return structured
 
 
-def _find_string(value: Any, keys: tuple[str, ...], pattern: re.Pattern[str] | None = None) -> str | None:
-    if isinstance(value, dict):
-        for key in keys:
-            candidate = value.get(key)
-            if isinstance(candidate, str) and (pattern is None or pattern.fullmatch(candidate)):
-                return candidate
-        for child in value.values():
-            found = _find_string(child, keys, pattern)
-            if found is not None:
-                return found
-    elif isinstance(value, list):
-        for child in value:
-            found = _find_string(child, keys, pattern)
-            if found is not None:
-                return found
-    return None
+def _project_identity(project: Any) -> tuple[str, str, str | None]:
+    if not isinstance(project, dict):
+        raise ProxyError("Stitch returned invalid project metadata")
+    name = project.get("name")
+    match = PROJECT_PATTERN.fullmatch(name) if isinstance(name, str) else None
+    if match is None:
+        raise ProxyError("Stitch returned invalid project metadata")
+    title = project.get("title")
+    if title is not None and not isinstance(title, str):
+        raise ProxyError("Stitch returned invalid project metadata")
+    return name, match.group(1), title
+
+
+def _screen_identity(screen: Any, project_id: str) -> tuple[str, str]:
+    if not isinstance(screen, dict):
+        raise ProxyError("Stitch returned invalid screen metadata")
+    source = screen.get("sourceScreen")
+    identifier = screen.get("id")
+    match = SCREEN_PATTERN.fullmatch(source) if isinstance(source, str) else None
+    if match is None or match.group(1) != project_id or not isinstance(identifier, str) or not identifier:
+        raise ProxyError("Stitch returned screen metadata for an invalid project identity")
+    return source, identifier
+
+
+def _screen_list(payload: dict[str, Any], project_id: str, *, exact_count: int | None = None) -> list[tuple[str, str]]:
+    screens = payload.get("screens")
+    if not isinstance(screens, list) or not screens:
+        raise ProxyError("Stitch returned an invalid nonempty screen list")
+    identities = [_screen_identity(screen, project_id) for screen in screens]
+    if exact_count is not None and len(identities) != exact_count:
+        raise ProxyError(f"Stitch canary requires exactly {exact_count} screen result")
+    return identities
 
 
 class StitchBackend:
     """Live MCP backend. Opaque remote identifiers never leave private state."""
 
-    def __init__(self) -> None:
-        self.session = McpHttpSession(provider=platform_secret_provider())
+    def __init__(self, session: Any | None = None) -> None:
+        self.session = session or McpHttpSession(provider=platform_secret_provider())
+        self.catalog = ToolCatalog()
         self._ready = False
         self._request_id = 0
 
-    def _send(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    def _request(self, method: str, params: dict[str, Any] | None = None, *, tool_call: bool = False) -> dict[str, Any]:
         self._request_id += 1
-        request: dict[str, Any] = {"jsonrpc": "2.0", "id": f"canary-{self._request_id}", "method": method}
+        identifier = f"canary-{self._request_id}"
+        request: dict[str, Any] = {"jsonrpc": "2.0", "id": identifier, "method": method}
         if params is not None:
             request["params"] = params
-        return _structured(self.session.send(request))
+        return _response_result(self.session.send(request), identifier, tool_call=tool_call)
 
     def _ensure_ready(self) -> None:
         if self._ready:
             return
-        initialized = self._send(
+        initialized = self._request(
             "initialize",
             {
-                "protocolVersion": "2025-06-18",
+                "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": {},
-                "clientInfo": {"name": "stitch-design-live-canary", "version": "0.6.0"},
+                "clientInfo": {"name": "stitch-design-live-smoke", "version": "0.6.0"},
             },
         )
-        if initialized.get("protocolVersion") != "2025-06-18":
-            raise ProxyError("Stitch returned an unsupported canary protocol")
-        self._send("tools/list", {})
+        capabilities = initialized.get("capabilities")
+        if initialized.get("protocolVersion") != PROTOCOL_VERSION or not isinstance(capabilities, dict) or not isinstance(capabilities.get("tools"), dict):
+            raise ProxyError("Stitch returned an unsupported canary initialization")
+        notification = self.session.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        if notification:
+            raise ProxyError("Stitch returned a response to initialized notification")
+        cursor: str | None = None
+        seen_cursors: set[str] = set()
+        while True:
+            params = {"cursor": cursor} if cursor is not None else {}
+            result = self._request("tools/list", params)
+            tools = result.get("tools")
+            if not isinstance(tools, list):
+                raise ProxyError("Stitch returned an invalid tool catalog")
+            try:
+                self.catalog.extend(tools)
+            except ValueError as error:
+                raise ProxyError("Stitch returned an invalid tool catalog") from error
+            next_cursor = result.get("nextCursor")
+            if next_cursor is None:
+                break
+            if not isinstance(next_cursor, str) or not next_cursor or next_cursor in seen_cursors:
+                raise ProxyError("Stitch returned an invalid tool catalog cursor")
+            seen_cursors.add(next_cursor)
+            cursor = next_cursor
+        errors = self.catalog.validation_errors()
+        names = {tool["name"] for tool in self.catalog.tools}
+        if errors or names != EXPECTED_TOOL_NAMES or len(self.catalog.tools) != len(EXPECTED_TOOL_NAMES):
+            raise ProxyError("Stitch provider/local tool catalog is invalid")
         self._ready = True
 
     def _call(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         self._ensure_ready()
-        return self._send("tools/call", {"name": name, "arguments": arguments})
+        return self._request("tools/call", {"name": name, "arguments": arguments}, tool_call=True)
 
     @staticmethod
     def _selected(context: dict[str, Any]) -> dict[str, str]:
         return {"id": context["screen_id"], "sourceScreen": context["screen_name"]}
 
-    def _refresh_screen(self, context: dict[str, Any]) -> dict[str, str]:
-        listed = self._call("list_screens", {"projectId": context["project_id"]})
-        screen_name = _find_string(listed.get("screens", listed), ("name", "sourceScreen"), SCREEN_PATTERN)
-        screen_id = _find_string(listed.get("screens", listed), ("id",))
-        if screen_name is None or screen_id is None:
-            raise ProxyError("Stitch did not return a usable screen instance")
-        return {"screen_name": screen_name, "screen_id": screen_id}
+    def _list_projects(self) -> list[tuple[str, str, str | None]]:
+        result = self._call("list_projects", {})
+        projects = result.get("projects")
+        if not isinstance(projects, list):
+            raise ProxyError("Stitch did not return a project list")
+        return [_project_identity(project) for project in projects]
 
     def execute(self, stage: str, context: dict[str, Any], workspace: Path) -> dict[str, Any]:
         if stage == "create_project":
-            result = self._call("create_project", {"title": context["project_title"]})
-            project_name = _find_string(result, ("name",), PROJECT_PATTERN)
-            match = PROJECT_PATTERN.fullmatch(project_name or "")
-            if match is None:
-                raise ProxyError("Stitch did not return a project resource")
-            return {"project_name": project_name, "project_id": match.group(1)}
+            try:
+                result = self._call("create_project", {"title": context["project_title"]})
+                project_name, project_id, _ = _project_identity(result)
+            except UnknownWriteResult:
+                matches = [identity for identity in self._list_projects() if identity[2] == context["project_title"]]
+                if len(matches) != 1:
+                    raise UnknownWriteResult("project creation remains unknown after title reconciliation")
+                project_name, project_id, _ = matches[0]
+            return {"project_name": project_name, "project_id": project_id}
         if stage == "generate":
-            self._call(
+            result = self._call(
                 "generate_screen_from_text",
                 {
                     "projectId": context["project_id"],
                     "prompt": "Create one minimal 390x884 mobile canary screen with a heading, body text, and primary button.",
                 },
             )
-            return self._refresh_screen(context)
+            identities = _screen_list(result, context["project_id"], exact_count=1)
+            return {"screen_name": identities[0][0], "screen_id": identities[0][1]}
         if stage == "read":
-            self._call("get_project", {"name": context["project_name"]})
-            self._call("list_screens", {"projectId": context["project_id"]})
-            self._call("get_screen", {"name": context["screen_name"]})
-            return {"ok": True}
+            project = self._call("get_project", {"name": context["project_name"]})
+            instances = project.get("screenInstances")
+            if not isinstance(instances, list) or not instances:
+                raise ProxyError("get_project did not return screen instances")
+            project_identities = [_screen_identity(screen, context["project_id"]) for screen in instances]
+            listed = _screen_list(self._call("list_screens", {"projectId": context["project_id"]}), context["project_id"])
+            expected = (context["screen_name"], context["screen_id"])
+            if expected not in project_identities or expected not in listed:
+                raise ProxyError("read results do not bind the exact generated screen identity")
+            detail = self._call("get_screen", {"name": context["screen_name"]})
+            if not isinstance(detail.get("htmlCode"), dict) or not isinstance(detail.get("screenshot"), dict):
+                raise ProxyError("get_screen did not return HTML and screenshot resources")
+            return {"screen_count": len(listed)}
         if stage == "edit":
-            self._call("edit_screens", {"selectedScreenInstances": [self._selected(context)]})
+            identities = _screen_list(
+                self._call("edit_screens", {"selectedScreenInstances": [self._selected(context)]}),
+                context["project_id"],
+            )
+            if (context["screen_name"], context["screen_id"]) not in identities:
+                raise ProxyError("edit result does not bind the exact selected screen identity")
             return {"ok": True}
         if stage == "variant":
-            result = self._call("generate_variants", {"selectedScreenInstances": [self._selected(context)]})
-            screens = result.get("screens")
-            if not isinstance(screens, list) or len(screens) != 1:
-                raise ProxyError("Stitch canary requires exactly one generated variant")
-            return {"ok": True}
+            identities = _screen_list(
+                self._call("generate_variants", {"selectedScreenInstances": [self._selected(context)]}),
+                context["project_id"], exact_count=1,
+            )
+            return {"variant_count": len(identities)}
         if stage == "design_system_create":
             result = self._call("create_design_system", {"projectId": context["project_id"]})
-            asset_id = _find_string(result, ("assetId",))
-            if asset_id is None:
+            asset_id = result.get("assetId")
+            if not isinstance(asset_id, str) or not asset_id:
                 raise ProxyError("Stitch did not return a design-system asset")
             return {"design_system_asset_id": asset_id}
         if stage == "design_system_update":
-            self._call("update_design_system", {"assetId": context["design_system_asset_id"]})
+            result = self._call("update_design_system", {"assetId": context["design_system_asset_id"]})
+            if result.get("assetId") != context["design_system_asset_id"]:
+                raise ProxyError("updated design-system identity does not match")
             return {"ok": True}
         if stage == "design_system_list":
             result = self._call("list_design_systems", {"projectId": context["project_id"]})
-            if not isinstance(result.get("designSystems"), list):
-                raise ProxyError("Stitch did not return a design-system list")
-            return {"ok": True}
+            systems = result.get("designSystems")
+            if not isinstance(systems, list) or not systems or not any(
+                isinstance(system, dict) and system.get("assetId") == context["design_system_asset_id"] for system in systems
+            ):
+                raise ProxyError("design-system list does not contain the exact created asset")
+            return {"design_system_count": len(systems)}
         if stage == "design_system_apply":
-            self._call("apply_design_system", {"selectedScreenInstances": [self._selected(context)]})
+            identities = _screen_list(
+                self._call("apply_design_system", {"selectedScreenInstances": [self._selected(context)]}),
+                context["project_id"],
+            )
+            if (context["screen_name"], context["screen_id"]) not in identities:
+                raise ProxyError("design-system result does not bind the exact selected screen identity")
             return {"ok": True}
         if stage == "upload":
             source = workspace / "canary-upload.html"
@@ -270,9 +367,15 @@ class StitchBackend:
                 "stitch_local_upload_asset",
                 {"projectId": context["project_id"], "filePath": str(source.resolve()), "title": "Canary asset"},
             )
-            if not isinstance(result.get("screens"), list):
-                raise ProxyError("local upload did not return a screen list")
-            return {"ok": True}
+            screens = result.get("screens")
+            if not isinstance(screens, list) or not screens:
+                raise ProxyError("local upload did not return a nonempty screen list")
+            for screen in screens:
+                name = screen.get("name") if isinstance(screen, dict) else None
+                match = SCREEN_PATTERN.fullmatch(name) if isinstance(name, str) else None
+                if match is None or match.group(1) != context["project_id"]:
+                    raise ProxyError("local upload returned a screen outside the exact project")
+            return {"upload_count": len(screens)}
         if stage == "download":
             destination = (workspace / "downloaded").resolve()
             result = self._call(
@@ -280,84 +383,56 @@ class StitchBackend:
                 {"projectId": context["project_id"], "outputDir": str(destination)},
             )
             files = result.get("files")
-            if not isinstance(files, list) or not files:
-                raise ProxyError("local download returned no files")
-            hashes = [item.get("sha256") for item in files if isinstance(item, dict)]
-            if len(hashes) != len(files) or any(not isinstance(value, str) or SHA256_PATTERN.fullmatch(value) is None for value in hashes):
-                raise ProxyError("local download returned invalid hashes")
-            return {"count": len(files), "hashes": hashes}
-        if stage == "harness_compare_archive":
-            downloaded = workspace / "downloaded"
-            candidates = sorted(path for path in downloaded.rglob("*") if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
-            pair: tuple[Path, Path] | None = None
-            from PIL import Image
-            dimensions: dict[tuple[int, int], list[Path]] = {}
-            for path in candidates:
-                with Image.open(path) as source:
-                    dimensions.setdefault(source.size, []).append(path)
-            for paths in dimensions.values():
-                if len(paths) >= 2:
-                    pair = (paths[0], paths[1])
-                    break
-            if pair is None:
-                raise ProxyError("canary comparison requires two same-size downloaded renders")
-            comparison = compare_images(pair[0], pair[1], workspace / "comparison")
-            archive_path = workspace.parent / "stitch-canary-private.tar.gz"
-            with tarfile.open(archive_path, "w:gz") as archive:
-                archive.add(workspace, arcname="stitch-canary", recursive=True)
-            return {"comparison_count": len(comparison.review_files), "archive_sha256": sha256_file(archive_path)}
+            count = result.get("count")
+            if result.get("outputDir") != str(destination) or not isinstance(files, list) or not files or count != len(files):
+                raise ProxyError("local download returned an invalid output contract")
+            hashes: list[str] = []
+            for item in files:
+                value = item.get("sha256") if isinstance(item, dict) else None
+                if not isinstance(value, str) or SHA256_PATTERN.fullmatch(value) is None:
+                    raise ProxyError("local download returned invalid hashes")
+                hashes.append(value)
+            manifest_hash = hashlib.sha256("\n".join(sorted(hashes)).encode("ascii")).hexdigest()
+            return {"count": len(files), "manifest_sha256": manifest_hash}
         raise ValueError(f"unsupported canary stage: {stage}")
 
     def delete_project(self, context: dict[str, Any]) -> bool:
         result = self._call("delete_project", {"name": context["project_name"]})
-        return result.get("deleted") is True
+        deleted = result.get("deleted")
+        if not isinstance(deleted, bool):
+            raise ProxyError("delete_project did not return a boolean result")
+        return deleted
 
     def project_absent(self, context: dict[str, Any]) -> bool:
-        result = self._call("list_projects", {})
-        projects = result.get("projects")
-        if not isinstance(projects, list):
-            raise ProxyError("Stitch did not return a project list during cleanup")
-        names = [_find_string(project, ("name",), PROJECT_PATTERN) for project in projects]
-        if any(name is None for name in names):
-            raise ProxyError("Stitch returned invalid project metadata during cleanup")
-        return context["project_name"] not in names
+        projects = self._list_projects()
+        return context["project_name"] not in {identity[0] for identity in projects}
 
 
 def _mark_stage(evidence: dict[str, Any], stage: str, result: dict[str, Any]) -> None:
     mapping = {
-        "create_project": "project_created",
-        "generate": "screen_generated",
-        "read": "screen_read",
-        "edit": "screen_edited",
-        "variant": "one_variant_generated",
-        "design_system_create": "design_system_created",
-        "design_system_update": "design_system_updated",
-        "design_system_list": "design_system_listed",
-        "design_system_apply": "design_system_applied",
-        "upload": "asset_uploaded",
-        "download": "assets_downloaded",
+        "create_project": "project_created", "generate": "screen_generated", "read": "screen_read",
+        "edit": "screen_edited", "variant": "one_variant_generated",
+        "design_system_create": "design_system_created", "design_system_update": "design_system_updated",
+        "design_system_list": "design_system_listed", "design_system_apply": "design_system_applied",
+        "upload": "asset_uploaded", "download": "assets_downloaded",
     }
-    if stage in mapping:
-        evidence["stages"][mapping[stage]] = True
+    evidence["stages"][mapping[stage]] = True
+    count_mapping = {
+        "read": ("screens_read", "screen_count"),
+        "variant": ("variant_screens", "variant_count"),
+        "design_system_list": ("design_systems", "design_system_count"),
+        "upload": ("uploaded_screens", "upload_count"),
+        "download": ("downloaded_files", "count"),
+    }
+    if stage in count_mapping:
+        public_key, result_key = count_mapping[stage]
+        evidence["counts"][public_key] = result[result_key]
     if stage == "download":
-        evidence["counts"]["downloaded_files"] = result["count"]
-    if stage == "harness_compare_archive":
-        evidence["stages"]["comparison_created"] = True
-        evidence["stages"]["archive_created"] = True
-        evidence["counts"]["comparison_files"] = result["comparison_count"]
-        evidence["hashes"]["archive_sha256"] = result["archive_sha256"]
+        evidence["hashes"]["download_manifest_sha256"] = result["manifest_sha256"]
 
 
-def run_canary(
-    backend: Any,
-    state_path: Path,
-    evidence_path: Path,
-    workspace: Path,
-    *,
-    now: Callable[[], datetime] = _utc_now,
-    nonce: str | None = None,
-) -> dict[str, Any]:
-    """Run every non-cleanup stage, checkpointing opaque values only in private state."""
+def run_canary(backend: Any, state_path: Path, evidence_path: Path, workspace: Path, *, now: Callable[[], datetime] = _utc_now, nonce: str | None = None) -> dict[str, Any]:
+    """Run every non-cleanup smoke stage, checkpointing opaque values in private state."""
 
     started = now()
     unique = (nonce or uuid.uuid4().hex[:12]).lower()
@@ -387,40 +462,48 @@ def run_canary(
     return evidence
 
 
-def cleanup_canary(
-    backend: Any,
-    state_path: Path,
-    evidence_path: Path,
-    *,
-    now: Callable[[], datetime] = _utc_now,
-) -> dict[str, Any]:
-    """Attempt the remote delete once, then prove absence with a read."""
+def cleanup_canary(backend: Any, state_path: Path, evidence_path: Path, *, now: Callable[[], datetime] = _utc_now) -> dict[str, Any]:
+    """Attempt deletion once and always perform an independent absence read probe."""
 
     state = json.loads(Path(state_path).read_text(encoding="utf-8"))
     evidence = json.loads(Path(evidence_path).read_text(encoding="utf-8"))
-    if not state.get("project_name"):
-        evidence["cleanup"]["project_absent"] = True
-    else:
+    delete_error: Exception | None = None
+    read_error: Exception | None = None
+    if state.get("project_name"):
         if not state.get("delete_attempted", False):
             state["delete_attempted"] = True
             _atomic_private_json(Path(state_path), state)
             evidence["cleanup"]["delete_requested"] = True
             _write_public_evidence(Path(evidence_path), evidence)
-            backend.delete_project(state)
+            try:
+                backend.delete_project(state)
+            except Exception as error:  # Preserve unknown outcome; absence read still must run.
+                delete_error = error
         else:
             evidence["cleanup"]["delete_requested"] = True
-        evidence["cleanup"]["project_absent"] = bool(backend.project_absent(state))
+        try:
+            evidence["cleanup"]["project_absent"] = backend.project_absent(state) is True
+        except Exception as error:
+            evidence["cleanup"]["project_absent"] = False
+            read_error = error
+    else:
+        evidence["cleanup"]["project_absent"] = False
+        read_error = ProxyError("cleanup has no confirmed project identity to reconcile")
     evidence["finished_at"] = _timestamp(now())
     _write_public_evidence(Path(evidence_path), evidence)
+    if read_error is not None:
+        raise ProxyError("cleanup absence could not be proved") from read_error
+    if delete_error is not None and not evidence["cleanup"]["project_absent"]:
+        raise delete_error
     return evidence
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run or clean up one Stitch Design live canary")
+    parser = argparse.ArgumentParser(description="Run or clean up one Stitch Design provider/asset smoke")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("run", "cleanup", "verify-evidence"):
+    for name in ("run", "cleanup", "validate-evidence-schema", "validate-acceptance"):
         child = commands.add_parser(name)
-        child.add_argument("--state", required=name != "verify-evidence", type=Path)
+        child.add_argument("--state", required=name in {"run", "cleanup"}, type=Path)
         child.add_argument("--evidence", required=True, type=Path)
         if name == "run":
             child.add_argument("--workspace", required=True, type=Path)
@@ -430,21 +513,26 @@ def _parser() -> argparse.ArgumentParser:
 def main(arguments: list[str] | None = None) -> int:
     args = _parser().parse_args(arguments)
     try:
-        if args.command == "verify-evidence":
-            _validate_public_evidence(json.loads(args.evidence.read_text(encoding="utf-8")))
-            print("sanitized canary evidence contract passed")
+        if args.command in {"validate-evidence-schema", "validate-acceptance"}:
+            payload = json.loads(args.evidence.read_text(encoding="utf-8"))
+            if args.command == "validate-evidence-schema":
+                _validate_evidence_schema(payload)
+                print("sanitized smoke evidence schema passed")
+            else:
+                _validate_acceptance_evidence(payload)
+                print("provider-and-assets acceptance evidence passed")
             return 0
         backend = StitchBackend()
         if args.command == "run":
             evidence = run_canary(backend, args.state, args.evidence, args.workspace)
         else:
             evidence = cleanup_canary(backend, args.state, args.evidence)
+            print(json.dumps(evidence, sort_keys=True, separators=(",", ":")))
+            return 0
         print(json.dumps(evidence, sort_keys=True, separators=(",", ":")))
-        if args.command == "cleanup" and not evidence["cleanup"]["project_absent"]:
-            return 2
         return 0
     except (OSError, ValueError, ProxyError, UnknownWriteResult, json.JSONDecodeError) as error:
-        print(f"live canary {args.command} failed safely: {type(error).__name__}", file=sys.stderr)
+        print(f"live smoke {args.command} failed safely: {type(error).__name__}", file=sys.stderr)
         return 2
 
 

@@ -49,3 +49,25 @@
 
 - Task 6 仓库准备：完成，待本提交落库。
 - Task 6 live Canary、完整安装宿主/Harness 验收、独立审查、远端 CI 与 0.6.0 发布：待控制器。
+
+## Fix Round 1 — Critical/Important closure
+
+本节取代上文把自动 workflow 描述为 Harness 对比/归档路径的表述。
+
+- Workflow 现在只定义为 **Stitch provider + local asset live smoke**，不再声称是 Harness acceptance，也不创建或推导用户批准。完整 Delivery Harness 使用新增的中英文 `docs/live-harness-controller*.md` 本地交互式路径，要求真实 ImageGen/OCR/roundtrip/editability/comparison、明确人工批准及 archive receipts。
+- `StitchBackend` 执行严格 MCP 生命周期：`initialize` → `notifications/initialized` → cursor-aware `tools/list`，使用现有 `ToolCatalog` repair/validation，并要求目录精确为 15 个 provider 工具 + 2 个 namespaced local 工具。
+- 所有请求统一验证 JSON-RPC 版本、精确响应 ID、无 `error`、结果对象；工具调用额外要求 `isError != true` 与字典型 `structuredContent`。每个实际调用工具都有输出形状检查。
+- 创建结果不明时不重发：以唯一生成标题调用 `list_projects` 对账，只在精确一个标题匹配且资源名合法时保存项目身份；零个或多个匹配继续保持 unknown。
+- generate/read/edit/variant/design-system/upload/download 的返回结果均绑定私有状态中的精确 project/screen/asset 身份；上传必须返回非空且同项目 screen 列表；下载必须返回精确 outputDir、正数 count、等长文件列表及合法 SHA-256。
+- 清理在删除成功、失败或 `UnknownWriteResult` 后都执行新的 `list_projects` 不存在性探针；`delete_attempted` 先持久化且不会重放。无法证明不存在时公开 evidence 保持 `project_absent: false`，acceptance 失败。
+- Evidence 分为 schema validation 与 acceptance validation：后者要求全部 smoke stages 为 true、所有观测计数为正、下载清单哈希存在、完成时间存在且清理两个布尔值均为 true。
+- Checkout 设置 `persist-credentials: false`。`actions/checkout@v4` 与 `actions/setup-python@v5` 尚未独立核验 immutable SHA，因此文档明确其仍为移动 major ref，不能把 action provenance 当作已闭合发布证据。
+
+### Fix Round 1 TDD 与验证
+
+- RED 覆盖：缺少 initialized notification/cursor catalog/session seam；错误放行 mismatched ID、JSON-RPC error 与 `isError`; unknown create 无标题对账；unknown delete 中断 absence probe；跨项目 edit 和空 upload；schema 与 acceptance 混为一体；checkout 未禁用 credential persistence；文档误称 Harness acceptance。
+- Recording fake session 当前覆盖真实 `StitchBackend` 的完整 provider/asset stage chain、精确参数、两页工具目录、输出合同、未知创建与未知删除。
+- `python -m unittest tests.test_live_canary -v`：17/17 PASS。
+- `python -m unittest discover -s tests -q`：212/212 PASS。
+- 0.6.0 distribution、43 Skills、Markdown links、secret scan、compileall、两份 workflow actionlint、ShellCheck 与 `git diff --check`：PASS。
+- 未执行真实 Secret、远端写入、GitHub workflow、完整 Harness acceptance、push/tag/Release/Marketplace/安装操作。

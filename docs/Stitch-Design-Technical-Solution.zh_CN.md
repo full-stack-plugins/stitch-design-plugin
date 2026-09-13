@@ -28,7 +28,8 @@
 | `stitch_harness/` | 契约、代理、门禁、receipts、状态和归档 |
 | `skills/` | 工作流和转换合同 |
 | `scripts/stitch_setup.py` | setup/check/run/cli/desktop/ui |
-| `scripts/live_canary.py` | 有界远端 Canary、脱敏证据、单次清理尝试 |
+| `scripts/live_canary.py` | 有界 provider/asset smoke、严格 MCP 解析、脱敏证据与清理对账 |
+| `docs/live-harness-controller.zh_CN.md` | 独立的交互式真实 Harness 验收路径 |
 | `assets/setup/` | 中央单卡片首次设置页 |
 | `scripts/validate_distribution.py` | 包合同和秘密模式扫描 |
 | `tests/` | 分发、凭据、HTTP 安全和 UI 结构测试 |
@@ -180,7 +181,7 @@ actionlint .github/workflows/live-canary.yml
 git diff --check
 ```
 
-真实 workflow 有意不配置 push 与 pull request 触发。认证只映射 `STITCH_API_KEY` Repository Secret；opaque ID 仅保存在 runner 内 `0600` 私有状态。最后一个 `always()` 步骤是唯一删除入口，并通过 `list_projects` 确认目标不存在。仓库准备与待补外部门禁见 [真实 Canary 验收台账](live-canary-acceptance.zh_CN.md)。
+真实 workflow 有意不配置 push 与 pull request 触发，只执行 provider + asset smoke，不是 Harness 验收。认证只映射 `STITCH_API_KEY` Repository Secret；opaque ID 仅保存在 runner 内 `0600` 私有状态。最后一个 `always()` 步骤是唯一删除入口，并且始终通过 `list_projects` 对账不存在性。Schema 合法与 acceptance 通过是两个独立合同；完整 ImageGen/OCR/editability/comparison/明确人工批准/archive 验收走[本地 Harness 控制器](live-harness-controller.zh_CN.md)。待补外部门禁见 [真实 smoke 验收台账](live-canary-acceptance.zh_CN.md)。
 
 0.4.0 证据：提交/标签/远端 SHA 均为 `6cf533ee884157a5a265c6200bbff6842b62c0f5`；16 项测试、40 个 Skills、公开 Marketplace 安装、安装产物对比，以及 390×884、768×1024、1280×1024 视觉检查通过。
 

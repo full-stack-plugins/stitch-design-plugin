@@ -301,9 +301,9 @@ flowchart LR
 
 `v0.4.0` 对应提交 `6cf533ee884157a5a265c6200bbff6842b62c0f5`：16 项自动化测试、40 个 Skills 分发校验、Skill 结构校验、ShellCheck、秘密模式扫描，以及 390×884、768×1024、1280×1024 三档视觉检查均通过。这些证据证明包和设置流程，不代表 Google Stitch 持续可用。
 
-### 10.1 受控 0.6.0 Canary 边界
+### 10.1 受控 0.6.0 provider + asset smoke 边界
 
-手动 live-canary workflow 把公开证据与清理所需私有状态分离。只有 runner 内 `0600` 私有状态保存项目、屏幕和设计系统 ID；日志安全证据仅包含布尔值、计数、哈希与时间戳。最后一个 `always()` 步骤先登记单次删除尝试，再执行只读不存在性检查。详见 [验收台账](live-canary-acceptance.zh_CN.md)。该控制面仅完成离线准备，尚未远端运行，因此 0.6.0 仍是本地发布候选。
+手动 live-canary workflow 验证 MCP 生命周期/目录以及 provider、本地资产操作，并分离公开证据与清理私有状态：只有 runner 内 `0600` 状态保存项目、屏幕和设计系统 ID。最后一个 `always()` 步骤先登记单次删除尝试，即使删除结果不明也继续只读确认不存在。该 workflow 不是 Delivery Harness 验收，也不生成用户批准 receipt；真实 Harness 走独立的[交互式控制器](live-harness-controller.zh_CN.md)。详见 [验收台账](live-canary-acceptance.zh_CN.md)。本次仓库准备未执行任一路径的真实运行。
 
 ---
 

@@ -1,54 +1,55 @@
-# Stitch Design 0.6.0 Live Canary Acceptance
+# Stitch Design 0.6.0 Live Smoke Acceptance
 
 > Repository preparation: complete
 >
-> Live Canary: not executed
+> Provider + asset live smoke: not executed
+>
+> Harness acceptance: not executed
 >
 > Release/Marketplace: not published
 
-[简体中文](live-canary-acceptance.zh_CN.md) | [Architecture](Stitch-Design-Architecture.md) | [Technical solution](Stitch-Design-Technical-Solution.md)
+[简体中文](live-canary-acceptance.zh_CN.md) | [Harness controller](live-harness-controller.md) | [Architecture](Stitch-Design-Architecture.md)
 
-This document is the acceptance register for the 0.6.0 candidate. It does not claim a remote run, release, Marketplace upgrade, or installed-host proof. The controller must replace the pending rows only after observing the corresponding external evidence.
+This register separates two different external gates. The manual GitHub workflow is a bounded Google Stitch provider + local asset smoke; it is not Harness acceptance and it does not fabricate automated user approval. The full Delivery Harness remains an interactive local controller path.
 
-## Prepared control
+## Prepared provider + asset smoke
 
-The `Live Canary` GitHub Actions workflow is manual-only (`workflow_dispatch`). It reads `STITCH_API_KEY` exclusively from the repository secret of the same name, creates a unique `codex-stitch-canary-<UTC>-<nonce>` project, and runs one bounded chain:
+The `Live Provider and Asset Smoke` workflow (`live-canary.yml`) has only `workflow_dispatch`. It reads `STITCH_API_KEY` only from the same-name Repository Secret and creates a uniquely titled temporary project.
 
 ```mermaid
 flowchart LR
-    Dispatch["Manual dispatch"] --> Create["Unique temporary project"]
-    Create --> Screen["Generate · read · edit · one variant"]
+    Dispatch["Manual dispatch"] --> Protocol["initialize · initialized · paged tools/list"]
+    Protocol --> Catalog["15 provider + 2 local tools"]
+    Catalog --> Project["Unique temporary project"]
+    Project --> Screen["Generate · read · edit · one variant"]
     Screen --> System["Create · update · list · apply design system"]
     System --> Assets["Upload · verified download"]
-    Assets --> Harness["Harness comparison · private archive"]
-    Harness --> Cleanup["always: delete once · list to prove absence"]
+    Assets --> Cleanup["always: delete once · read absence probe"]
 ```
 
-The private runner state contains the remote identifiers required for cleanup and is written with mode `0600`. It is not uploaded. Public logs contain only stage booleans, non-negative counts, SHA-256 values, and UTC timestamps. Credentials, project/screen identifiers, signed URLs, HTML, screenshots, and private archive contents are excluded.
+The live backend requires matching JSON-RPC IDs, no JSON-RPC error, `isError != true`, structured tool content, and per-tool output contracts. Every screen/asset response is bound to the exact private project, screen, or design-system identity. If project creation is unknown, the backend reads projects and accepts only exactly one exact-title match. It never records a project identity from zero or multiple matches.
 
-The final workflow step uses `always()` and is the only delete site. It checkpoints `delete_attempted` before calling `delete_project`, so an ambiguous response is not blindly replayed. A read-only `list_projects` reconciliation must prove absence; otherwise the workflow fails and a maintainer must inspect the remote account without resubmitting the delete automatically.
+Opaque identities remain in a runner-private `0600` file and are not uploaded. Public evidence has an exact schema containing only booleans, positive acceptance counts, one aggregate SHA-256, and UTC timestamps. Schema validation and acceptance validation are separate: schema-valid partial evidence is not an accepted smoke.
 
-## Controller runbook
+The final `always()` step is the sole delete site. It checkpoints `delete_attempted` before the call and never replays it. Whether delete succeeds, fails, or has an unknown result, a fresh `list_projects` probe must prove the exact project resource absent. Failure to prove absence leaves `project_absent: false` and fails acceptance.
 
-1. Configure the repository secret `STITCH_API_KEY`; do not add a workflow input, repository variable, checked-in file, or command-line value containing the credential.
-2. Dispatch `Live Canary` once from the exact 0.6.0 candidate commit. Do not enable push, pull-request, schedule, or reusable-workflow triggers.
-3. Confirm every non-cleanup stage reports `true`, downloaded/comparison counts are positive, and the private archive hash is a 64-character SHA-256 value.
-4. Confirm the final cleanup reports both `delete_requested: true` and `project_absent: true`.
-5. Record the run URL, candidate commit, and final sanitized JSON in the release controller's private acceptance record. Do not copy opaque identifiers or private artifacts into public release notes.
-6. Only after independent review and all release gates pass may the controller push/tag/release 0.6.0, upgrade Marketplace, and prove source/remote/tag/release/install equality.
+`actions/checkout@v4` and `actions/setup-python@v5` remain moving major-version references because their immutable commit SHAs were not independently verified in this repository-preparation task. Checkout uses `persist-credentials: false`; the controller should pin independently verified SHAs before treating action provenance as release evidence.
+
+## Separate Harness gate
+
+After this smoke passes, run the [local Harness controller](live-harness-controller.md) from the installed 0.6.0 candidate. That path must obtain actual Stitch, ImageGen, OCR/business, roundtrip, editability, comparison, explicit human approval, and archive receipts. Neither manual workflow dispatch nor a green provider smoke counts as explicit human approval of Harness artifacts.
 
 ## Acceptance ledger
 
 | Gate | Current result | Required evidence |
 |:---|:---|:---|
-| Manual-only workflow | Prepared offline | `actionlint` and workflow contract tests |
-| Secret-only authentication | Prepared offline | repository secret mapping; no credential input or argv value |
-| Unique temporary project | Prepared offline | private runner state; public boolean only |
-| Generate/read/edit/one variant | Pending live run | sanitized stage booleans |
-| Design-system create/update/list/apply | Pending live run | sanitized stage booleans |
-| Local upload/download | Pending live run | booleans plus downloaded-file count |
-| Harness comparison/private archive | Pending live run | comparison count plus archive SHA-256 |
-| Delete and prove absence | Pending live run | final cleanup booleans |
-| 0.6.0 tag/Release/Marketplace/install | Not published | exact SHA and installed-source equality |
+| Manual-only workflow and secret scope | Prepared offline | workflow tests + actionlint |
+| MCP lifecycle and exact 17-tool catalog | Prepared with recording fake | live matching responses |
+| Provider generate/read/edit/one variant | Pending live smoke | all booleans true; positive screen counts |
+| Design-system create/update/list/apply | Pending live smoke | bound identity results; positive count |
+| Local upload/download | Pending live smoke | positive counts + download manifest hash |
+| Delete and prove absence | Pending live smoke | `delete_requested` and `project_absent` true |
+| Full Delivery Harness | Pending local controller | real receipts + explicit human approval + verified archive |
+| 0.6.0 tag/Release/Marketplace/install | Not published | exact source/remote/tag/release/install equality |
 
-Until every pending row is closed, 0.6.0 remains a local candidate and v0.5.4 remains the published baseline.
+Until every applicable gate is closed, 0.6.0 remains a local candidate and v0.5.4 remains the published baseline.

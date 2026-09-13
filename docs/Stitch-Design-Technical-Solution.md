@@ -28,7 +28,8 @@
 | `stitch_harness/` | Contracts, proxy, gates, receipts, state and archive |
 | `skills/` | Workflow and conversion contracts |
 | `scripts/stitch_setup.py` | Setup, check, run, CLI, desktop, UI server |
-| `scripts/live_canary.py` | Bounded remote Canary, sanitized evidence, single-attempt cleanup |
+| `scripts/live_canary.py` | Bounded provider/asset smoke, strict MCP parsing, sanitized evidence and cleanup reconciliation |
+| `docs/live-harness-controller.md` | Separate interactive real-Harness acceptance path |
 | `assets/setup/` | Single-card onboarding page |
 | `scripts/validate_distribution.py` | Package contract and secret-like pattern scan |
 | `tests/` | Distribution, credential, HTTP security, and UI structure tests |
@@ -184,7 +185,7 @@ actionlint .github/workflows/live-canary.yml
 git diff --check
 ```
 
-The live workflow is intentionally excluded from push and pull-request triggers. Authentication is mapped only from the `STITCH_API_KEY` repository secret. Opaque identifiers remain in a private `0600` runner state; the final `always()` step is the sole delete site and verifies absence with `list_projects`. The prepared contract and pending external gates are recorded in [live-canary-acceptance.md](live-canary-acceptance.md).
+The live workflow is intentionally excluded from push and pull-request triggers. It performs provider + asset smoke only, not Harness acceptance. Authentication is mapped only from the `STITCH_API_KEY` repository secret. Opaque identifiers remain in private `0600` runner state; the final `always()` step is the sole delete site and always verifies absence with `list_projects`. Schema-valid evidence and accepted evidence are separate contracts. Full ImageGen/OCR/editability/comparison/explicit-human-approval/archive acceptance uses the [local Harness controller](live-harness-controller.md). Pending gates are recorded in [live-canary-acceptance.md](live-canary-acceptance.md).
 
 Release proof for 0.4.0:
 

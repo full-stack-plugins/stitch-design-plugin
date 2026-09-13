@@ -308,9 +308,9 @@ ADR summary:
 
 Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 automated tests, validation of 40 Skills, Skill structure validation, ShellCheck, secret-pattern scanning, and visual checks at 390×884, 768×1024, and 1280×1024. These gates prove package and setup behavior; they do not prove continuous Google Stitch availability.
 
-### 10.1 Controlled 0.6.0 Canary boundary
+### 10.1 Controlled 0.6.0 provider + asset smoke boundary
 
-The manual live-canary workflow separates public evidence from the private cleanup state. Only the runner-private `0600` state holds project/screen/design-system identifiers. The log-safe evidence contains booleans, counts, hashes, and timestamps. The final `always()` step checkpoints a single delete attempt and performs a read-only absence check. See the [acceptance register](live-canary-acceptance.md). This control is prepared offline but has not been run remotely, so 0.6.0 remains a local release candidate.
+The manual live-canary workflow validates MCP lifecycle/catalog behavior plus provider and local-asset operations. It separates public evidence from the private cleanup state: only runner-private `0600` state holds project/screen/design-system identifiers. The final `always()` step checkpoints a single delete attempt and performs a read-only absence check even after an unknown delete result. This workflow is not Delivery Harness acceptance and creates no user-approval receipt; the real Harness uses the separate [interactive controller](live-harness-controller.md). See the [acceptance register](live-canary-acceptance.md). Neither path has been executed remotely in this repository-preparation task.
 
 ---
 
