@@ -16,9 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DistributionContractTests(unittest.TestCase):
-    def test_release_uses_052_across_active_surfaces(self) -> None:
+    def test_release_uses_053_across_active_surfaces(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.5.2")
+        self.assertEqual(manifest["version"], "0.5.3")
 
         validator = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate_distribution.py"), str(ROOT)],
@@ -27,7 +27,7 @@ class DistributionContractTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(validator.returncode, 0, validator.stdout + validator.stderr)
-        self.assertIn("compatibility distribution 0.5.2", validator.stdout)
+        self.assertIn("compatibility distribution 0.5.3", validator.stdout)
 
         active_version_surfaces = (
             ROOT / "README.md",
@@ -42,14 +42,14 @@ class DistributionContractTests(unittest.TestCase):
         for path in active_version_surfaces:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.relative_to(ROOT)):
-                self.assertIn("0.5.2", text)
+                self.assertIn("0.5.3", text)
 
         self.assertIn(
-            "Published release | [v0.5.2]",
+            "Published release target | [v0.5.3]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "已发布版本 | [v0.5.2]",
+            "已发布目标版本 | [v0.5.3]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 
@@ -210,7 +210,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(manifest["name"], "stitch-design")
-        self.assertEqual(manifest["version"], "0.5.2")
+        self.assertEqual(manifest["version"], "0.5.3")
         self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
@@ -267,13 +267,13 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("Only HTTP 401", privacy)
         self.assertIn("HTTP 403 is permission denied and is not refreshed or replayed", privacy)
 
-    def test_manifest_and_readmes_remain_truthful_at_052(self) -> None:
+    def test_manifest_and_readmes_remain_truthful_at_053(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.5.2")
+        self.assertEqual(manifest["version"], "0.5.3")
         for path in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.5.2", text)
+                self.assertIn("0.5.3", text)
 
     def test_stitch_setup_check_never_prints_the_key(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
@@ -358,7 +358,7 @@ class DistributionContractTests(unittest.TestCase):
         for path in paths:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.5.2", text)
+                self.assertIn("0.5.3", text)
                 self.assertIn("stdio", text)
                 self.assertIn("Harness", text)
                 self.assertNotIn("env_http_headers", text)
@@ -366,7 +366,7 @@ class DistributionContractTests(unittest.TestCase):
         architecture = paths[0].read_text(encoding="utf-8")
         self.assertNotIn("environment or system store found", architecture)
         self.assertIn("environment or restricted user config found", architecture)
-        self.assertIn("stitch-design 0.5.2", architecture)
+        self.assertIn("stitch-design 0.5.3", architecture)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"

@@ -35,8 +35,8 @@ def validate(root: Path) -> list[str]:
 
     if manifest.get("name") != "stitch-design":
         errors.append("manifest name must be stitch-design")
-    if manifest.get("version") != "0.5.2":
-        errors.append("manifest version must be 0.5.2")
+    if manifest.get("version") != "0.5.3":
+        errors.append("manifest version must be 0.5.3")
     if manifest.get("repository") != EXPECTED_REPOSITORY:
         errors.append("manifest repository mismatch")
     interface = manifest.get("interface", {})
@@ -102,7 +102,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.5.2")
+    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.5.3")
     return 0
 
 

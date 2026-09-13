@@ -59,3 +59,10 @@
 - `tests/test_html_gate.py` 与 `tests/test_stitch_setup.py` 的仓库 UTF-8 fixture/asset 读取显式指定 `encoding="utf-8"`，避免 Windows cp1252 默认编码失败；未增加 skip 或削弱 Windows CI。
 - 最新验证：Python 3.13 隔离环境完整套件 145 tests PASS；0.5.2 分发、43 Skills、Markdown 链接、秘密扫描、compileall、配置清单 Python 3.13/proxy smoke、actionlint、ShellCheck、`git diff --check` 全部 PASS。
 - 仍待外部证据：提交并推送后重跑远端三平台矩阵，确认 Windows 3.11/3.13 jobs 关闭本轮失败。
+
+## 0.5.3 版本纠正
+
+- 已发布 v0.5.2 指向 `598c8f8`；Round 3 的 Windows 修复不再复用该版本号，当前 manifest、分发校验器、preflight clientInfo、根路由和中英文公开状态文档统一升级为 0.5.3。
+- README 将 v0.5.3 标为立即发布目标；架构与技术方案使用“立即发布目标”状态，避免在 tag、Release 与安装验证前宣称发布证据完成。
+- TDD：先把版本、公开状态和 preflight fixture 期望改为 0.5.3，观察 manifest 仍为 0.5.2 的 RED；完成元数据/文档升级后，distribution + preflight 聚焦测试 38 tests PASS，分发器报告 43 Skills / 0.5.3。
+- 活跃源码、测试和公开状态文档中已无 0.5.2；历史失败与旧版本事实仅保留在规格/任务报告等历史记录中。

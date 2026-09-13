@@ -249,7 +249,7 @@ class DefaultPreflightTests(unittest.TestCase):
         )
         plugins = SimpleNamespace(
             returncode=0,
-            stdout="stitch-design@0.5.2 enabled\n",
+            stdout="stitch-design@0.5.3 enabled\n",
             stderr="",
         )
 
@@ -345,7 +345,7 @@ class DefaultPreflightTests(unittest.TestCase):
         )
         plugins = SimpleNamespace(
             returncode=0,
-            stdout="stitch-design@0.5.2 enabled\n",
+            stdout="stitch-design@0.5.3 enabled\n",
             stderr="",
         )
 
@@ -433,7 +433,7 @@ class DefaultPreflightTests(unittest.TestCase):
         )
         plugins = SimpleNamespace(
             returncode=0,
-            stdout="stitch-design@0.5.2 enabled\n",
+            stdout="stitch-design@0.5.3 enabled\n",
             stderr="",
         )
         secret_environment = {

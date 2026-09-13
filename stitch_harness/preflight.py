@@ -152,7 +152,7 @@ def stitch_read_probe(session: McpHttpSession) -> tuple[str, ...]:
                 "params": {
                     "protocolVersion": PROTOCOL_VERSION,
                     "capabilities": {},
-                    "clientInfo": {"name": "stitch-delivery-harness", "version": "0.5.2"},
+                    "clientInfo": {"name": "stitch-delivery-harness", "version": "0.5.3"},
                 },
             }
         )
