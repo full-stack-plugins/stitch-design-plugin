@@ -47,6 +47,31 @@ class SecretProviderTests(unittest.TestCase):
 
         self.assertEqual(provider.get(), "env-secret")
 
+    def test_platform_provider_does_not_resolve_config_path_when_environment_wins(self):
+        module = secrets_module()
+        with mock.patch.dict(os.environ, {"STITCH_API_KEY": "env-secret"}, clear=True), \
+             mock.patch.object(
+                 module,
+                 "default_config_path",
+                 side_effect=AssertionError("default path must stay lazy"),
+             ):
+            provider = module.platform_secret_provider()
+
+            self.assertEqual(provider.get(), "env-secret")
+
+    def test_windows_appdata_does_not_evaluate_home_fallback(self):
+        module = secrets_module()
+        with tempfile.TemporaryDirectory() as directory:
+            home = mock.Mock(side_effect=AssertionError("home unavailable"))
+            path = module.default_config_path(
+                environment={"APPDATA": directory},
+                platform_name="nt",
+                home_factory=home,
+            )
+
+        self.assertEqual(path, Path(directory) / "stitch-design" / "credentials.json")
+        home.assert_not_called()
+
     def test_default_provider_uses_user_config_without_touching_system_store(self):
         module = secrets_module()
         with tempfile.TemporaryDirectory() as directory:

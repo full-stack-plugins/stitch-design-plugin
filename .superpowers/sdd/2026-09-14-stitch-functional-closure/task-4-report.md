@@ -50,3 +50,12 @@
 - Review Round 2 TDD：无 Node 依赖、精确清单、低版本诊断、结构化 CI smoke 和统一 setup 命令均先观察到目标失败，再完成 GREEN。
 - 最新验证：Python 3.13 隔离环境完整套件 140 tests PASS；0.5.2 分发、43 Skills、Markdown 链接、秘密扫描、compileall、配置清单 Python 3.13/proxy smoke、actionlint、ShellCheck、`git diff --check` 全部 PASS。
 - 仍待外部证据：GitHub-hosted Python 3.11/3.13 三平台矩阵实跑，以及真实安装宿主 PATH `python`/代理 smoke；未执行 push、tag、Release、Marketplace 或全局 MCP 操作。
+
+## Review Round 3 修复
+
+- 针对 GitHub Actions run `34781283685` 的 Windows 失败，`UserConfigSecretProvider` 改为仅在自身 `get/set` 被调用时解析默认配置路径。环境变量 provider 命中 `STITCH_API_KEY` 后不再触碰 `Path.home()` 或用户配置路径。
+- `default_config_path` 不再通过 `dict.get` 的默认参数提前求值 Home；Windows 有 `APPDATA`、Unix 有 `XDG_CONFIG_HOME` 时均直接使用环境路径。测试通过可注入 environment/platform/home factory 在任意宿主验证 Windows 分支。
+- 新增 RED/GREEN 回归：mock `default_config_path` 抛错时，环境 Key 仍可通过 `platform_secret_provider().get()` 取得；Windows APPDATA 存在时 Home factory 保持零调用。
+- `tests/test_html_gate.py` 与 `tests/test_stitch_setup.py` 的仓库 UTF-8 fixture/asset 读取显式指定 `encoding="utf-8"`，避免 Windows cp1252 默认编码失败；未增加 skip 或削弱 Windows CI。
+- 最新验证：Python 3.13 隔离环境完整套件 145 tests PASS；0.5.2 分发、43 Skills、Markdown 链接、秘密扫描、compileall、配置清单 Python 3.13/proxy smoke、actionlint、ShellCheck、`git diff --check` 全部 PASS。
+- 仍待外部证据：提交并推送后重跑远端三平台矩阵，确认 Windows 3.11/3.13 jobs 关闭本轮失败。

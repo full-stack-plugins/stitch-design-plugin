@@ -46,7 +46,12 @@ class HtmlGateTests(unittest.TestCase):
     def test_missing_fixed_copy_fails(self):
         with tempfile.TemporaryDirectory() as directory:
             html = Path(directory) / "page.html"
-            html.write_text((FIXTURES / "login-valid.html").read_text().replace("统一接待多个客户渠道", "其他文案"))
+            html.write_text(
+                (FIXTURES / "login-valid.html")
+                .read_text(encoding="utf-8")
+                .replace("统一接待多个客户渠道", "其他文案"),
+                encoding="utf-8",
+            )
             result = validate_html(self.spec, html, {"width": 1350, "height": 768, "scale": 1})
 
         self.assertFalse(result.passed)

@@ -95,16 +95,25 @@ def _atomic_json(path: Path, payload: dict[str, str]) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def default_config_path() -> Path:
+def default_config_path(
+    *,
+    environment: Mapping[str, str] | None = None,
+    platform_name: str | None = None,
+    home_factory=Path.home,
+) -> Path:
     """Return the cross-platform user configuration path."""
 
-    override = os.environ.get("STITCH_DESIGN_CONFIG")
+    active_environment = os.environ if environment is None else environment
+    active_platform = os.name if platform_name is None else platform_name
+    override = active_environment.get("STITCH_DESIGN_CONFIG")
     if override:
         return Path(override).expanduser()
-    if os.name == "nt":
-        base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+    if active_platform == "nt":
+        appdata = active_environment.get("APPDATA")
+        base = Path(appdata) if appdata else home_factory() / "AppData" / "Roaming"
     else:
-        base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+        xdg_config_home = active_environment.get("XDG_CONFIG_HOME")
+        base = Path(xdg_config_home) if xdg_config_home else home_factory() / ".config"
     return base / "stitch-design" / "credentials.json"
 
 
@@ -112,11 +121,15 @@ class UserConfigSecretProvider:
     """Store the key in a restricted current-user configuration file."""
 
     def __init__(self, path: Path | None = None):
-        self._path = path or default_config_path()
+        self._path = path
+
+    def _resolved_path(self) -> Path:
+        return self._path if self._path is not None else default_config_path()
 
     def get(self) -> str | None:
+        path = self._resolved_path()
         try:
-            payload = json.loads(self._path.read_text(encoding="utf-8"))
+            payload = json.loads(path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             return None
         except (json.JSONDecodeError, OSError) as error:
@@ -126,7 +139,7 @@ class UserConfigSecretProvider:
 
     def set(self, value: str) -> None:
         try:
-            _atomic_json(self._path, {KEY_NAME: _checked_value(value)})
+            _atomic_json(self._resolved_path(), {KEY_NAME: _checked_value(value)})
         except OSError as error:
             raise SecretStoreError("Stitch credential file could not be saved") from error
 

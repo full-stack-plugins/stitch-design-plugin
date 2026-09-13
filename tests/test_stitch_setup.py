@@ -144,7 +144,7 @@ class SetupServerTests(unittest.TestCase):
 
 class StaticUiTests(unittest.TestCase):
     def test_ui_is_one_card_with_three_steps(self):
-        html = (ROOT / "assets" / "setup" / "index.html").read_text()
+        html = (ROOT / "assets" / "setup" / "index.html").read_text(encoding="utf-8")
         self.assertEqual(html.count('class="setup-step"'), 3)
         self.assertIn('class="setup-card"', html)
         self.assertIn('type="password"', html)
