@@ -169,12 +169,17 @@ def create_setup_server(
             self.wfile.write(content)
 
         def do_GET(self):
-            files = {"/": ("index.html", "text/html; charset=utf-8"), "/styles.css": ("styles.css", "text/css; charset=utf-8"), "/app.js": ("app.js", "text/javascript; charset=utf-8")}
+            files = {
+                "/": ("index.html", "text/html; charset=utf-8", SETUP_ASSETS),
+                "/styles.css": ("styles.css", "text/css; charset=utf-8", SETUP_ASSETS),
+                "/app.js": ("app.js", "text/javascript; charset=utf-8", SETUP_ASSETS),
+                "/logo.png": ("logo.png", "image/png", PLUGIN_ROOT / "assets"),
+            }
             if self.path not in files:
                 self.send_content(404, b'{"ok":false}', "application/json")
                 return
-            name, content_type = files[self.path]
-            content = (SETUP_ASSETS / name).read_bytes()
+            name, content_type, directory = files[self.path]
+            content = (directory / name).read_bytes()
             if name == "index.html":
                 content = content.replace(b"__CSRF_TOKEN__", state.csrf_token.encode())
             self.send_content(200, content, content_type)

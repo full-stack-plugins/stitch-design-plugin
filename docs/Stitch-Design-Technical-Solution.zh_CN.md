@@ -44,17 +44,15 @@ sequenceDiagram
     participant U as 用户
     participant L as 本地向导
     participant F as 用户受限配置
-    participant C as 新 Codex 进程
     S->>S: 检查凭据
     alt 缺失
       S->>L: 监听 127.0.0.1 随机端口
-      L-->>U: 三步页面
+      L-->>U: 单卡片 Token 页面
       U->>L: 提交密码输入框中的 Key
       L->>L: Origin/CSRF/大小/JSON 校验
       L->>F: 原子写入
       L->>L: 清空输入框
-      U->>L: 打开 Codex
-      L->>C: 注入 STITCH_API_KEY 后启动
+      U->>S: 回到 Codex
     end
 ```
 

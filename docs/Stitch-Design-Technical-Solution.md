@@ -44,17 +44,15 @@ sequenceDiagram
     participant U as User
     participant L as Local Wizard
     participant F as Restricted User Config
-    participant C as New Codex
     S->>S: check credential presence
     alt missing
       S->>L: start ui on 127.0.0.1 random port
-      L-->>U: three-step page
+      L-->>U: single-card Token page
       U->>L: submit masked key
       L->>L: Origin + CSRF + size + JSON validation
       L->>F: atomic write
       L->>L: clear input
-      U->>L: open Codex
-      L->>C: launch with STITCH_API_KEY
+      U->>S: return to Codex
     end
 ```
 

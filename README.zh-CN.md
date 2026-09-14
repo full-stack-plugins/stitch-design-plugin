@@ -54,11 +54,11 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ## 第一次使用
 
-插件已经内置 MCP URL。首次本地 Stitch 请求会由 `stitch-local-setup` 检查凭据；缺少时打开本地三步页面：
+插件已经内置 MCP URL。首次本地 Stitch 请求会由 `stitch-local-setup` 检查凭据；缺少时打开本地单卡片 Token 页面：
 
 1. 打开 Stitch Settings 创建 API Key。
 2. 在本地密码输入框粘贴并保存。
-3. 打开新 Codex 进程并执行只读项目检查。
+3. 回到 Codex 并执行只读项目检查。
 
 手动启动：
 

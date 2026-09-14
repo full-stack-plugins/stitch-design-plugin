@@ -29,7 +29,7 @@ Stitch SDK 不会消除凭据要求。官方教程所说的“不需要 MCP 配�
    ```
 
 2. 在 [Stitch Settings](https://stitch.withgoogle.com/settings) 创建 API key。
-3. 第一次使用时，`stitch-local-setup` 会打开本地三步设置页面：
+3. 第一次使用时，`stitch-local-setup` 会打开本地单卡片 Token 设置页面：
 
    macOS / Linux：
 

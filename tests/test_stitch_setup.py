@@ -109,6 +109,12 @@ class SetupServerTests(unittest.TestCase):
             self.assertEqual(response.headers["Cache-Control"], "no-store")
             self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
 
+    def test_setup_serves_the_bundled_stitch_logo(self):
+        with urllib.request.urlopen(self.origin + "/logo.png") as response:
+            body = response.read()
+        self.assertEqual(response.headers.get_content_type(), "image/png")
+        self.assertTrue(body.startswith(b"\x89PNG\r\n\x1a\n"))
+
     def test_save_requires_csrf_and_never_echoes_key(self):
         secret = "secret-must-not-appear"
         request = urllib.request.Request(
@@ -143,12 +149,16 @@ class SetupServerTests(unittest.TestCase):
 
 
 class StaticUiTests(unittest.TestCase):
-    def test_ui_is_one_card_with_three_steps(self):
+    def test_ui_is_one_card_with_one_token_input(self):
         html = (ROOT / "assets" / "setup" / "index.html").read_text(encoding="utf-8")
-        self.assertEqual(html.count('class="setup-step"'), 3)
-        self.assertIn('class="setup-card"', html)
-        self.assertIn('type="password"', html)
+        self.assertEqual(html.count('class="setup-card"'), 1)
+        self.assertNotRegex(html, r'class="[^"]*\bsetup-step\b')
+        self.assertIn('class="brand-mark"', html)
+        self.assertIn('src="/logo.png"', html)
+        self.assertEqual(html.count('type="password"'), 1)
+        self.assertIn('Google Stitch <span aria-hidden="true"></span> <em>MCP</em>', html)
         self.assertIn("<details", html)
+        self.assertNotIn('id="launch"', html)
 
 
 if __name__ == "__main__":

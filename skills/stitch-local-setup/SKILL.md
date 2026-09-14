@@ -62,7 +62,7 @@ license: Apache-2.0
      python /absolute/plugin/root/scripts/stitch_setup.py ui
      ```
 
-5. 用户在同一张卡片中完成“获取 Key → 保存到本机 → 打开 Codex”；高级命令默认折叠。
+5. 用户在单卡片中粘贴并保存 Token；获取链接、三条说明和高级命令保持轻量，不再显示独立三步向导。
 6. 凭据仅来自当前进程或受限的用户配置文件；没有其他存储迁移入口。
 7. 设置后启动 Codex：
 

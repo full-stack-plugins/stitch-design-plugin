@@ -56,11 +56,11 @@ Restart Codex and open a new task after installing or upgrading.
 
 ## First use
 
-The plugin already contains its MCP URL. On the first local Stitch request, `stitch-local-setup` checks for credentials. If none are available, it opens a local three-step page:
+The plugin already contains its MCP URL. On the first local Stitch request, `stitch-local-setup` checks for credentials. If none are available, it opens a single-card local Token page:
 
 1. Open Stitch Settings and create an API key.
 2. Paste the key into the masked local input and save.
-3. Open a new Codex process and run a read-only project check.
+3. Return to Codex and run a read-only project check.
 
 Manual launch:
 

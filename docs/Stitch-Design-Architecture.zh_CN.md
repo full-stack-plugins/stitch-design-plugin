@@ -29,7 +29,7 @@ flowchart LR
 | 可安装的 Codex 扩展 | Compatibility manifest 与仓库 Marketplace | `.codex-plugin/plugin.json`、`.agents/plugins/marketplace.json` |
 | 可复用设计工作流 | 每个工作流一个可发现的 `SKILL.md` | `skills/`、分发校验器 |
 | 用户自有 Stitch 身份 | 运行时映射 `STITCH_API_KEY`，不提交凭据 | `.mcp.json`、`PRIVACY.md` |
-| 简单首次使用 | 本地三步设置页面 | `scripts/stitch_setup.py`、`assets/setup/` |
+| 简单首次使用 | 本地单卡片 Token 页面 | `scripts/stitch_setup.py`、`assets/setup/` |
 | 安全失败 | 非幂等写入结果不明时先读后判 | Skill 工作流与测试 |
 
 非目标：托管 Google Stitch、提供作者共享 Key、实现 OAuth、保存 Stitch 业务数据，或在端到端认证通过前宣称 ChatGPT 网页版可用。

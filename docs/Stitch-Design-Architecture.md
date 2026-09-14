@@ -29,7 +29,7 @@ flowchart LR
 | Installable Codex extension | Compatibility manifest plus repository marketplace | `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json` |
 | Repeatable design workflows | One discoverable `SKILL.md` per workflow | `skills/`, distribution validator |
 | User-owned Stitch identity | `STITCH_API_KEY` mapped at runtime, never committed | `.mcp.json`, `PRIVACY.md` |
-| Low-friction first use | Local three-step setup page | `scripts/stitch_setup.py`, `assets/setup/` |
+| Low-friction first use | Local single-card Token page | `scripts/stitch_setup.py`, `assets/setup/` |
 | Safe failure | Read probes before retrying ambiguous writes | Skill workflows and tests |
 
 Non-goals: hosting Google Stitch, providing a shared author key, implementing OAuth, persisting Stitch project data, or claiming ChatGPT web support before end-to-end authentication succeeds.

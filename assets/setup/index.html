@@ -1,8 +1,30 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stitch Design 设置</title><link rel="stylesheet" href="/styles.css"></head>
-<body><main><div class="brand">✦ Stitch Design <span>Setup</span></div><h1>三步完成首次设置</h1><p class="subtitle">保存你的 Stitch Key，即可在 Codex 中开始设计</p>
-<section class="setup-card" data-csrf="__CSRF_TOKEN__">
-<div class="setup-step"><b>1　获取 Key</b><a href="https://stitch.withgoogle.com/settings" target="_blank" rel="noreferrer">打开 Stitch 设置</a><p>创建并复制 API Key，请勿发送到聊天。</p></div>
-<div class="setup-step"><b>2　保存到本机</b><div class="input-row"><input id="api-key" type="password" autocomplete="off" placeholder="粘贴 Stitch API Key"><button id="save">保存</button></div><p id="status" aria-live="polite">Key 只保存在当前用户的本机配置中。</p></div>
-<div class="setup-step"><b>3　打开 Codex</b><button id="launch" disabled>打开 Codex</button><p>保存成功后重新打开 Codex，并只读列出 Stitch 项目。</p></div>
-<details><summary>高级设置</summary><p>高级用户可使用 STITCH_API_KEY 环境变量或运行配置器的 run 命令。</p></details>
-</section></main><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Google Stitch MCP 设置</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero">
+      <div class="brand"><img class="brand-mark" src="/logo.png" alt=""><strong>Google Stitch <span aria-hidden="true"></span> <em>MCP</em></strong></div>
+      <h1>仅需一个 Token，即可在任意 Agent 中使用 Google Stitch</h1>
+      <p class="subtitle">安全保存一次，之后直接在 Codex 中完成界面设计</p>
+    </header>
+    <section class="setup-card" data-csrf="__CSRF_TOKEN__">
+      <div class="card-title"><img src="/logo.png" alt=""><strong>Google Stitch MCP</strong></div>
+      <div class="input-row"><input id="api-key" type="password" autocomplete="off" placeholder="粘贴 Google Stitch Token" aria-label="Google Stitch Token"><button id="save">保存</button></div>
+      <p id="status" aria-live="polite">Token 仅保存在当前用户的本机配置中。</p>
+      <ul>
+        <li>前往 <a href="https://stitch.withgoogle.com/settings" target="_blank" rel="noreferrer">Stitch Settings</a> 创建并复制 Token，请勿发送到聊天</li>
+        <li>保存后回到 Codex，插件会自动完成连接与授权</li>
+        <li>直接告诉 Agent 你想创建、修改或导出的界面</li>
+      </ul>
+      <details><summary>高级设置</summary><p>也可以设置 <code>STITCH_API_KEY</code> 环境变量，或使用配置器的 <code>run</code> 命令启动 Codex。</p></details>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
