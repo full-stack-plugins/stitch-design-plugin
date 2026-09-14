@@ -159,7 +159,8 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn('Google Stitch <span aria-hidden="true"></span> <em>MCP</em>', html)
         self.assertIn('href="/title.css"', html)
         self.assertIn("h1{font-weight:400}", (ROOT / "assets" / "setup" / "title.css").read_text(encoding="utf-8"))
-        self.assertIn("<details", html)
+        self.assertNotIn("<details", html)
+        self.assertIn('class="advanced-settings"', html)
         self.assertNotIn('id="launch"', html)
 
 
