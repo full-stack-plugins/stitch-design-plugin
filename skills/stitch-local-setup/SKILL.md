@@ -40,14 +40,17 @@ license: Apache-2.0
 
 ## 首次使用工作流
 
-1. 先用配置器做布尔检查；它会检查当前进程和用户配置，但不打印 key：
+1. 先用配置器做只读检查；它同时校验凭据是否可读、以及插件根 `.mcp.json` 是否存在，只输出状态行，不打印 key 或路径：
 
    ```bash
    python /absolute/plugin/root/scripts/stitch_setup.py check
    ```
 
 2. 检查通过后继续原来的 Stitch 任务。
-3. 检查失败时暂停远程调用，告诉用户从 Stitch Settings 创建 key；不要让用户把 key 粘贴到聊天。
+3. 检查失败时暂停远程调用，并按最后一行输出区分两个分支，不要混为一谈：
+
+   - `STITCH_API_KEY is not configured`：凭据缺失。告诉用户从 Stitch Settings 创建 key；不要让用户把 key 粘贴到聊天。
+   - `Stitch MCP configuration is missing`：凭据可读但插件根缺少 `.mcp.json`，属于安装不完整。此时新建 key 无效，应修复或重新安装插件后重跑 `check`。
 4. 从当前 `SKILL.md` 向上两级定位插件根目录，打开极简本地设置向导：
 
    - Windows：
@@ -88,7 +91,7 @@ license: Apache-2.0
 
 **Q3：会修改 shell 配置吗？** 不会。配置器使用独立的用户凭据文件。
 
-**Q4：保存在哪里？** Unix 使用 `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/...`，Windows 使用 `%APPDATA%\stitch-design\credentials.json`。
+**Q4：保存在哪里？** Unix 使用 `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/...`，Windows 使用 `%APPDATA%\stitch-design\credentials.json`。移除方式为先在 Stitch Settings 吊销 key，再删除该凭据文件；删除后不要继续使用旧 key。
 
 **Q5：如何验证？** 运行 `stitch_setup.py check`，重启后只读调用 `list_projects`。
 

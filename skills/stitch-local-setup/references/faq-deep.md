@@ -16,6 +16,6 @@
 
 **Q8：网页为什么不能使用该文件？** ChatGPT 网页运行在远端，无法读取本地用户配置。
 
-**Q9：何时移除这套方案？** 官方 Stitch connector/OAuth 通过端到端验证后。
+**Q9：何时移除这套方案？** 官方 Stitch connector/OAuth 通过端到端验证后。移除步骤：先在 Stitch Settings 吊销 key，再删除本机凭据文件（Unix `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/...`，Windows `%APPDATA%\stitch-design\credentials.json`）；删除后不要继续使用旧 key。
 
 **Q10：空项目列表算成功吗？** 算；它证明认证调用已完成。

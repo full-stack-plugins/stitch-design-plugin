@@ -33,4 +33,14 @@ The Token input row was checked separately for its gray inset surface, one-pixel
 
 - P3: If Google later publishes a dedicated monochrome Stitch wordmark for redistribution, it could replace the current bundled square mark while preserving the same measured slot.
 
+## Skill TRACE verification
+
+Gate: `docs/superpowers/plans/2026-09-13-stitch-first-use-onboarding.md`, Task 4 Step 6 ("Evaluate Trust, Reliability, Adaptability, Convention, and Effectiveness. Fix every sub-item below 5.0.").
+
+Method: `skill-trace-checker` applied strictly to `skills/stitch-local-setup/` with all four referenced files plus `scripts/stitch_setup.py` and `scripts/stitch_setup.sh` read, including the checker's automatic skill-type determination and its 20 sub-items.
+
+- Round 1: **4.875 / 5.0 — FAIL.** Four sub-items below 5.0 (R 异常处理 4.0, R 功能完善性 4.5, E 输出准确性 4.5, E 内容完整度 4.5), all from one root cause: the skill described `check` with a single failure branch and claimed a path output, while `check()` has two failure branches and prints no path.
+- Fix: documentation was aligned to the code. `check()` itself was **not** modified, and its content was confirmed byte-identical after the fix. `SKILL.md` steps 1 and 3 now state what `check` validates and split the two failure branches with distinct remediation; `references/workflow.md` item 6 lists the four actual status lines verbatim, states that no path is printed, and covers the unreadable-credential stderr branch; credential removal is documented in `SKILL.md` FAQ Q4 and `references/faq-deep.md` Q9.
+- Round 2: **5.000 / 5.0 — PASS.** No sub-item remains below 5.0 and no defect was introduced; every quoted status string was verified verbatim against `check()`, and the frontmatter `description:` remains a single-line plain scalar.
+
 final result: passed
