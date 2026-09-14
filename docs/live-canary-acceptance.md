@@ -58,6 +58,15 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 
 Version 0.7.1 is the current GitHub/repo Marketplace release. Publication to the universal public Plugins Directory remains a separate OpenAI submission gate.
 
+## Post-release verification for 0.7.1 (2026-09-14)
+
+- **Source equality at the release commit:** tag `v0.7.1`, the marketplace tracking clone, and the installed cache all resolve to `1314155`. `origin/main` was also `1314155` when the release was cut and has since advanced only by this record, so the tag and the installed copy remain the release reference.
+- **Installed artifact parity at `1314155`:** all 438 tracked files were byte-identical between the repository tree and the installed copy; the installed manifest reports 0.7.1, and no 0.7.0 install remains.
+- **Installed copy self-check:** the installed distribution validator reports 0.7.1, the allowlist tests pass from the installed copy, `stitch.withgoogle.com` is accepted, and a lookalike host is rejected.
+- **Marketplace refresh:** the first `marketplace upgrade` failed with a transient `fatal: early EOF` and left the tracking clone at `e86b8b0`; a retry upgraded it to `1314155`, and the plugin was reinstalled so the cache matches the tracking clone.
+- **Continuous integration:** the `Validate` workflow completed successfully on both `main` and the `v0.7.1` tag.
+- **Fresh-task exposure: BLOCKED by the environment, not verified.** In fresh ephemeral tasks the model saw only the bundled `mcp__cua_repl__*` tools; none of the ten configured user and plugin MCP servers were exposed, so no Stitch tool could be called. This is not specific to this plugin: the same probes reported no tools for any user-configured server, the process stderr is byte-identical to an earlier run in which the call succeeded, `codex mcp list` still lists every server, `codex mcp get stitch` points at the installed 0.7.1 proxy, and driving that proxy directly returns the full 17-tool catalog. Re-run this check after restarting Codex; the 0.7.0 exposure check passed earlier the same day.
+
 ## Post-release verification for 0.7.0 (2026-09-14)
 
 
