@@ -70,6 +70,8 @@ class Harness060Tests(unittest.TestCase):
         run = harness.store.update_state(run, RunState.ART_GENERATED)
         run = harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "ocr"))
         run = harness.store.update_state(run, RunState.ART_ACCEPTED)
+        run = harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "stitch.normalize"))
+        run = harness.store.update_state(run, RunState.SEMANTIC_NORMALIZED)
         run = harness.store.append_receipt(run, Receipt.passed(
             run.run_id, run.page_id, "stitch.roundtrip",
             outputs=[

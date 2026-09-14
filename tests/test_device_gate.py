@@ -27,6 +27,12 @@ class ScreenDeviceGateTests(unittest.TestCase):
         payload["canvas"] = {"width": width, "height": height, "scale": 1, "device": device}
         return PageSpec.from_dict(payload)
 
+    def imported_spec(self, width: int, height: int) -> PageSpec:
+        payload = json.loads((FIXTURES / "page-spec.json").read_text(encoding="utf-8"))
+        payload["source_mode"] = "imported_editable_html"
+        payload["canvas"] = {"width": width, "height": height, "scale": 1, "device": "TABLET"}
+        return PageSpec.from_dict(payload)
+
     def evidence(self, screen):
         return ExternalEvidence.from_dict(
             {
@@ -109,6 +115,49 @@ class ScreenDeviceGateTests(unittest.TestCase):
 
         self.assertFalse(result.passed)
         self.assertTrue(any("multiple" in failure for failure in result.failures))
+
+    def test_imported_editable_html_uses_verified_canvas_not_provider_preview_geometry(self):
+        spec = self.imported_spec(1024, 768)
+        payload = {
+            "schema_version": 1,
+            "step": "stitch.generate",
+            "provider": {"name": "google-stitch", "tool": "stitch_local_upload_asset", "model": "server"},
+            "invoked_at": "2026-09-14T00:00:00Z",
+            "source_artifacts": [],
+            "artifacts": [
+                {"path": "artifacts/screen.html", "sha256": "a" * 64, "mime": "text/html"},
+                {"path": "artifacts/screen.png", "sha256": "b" * 64, "mime": "image/png", "width": 1024, "height": 768},
+            ],
+            "result": {
+                "screen": {"deviceType": "DESKTOP", "width": 2560, "height": 2048},
+                "render_metadata": {"width": 1024, "height": 768, "scale": 1},
+            },
+        }
+
+        result = validate_screen_device(spec, ExternalEvidence.from_dict(payload, "stitch.generate"))
+
+        self.assertTrue(result.passed, result.failures)
+
+    def test_imported_editable_html_rejects_missing_exact_canvas_render_artifact(self):
+        spec = self.imported_spec(1024, 768)
+        payload = {
+            "schema_version": 1,
+            "step": "stitch.generate",
+            "provider": {"name": "google-stitch", "tool": "stitch_local_upload_asset", "model": "server"},
+            "invoked_at": "2026-09-14T00:00:00Z",
+            "source_artifacts": [],
+            "artifacts": [{"path": "artifacts/screen.html", "sha256": "a" * 64, "mime": "text/html"}],
+            "result": {
+                "screen": {"deviceType": "DESKTOP", "width": 2560, "height": 2048},
+                "render_metadata": {"width": 1024, "height": 768, "scale": 1},
+            },
+        }
+        evidence = ExternalEvidence.from_dict(payload, "stitch.generate")
+
+        result = validate_screen_device(spec, evidence)
+
+        self.assertFalse(result.passed)
+        self.assertTrue(any("render artifact" in failure for failure in result.failures))
 
 
 if __name__ == "__main__":

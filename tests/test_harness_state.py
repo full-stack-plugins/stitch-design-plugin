@@ -30,6 +30,14 @@ class RunStateTests(unittest.TestCase):
     def test_approved_artifacts_may_advance_to_archive(self):
         self.assertEqual(transition(RunState.APPROVED, RunState.ARCHIVED), RunState.ARCHIVED)
 
+    def test_enhanced_art_requires_semantic_normalization_before_roundtrip(self):
+        self.assertEqual(
+            transition(RunState.ART_ACCEPTED, RunState.SEMANTIC_NORMALIZED),
+            RunState.SEMANTIC_NORMALIZED,
+        )
+        with self.assertRaises(InvalidTransition):
+            transition(RunState.ART_ACCEPTED, RunState.ROUNDTRIPPED)
+
 
 class RunStoreTests(unittest.TestCase):
     def setUp(self):

@@ -83,7 +83,16 @@ class EvidenceWriter:
             "provider_resource_ids": list(provider_resource_ids),
             "screen": dict(screen),
         }
-        return self._write("stitch.generate", "generate_screen_from_text", artifact_paths, result, provider="google-stitch", model="server")
+        dimensions = (render_metadata["width"], render_metadata["height"])
+        return self._write(
+            "stitch.generate",
+            "generate_screen_from_text",
+            artifact_paths,
+            result,
+            provider="google-stitch",
+            model="server",
+            dimensions=dimensions,
+        )
 
     def imagegen(self, *, artifact_paths: Iterable[Path], width: int, height: int, metadata: dict[str, Any] | None = None) -> Path:
         if width < 1 or height < 1:
@@ -96,6 +105,22 @@ class EvidenceWriter:
 
     def roundtrip(self, *, artifact_paths: Iterable[Path], render_metadata: dict[str, Any]) -> Path:
         return self._write("stitch.roundtrip", "upload-and-readback", artifact_paths, {"render_metadata": render_metadata}, provider="google-stitch", model="server")
+
+    def semantic_normalization(
+        self,
+        *,
+        source_html: Path,
+        normalized_html: Path,
+        purpose_mapping: Mapping[str, str],
+        render_metadata: dict[str, Any],
+    ) -> Path:
+        return self._write(
+            "stitch.normalize",
+            "semantic-purpose-normalizer",
+            (normalized_html,),
+            {"purpose_mapping": dict(purpose_mapping), "render_metadata": render_metadata},
+            sources=(source_html,),
+        )
 
     def editability(self, before_html: Path, edited_html: Path, restored_html: Path, before_render: Path, edited_render: Path, restored_render: Path) -> Path:
         paths = (before_html, edited_html, restored_html, before_render, edited_render, restored_render)

@@ -17,6 +17,7 @@ from .html_gate import validate_html
 from .ocr_gate import validate_ocr
 from .preflight import default_preflight
 from .state import InvalidTransition, RunState
+from .semantic_normalizer import normalize_purposes
 from .storage import ArtifactRecord, Receipt, Run, RunStore, _atomic_json, _sorted_receipt_paths, sha256_file
 from .visual_gate import validate_visual_scores
 
@@ -75,7 +76,8 @@ _ACTIONS = {
     RunState.ART_ENHANCEMENT_APPROVED: NextAction("imagegen.generate", "imagegen"),
     RunState.STITCH_ONLY_SELECTED: NextAction("stitch.editability-probe", "editability"),
     RunState.ART_GENERATED: NextAction("ocr-and-business.validate", "ocr"),
-    RunState.ART_ACCEPTED: NextAction("stitch.roundtrip", "stitch.roundtrip"),
+    RunState.ART_ACCEPTED: NextAction("stitch.normalize-semantics", "stitch.normalize"),
+    RunState.SEMANTIC_NORMALIZED: NextAction("stitch.roundtrip", "stitch.roundtrip"),
     RunState.ROUNDTRIPPED: NextAction("stitch.editability-probe", "editability"),
     RunState.EDITABILITY_VERIFIED: NextAction("visual.compare-and-judge", "visual-judge"),
     RunState.COMPARISON_ACCEPTED: NextAction("prepare-user-review"),
@@ -171,6 +173,29 @@ class Harness:
         if state == RunState.ART_GENERATED:
             return validate_ocr(spec, evidence).failures
         if state == RunState.ART_ACCEPTED:
+            sources = [item for item in evidence.source_artifacts if item.mime == "text/html"]
+            outputs = [item for item in evidence.artifacts if item.mime == "text/html"]
+            mapping = evidence.result.get("purpose_mapping")
+            render_metadata = evidence.result.get("render_metadata")
+            if (
+                len(sources) != 1
+                or len(outputs) != 1
+                or not isinstance(mapping, dict)
+                or not all(isinstance(key, str) and isinstance(value, str) for key, value in mapping.items())
+                or not isinstance(render_metadata, dict)
+            ):
+                return ("semantic normalization requires one source HTML, one output HTML, a purpose mapping and render metadata",)
+            source_path = run.path / sources[0].path
+            output_path = run.path / outputs[0].path
+            try:
+                expected = normalize_purposes(source_path.read_text(encoding="utf-8"), mapping)
+                actual = output_path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError, ValueError) as error:
+                return (str(error),)
+            if actual != expected:
+                return ("normalized HTML contains changes outside the declared purpose mapping",)
+            return validate_html(spec, output_path, render_metadata).failures
+        if state == RunState.SEMANTIC_NORMALIZED:
             html_artifacts = [item for item in evidence.artifacts if item.mime == "text/html"]
             render_metadata = evidence.result.get("render_metadata")
             if len(html_artifacts) != 1 or not isinstance(render_metadata, dict):
@@ -241,7 +266,8 @@ class Harness:
             RunState.STITCH_GENERATED: (RunState.SOURCE_ACCEPTED, RunState.AWAITING_ART_DECISION),
             RunState.ART_ENHANCEMENT_APPROVED: (RunState.ART_GENERATED,),
             RunState.ART_GENERATED: (RunState.ART_ACCEPTED,),
-            RunState.ART_ACCEPTED: (RunState.ROUNDTRIPPED,),
+            RunState.ART_ACCEPTED: (RunState.SEMANTIC_NORMALIZED,),
+            RunState.SEMANTIC_NORMALIZED: (RunState.ROUNDTRIPPED,),
             RunState.ROUNDTRIPPED: (RunState.EDITABILITY_VERIFIED,),
             RunState.STITCH_ONLY_SELECTED: (RunState.AWAITING_USER_APPROVAL,),
             RunState.EDITABILITY_VERIFIED: (RunState.COMPARISON_ACCEPTED, RunState.AWAITING_USER_APPROVAL),

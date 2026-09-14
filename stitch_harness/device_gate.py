@@ -47,6 +47,25 @@ def validate_screen_device(spec: PageSpec, evidence: ExternalEvidence) -> Screen
     if not isinstance(screen, Mapping):
         return ScreenDeviceResult(("Stitch screen device evidence is not asserted",))
 
+    if spec.source_mode == "imported_editable_html":
+        render = evidence.result.get("render_metadata")
+        expected = (spec.canvas.width, spec.canvas.height, spec.canvas.scale)
+        if not isinstance(render, Mapping) or (
+            render.get("width"), render.get("height"), render.get("scale")
+        ) != expected:
+            return ScreenDeviceResult((f"imported editable HTML render must be exactly {expected}",))
+        render_artifacts = [
+            item
+            for item in evidence.artifacts
+            if item.mime is not None and item.mime.startswith("image/")
+        ]
+        if len(render_artifacts) != 1 or (
+            render_artifacts[0].width,
+            render_artifacts[0].height,
+        ) != expected[:2]:
+            return ScreenDeviceResult((f"imported editable HTML requires one exact {expected[0]}x{expected[1]} render artifact",))
+        return ScreenDeviceResult((), spec.canvas.scale)
+
     failures: list[str] = []
     requested = spec.canvas.device
     provider_device = screen.get("deviceType")

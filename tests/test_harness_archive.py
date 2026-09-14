@@ -91,6 +91,8 @@ class ArchiveTests(unittest.TestCase):
         run = store.update_state(run, RunState.ART_GENERATED)
         run = store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "ocr"))
         run = store.update_state(run, RunState.ART_ACCEPTED)
+        run = store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "stitch.normalize"))
+        run = store.update_state(run, RunState.SEMANTIC_NORMALIZED)
         roundtrip = [
             ArtifactRecord.from_path(run.path, run.path / "artifacts/roundtrip.html", "text/html"),
             ArtifactRecord.from_path(run.path, run.path / "artifacts/stitch-final.png", "image/png"),

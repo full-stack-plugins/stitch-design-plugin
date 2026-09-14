@@ -51,6 +51,7 @@ license: Apache-2.0
 5. Stitch 原稿验收后，Harness 必须停在 `AWAITING_ART_DECISION`，逐项向用户展示：`enhance`（二次图片生成）、`keep_stitch`（保留 Stitch 原稿）或 `cancel`（取消），然后结束当前执行并等待新回复。只有用户新回复严格等于其中一个规范值时，才把该原文传给 `art-decision --user-response`；“确认”“继续”“做按”“可以”等模糊回复必须继续追问，不得代选、翻译、同义映射或从旧消息推断。
 6. 只执行 Harness 返回的 `next_action`；调用真实 Stitch、ImageGen、OCR 或视觉评估工具后，用 `stitch_harness.evidence_writer.EvidenceWriter` 的对应类型方法生成 evidence，再调用 `resume --evidence`。
 7. 选择 `enhance` 后，双图比较执行 `python scripts/setup_harness_runtime.py run compare ...`；输入只能从当前 run 的 imagegen 与 roundtrip receipts 派生。选择 `keep_stitch` 时不调用 ImageGen，直接对已接受的 Stitch HTML/render 做可逆编辑探针。
+8. `provider_generated` 严格核对 Provider 设备与缩放；`imported_editable_html` 仍要求一个与规格画布完全一致的真实 render artifact。OCR 报告任何 `observed_text_drift` 都失败。增强分支回灌前必须生成 `stitch.normalize` receipt，只允许声明的 `data-purpose` 一对一替换。
 
 ## 硬门禁
 
@@ -58,6 +59,7 @@ license: Apache-2.0
 - `BLOCKED` 只有明确原因的 `recover --reason "..."` 能恢复；普通 `resume` 不得绕过。
 - 尺寸取页面规格的内容画布，不取浏览器外框或设备像素比。
 - 回灌后必须重新下载 HTML 和渲染图，并完成探针编辑与恢复。
+- 不相信 `edit_screens` 的成功文本；语义修正必须通过确定性本地规范化、HTML 上传和重新下载后的哈希/DOM 验证。
 - `SOURCE_ACCEPTED` 不授权 ImageGen；缺少明确的用户美术决策时必须停在 `AWAITING_ART_DECISION`。
 - 自动门禁全部通过后只能进入 `AWAITING_USER_APPROVAL`。
 - 向用户同时展示最终 Stitch 渲染、美工稿和并排比较图；没有明确批准，不调用 `approve` 或 `archive`。

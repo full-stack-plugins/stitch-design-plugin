@@ -39,6 +39,7 @@ class HarnessTests(unittest.TestCase):
             RunState.ART_ENHANCEMENT_APPROVED,
             RunState.ART_GENERATED,
             RunState.ART_ACCEPTED,
+            RunState.SEMANTIC_NORMALIZED,
             RunState.ROUNDTRIPPED,
             RunState.EDITABILITY_VERIFIED,
         ]
@@ -125,6 +126,8 @@ class HarnessTests(unittest.TestCase):
         run = self.harness.store.update_state(run, RunState.ART_GENERATED)
         run = self.harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "ocr"))
         run = self.harness.store.update_state(run, RunState.ART_ACCEPTED)
+        run = self.harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "stitch.normalize"))
+        run = self.harness.store.update_state(run, RunState.SEMANTIC_NORMALIZED)
         roundtrip = [
             ArtifactRecord.from_path(run.path, run.path / "artifacts/roundtrip.html", "text/html"),
             ArtifactRecord.from_path(run.path, run.path / "artifacts/stitch-final.png", "image/png"),
@@ -407,6 +410,7 @@ class HarnessTests(unittest.TestCase):
             RunState.ART_ENHANCEMENT_APPROVED,
             RunState.ART_GENERATED,
             RunState.ART_ACCEPTED,
+            RunState.SEMANTIC_NORMALIZED,
             RunState.ROUNDTRIPPED,
             RunState.EDITABILITY_VERIFIED,
             RunState.COMPARISON_ACCEPTED,
@@ -488,6 +492,25 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(status.exit_code, 1)
         self.assertIn("统一接待多个客户渠道", " ".join(status.errors))
 
+    def test_semantic_normalization_evidence_is_verified_before_roundtrip(self):
+        run = self.run_at_state(RunState.ART_ACCEPTED)
+        raw = run.path / "artifacts/raw-roundtrip.html"
+        normalized = run.path / "artifacts/normalized-roundtrip.html"
+        source = (Path(__file__).parent / "fixtures/login-valid.html").read_text(encoding="utf-8")
+        raw.write_text(source.replace('data-purpose="headline"', 'data-purpose="old-headline"'), encoding="utf-8")
+        normalized.write_text(source, encoding="utf-8")
+        evidence = EvidenceWriter(run.path).semantic_normalization(
+            source_html=raw,
+            normalized_html=normalized,
+            purpose_mapping={"old-headline": "headline"},
+            render_metadata={"width": 1350, "height": 768, "scale": 1},
+        )
+
+        status = self.harness.resume(self.project, run.run_id, evidence)
+
+        self.assertEqual(status.state, RunState.SEMANTIC_NORMALIZED)
+        self.assertEqual(status.next_action.kind, "stitch.roundtrip")
+
     def test_failed_editability_probe_does_not_advance(self):
         run = self.run_at_state(RunState.ROUNDTRIPPED)
         evidence = self.evidence_for(run, "editability", {"editable": False, "restored": False})
@@ -531,7 +554,7 @@ class HarnessTests(unittest.TestCase):
         self.assertIn("artifact hashes", " ".join(status.errors))
 
     def test_flattened_roundtrip_does_not_advance(self):
-        run = self.run_at_state(RunState.ART_ACCEPTED)
+        run = self.run_at_state(RunState.SEMANTIC_NORMALIZED)
         html = run.path / "artifacts" / "roundtrip.html"
         image = run.path / "artifacts" / "roundtrip.png"
         shutil.copy2(Path(__file__).parent / "fixtures" / "login-flattened.html", html)
@@ -557,7 +580,7 @@ class HarnessTests(unittest.TestCase):
 
         status = self.harness.resume(self.project, run.run_id, evidence)
 
-        self.assertEqual(status.state, RunState.ART_ACCEPTED)
+        self.assertEqual(status.state, RunState.SEMANTIC_NORMALIZED)
         self.assertEqual(status.exit_code, 1)
         self.assertIn("flattened", " ".join(status.errors))
 

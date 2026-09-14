@@ -56,6 +56,7 @@ class BusinessAssertion:
 @dataclass(frozen=True)
 class PageSpec:
     schema_version: int
+    source_mode: str
     page_id: str
     title: str
     canvas: Canvas
@@ -82,12 +83,15 @@ class PageSpec:
             raise ContractError("page specification must be an object")
         _reject_extra_keys(
             payload,
-            {"schema_version", "page_id", "title", "canvas", "theme", "fixed_copy", "editable_regions", "forbidden_patterns", "business_assertions", "comparison", "archive"},
+            {"schema_version", "source_mode", "page_id", "title", "canvas", "theme", "fixed_copy", "editable_regions", "forbidden_patterns", "business_assertions", "comparison", "archive"},
             "page specification",
         )
         schema_version = _required(payload, "schema_version", int)
         if schema_version != 1:
             raise ContractError("schema_version must be 1")
+        source_mode = payload.get("source_mode", "provider_generated")
+        if source_mode not in {"provider_generated", "imported_editable_html"}:
+            raise ContractError("source_mode must be provider_generated or imported_editable_html")
         page_id = _required(payload, "page_id", str)
         if PAGE_ID_PATTERN.fullmatch(page_id) is None:
             raise ContractError("page_id must be a safe lowercase slug")
@@ -166,6 +170,7 @@ class PageSpec:
 
         return cls(
             schema_version,
+            source_mode,
             page_id,
             title,
             canvas,
