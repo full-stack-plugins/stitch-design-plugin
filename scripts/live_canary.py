@@ -59,12 +59,20 @@ def _timestamp(value: datetime) -> str:
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
-def _atomic_private_json(path: Path, payload: dict[str, Any]) -> None:
+def _atomic_private_json(
+    path: Path,
+    payload: dict[str, Any],
+    *,
+    enforce_posix_mode: bool | None = None,
+    mode_setter: Callable[[int, int], None] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}-", dir=path.parent)
     try:
-        if os.name != "nt":
-            os.fchmod(descriptor, 0o600)
+        enforce_mode = os.name != "nt" if enforce_posix_mode is None else enforce_posix_mode
+        if enforce_mode:
+            setter = mode_setter if mode_setter is not None else os.fchmod
+            setter(descriptor, 0o600)
         stream = os.fdopen(descriptor, "w", encoding="utf-8")
         descriptor = None
         with stream:

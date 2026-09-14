@@ -60,3 +60,12 @@
 - 平台隐私合同：POSIX 继续断言目标文件 mode `0600`；Windows 不模拟 POSIX mode bits，依赖当前用户 runner temp/profile ACL，同时完整执行原子写入、JSON 读取和敏感值不输出测试，无功能 skip。
 - TDD：Windows 分支先因调用 `fchmod` RED；权限失败注入先证明 fd 泄漏 RED。最小实现后两项转 GREEN，Task 6 聚焦测试 22/22、完整套件 217/217 PASS。
 - 版本保持 0.6.0 本地候选；未 tag、release 或执行其他远端写入。
+
+## Post-push Windows CI 修复 Round 2
+
+- 失败来源：GitHub Actions run `34797126039`。第一轮测试通过修改全局 `os.name` 模拟 Windows；Python 3.11 的 `pathlib.Path` 会根据该全局值选择路径实现，从而在 POSIX runner 上错误分派到 `WindowsPath`。真实 Windows 的 `os` 还可能根本没有 `fchmod`，因此 patch 缺失属性本身也不可靠。
+- 修复：`_atomic_private_json` 增加仅供单元测试使用的窄 seam：`enforce_posix_mode` 与 `mode_setter`。生产调用不传参数，始终以真实 `os.name != "nt"` 决定是否设置 POSIX mode；只有需要设置 mode 时才解析默认 `os.fchmod`。
+- Windows-like 测试在任意平台通过 `enforce_posix_mode=False` 执行完整原子 JSON 写入，并注入“若被调用即失败”的 setter；不修改 `os.name`。真实 Windows 同一测试还使用生产默认参数再次写入并验证敏感值不输出，因此无需 patch 缺失的 POSIX API。
+- 权限失败测试通过 `enforce_posix_mode=True` 和注入的 raising setter 触发前置失败，继续验证 descriptor 已关闭、临时文件已删除；测试不再包含平台 skip。
+- 验证：Task 6 聚焦测试 22/22、完整套件 217/217 PASS；其余 distribution/Skills/links/secret/compile/actionlint/ShellCheck/diff 门禁继续通过。
+- 版本仍为 0.6.0 本地候选；未 tag、release 或执行远端写入。

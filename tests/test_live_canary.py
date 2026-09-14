@@ -150,23 +150,36 @@ class LiveCanaryTests(unittest.TestCase):
         self.assertEqual(result["counts"]["screens_read"], 1)
         self.assertEqual(result["hashes"]["download_manifest_sha256"], "4" * 64)
 
-    def test_windows_atomic_write_uses_profile_acl_without_posix_mode_calls_or_disclosure(self) -> None:
+    def test_windows_like_atomic_write_disables_posix_mode_without_mutating_os_name(self) -> None:
         module = load_module()
         private_value = "private-value-must-not-be-printed"
         output = io.StringIO()
+
+        def must_not_set_mode(_descriptor: int, _mode: int) -> None:
+            raise AssertionError("POSIX mode setter must not run")
+
         with tempfile.TemporaryDirectory() as directory:
             destination = Path(directory) / "private.json"
             with (
-                mock.patch.object(module.os, "name", "nt"),
-                mock.patch.object(module.os, "fchmod", side_effect=AssertionError("must not call fchmod")),
-                mock.patch.object(module.os, "chmod", side_effect=AssertionError("must not call chmod")),
                 contextlib.redirect_stdout(output),
                 contextlib.redirect_stderr(output),
             ):
-                module._atomic_private_json(destination, {"value": private_value})
+                module._atomic_private_json(
+                    destination,
+                    {"value": private_value},
+                    enforce_posix_mode=False,
+                    mode_setter=must_not_set_mode,
+                )
             payload = json.loads(destination.read_text(encoding="utf-8"))
         self.assertEqual(payload, {"value": private_value})
         self.assertNotIn(private_value, output.getvalue())
+        if os.name == "nt":
+            with tempfile.TemporaryDirectory() as directory:
+                destination = Path(directory) / "real-windows-private.json"
+                with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                    module._atomic_private_json(destination, {"value": private_value})
+                self.assertEqual(json.loads(destination.read_text(encoding="utf-8")), {"value": private_value})
+            self.assertNotIn(private_value, output.getvalue())
 
     def test_permission_failure_closes_descriptor_before_removing_temporary_file(self) -> None:
         module = load_module()
@@ -178,16 +191,22 @@ class LiveCanaryTests(unittest.TestCase):
             descriptors.append(descriptor)
             return descriptor, name
 
+        def denied_mode(_descriptor: int, _mode: int) -> None:
+            raise PermissionError("denied")
+
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             destination = root / "private.json"
             with (
                 mock.patch.object(module.tempfile, "mkstemp", side_effect=recording_mkstemp),
-                mock.patch.object(module.os, "name", "posix"),
-                mock.patch.object(module.os, "fchmod", side_effect=PermissionError("denied"), create=True),
                 self.assertRaises(PermissionError),
             ):
-                module._atomic_private_json(destination, {"value": "private"})
+                module._atomic_private_json(
+                    destination,
+                    {"value": "private"},
+                    enforce_posix_mode=True,
+                    mode_setter=denied_mode,
+                )
             leftovers = list(root.iterdir())
         self.assertEqual(leftovers, [])
         self.assertEqual(len(descriptors), 1)
