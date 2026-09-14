@@ -78,11 +78,11 @@ class LiveCanaryTests(unittest.TestCase):
         for text in (english, chinese, readme, readme_cn):
             self.assertIn("0.6.0", text)
         self.assertIn("Repository preparation: complete", english)
-        self.assertIn("Provider + asset live smoke: not executed", english)
+        self.assertIn("Provider + asset live smoke: passed locally", english)
         self.assertIn("Harness acceptance: not executed", english)
         self.assertIn("Release/Marketplace: not published", english)
         self.assertIn("仓库准备：已完成", chinese)
-        self.assertIn("Provider + asset 真实 smoke：未执行", chinese)
+        self.assertIn("Provider + asset 真实 smoke：2026-09-14 本机通过", chinese)
         self.assertIn("Harness 验收：未执行", chinese)
         self.assertIn("Release/Marketplace：未发布", chinese)
         self.assertIn("docs/live-canary-acceptance.md", readme)
