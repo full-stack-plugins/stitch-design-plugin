@@ -22,6 +22,6 @@ OCR 的 `result.texts` 保存识别文本数组；视觉评估的 `result.scores
 
 `not_applied` 与 `applied` reconciliation 都必须包含三条类型化 `read_probes`：每条使用唯一的 `get_project`、`list_screens` 或 `get_screen`，并提供带时区 `invoked_at`、唯一 `response_id`、枚举 `status`、`result_sha256` 和唯一的 run-local `application/json` artifact。artifact 自身 SHA 必须匹配文件，result SHA 必须匹配解析后的规范结果；artifact JSON 也执行递归敏感信息检查。裸工具名列表不能授权重试。
 
-每个 probe artifact 的 JSON 必须逐字段等于声明的 tool、invoked_at、response_id、status，并包含唯一布尔结果 `result.target_found`；`result_sha256` 是该 result 的规范 JSON SHA-256。三个时间都必须晚于当前 unknown-write receipt。`applied` 要求三工具均为 `found + target_found:true`；`not_applied` 要求 `get_project` 为 `found + true`，且 `list_screens`、`get_screen` 均为 `not_found + false`。矛盾、陈旧、symlink 或路径逃逸 evidence 一律拒绝。
+每个 probe artifact 的 JSON 必须逐字段等于声明的 tool、invoked_at、response_id、status，并包含布尔结果 `result.target_found`；`get_screen: skipped` 还必须且只能包含 `reason: "no_candidate_id"`。新式 `list_screens=found/false` 结果还必须包含与unknown目标一致的 `project_id`、`complete:true` 和最多100个唯一小写SHA-256 `title_hashes`；Harness计算规范化预期标题哈希并验证其不在清单中。`result_sha256` 是该 result 的规范JSON哈希。`applied` 要求三工具均为 `found/true`；错误项目、不完整清单、命中预期标题、矛盾、陈旧、symlink或路径逃逸证据一律拒绝。
 
 receipt 追加使用 run-local pending journal：journal、receipt、manifest 三个持久化边界中的任一中断，下一次加载都会校验 identity/hash/previous-chain 后完成该追加或失败关闭。比较图覆盖锁同时检查通过的 `visual-judge` receipt；即使状态提交中断，只要 receipt 已接受，就禁止重写三张比较图。

@@ -190,7 +190,10 @@ class McpHttpSession:
             raise ProxyError("local tool arguments must be an object")
         allowed = {
             "stitch_local_upload_asset": {"projectId", "filePath", "title", "createScreenInstances"},
-            "stitch_local_download_assets": {"projectId", "outputDir", "assetsSubdir", "screenNames"},
+            "stitch_local_download_assets": {
+                "projectId", "outputDir", "assetsSubdir", "screenNames",
+                "referencedAssetPolicy",
+            },
         }[name]
         if set(arguments).difference(allowed):
             raise ProxyError("local tool arguments contain unsupported fields")
@@ -216,10 +219,13 @@ class McpHttpSession:
                     raise AssetError("assetsSubdir must be a string")
                 if "screenNames" in arguments and not isinstance(arguments["screenNames"], list):
                     raise AssetError("screenNames must be an array")
+                if "referencedAssetPolicy" in arguments and not isinstance(arguments["referencedAssetPolicy"], str):
+                    raise AssetError("referencedAssetPolicy must be a string")
                 result = manager.download_assets(
                     project_id, Path(arguments.get("outputDir", "")),
                     assets_subdir=arguments.get("assetsSubdir", "assets"),
                     screens=self._read_project_screens(project_id, arguments.get("screenNames")),
+                    referenced_asset_policy=arguments.get("referencedAssetPolicy", "best_effort"),
                 )
         except UnknownAssetWriteResult as error:
             raise UnknownWriteResult(str(error)) from error

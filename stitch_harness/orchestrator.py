@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -121,11 +122,17 @@ class Harness:
             raise InvalidTransition("reconciliation has no valid source state") from error
         if target in {RunState.BLOCKED, RunState.RECONCILING, RunState.ARCHIVED}:
             raise InvalidTransition("reconciliation source state is invalid")
+        reconciliation_target = manifest.pop("reconciliation_target", None)
         manifest.update({
             "state": target.value,
             "reconciliation_attempts": 0,
             "last_reconciliation_outcome": outcome,
             "last_reconciliation_reason": reason,
+            **(
+                {"last_reconciliation_target": reconciliation_target}
+                if reconciliation_target is not None
+                else {}
+            ),
         })
         _atomic_json(run.path / "manifest.json", manifest)
         return replace(run, state=target)
@@ -339,7 +346,7 @@ class Harness:
             status = probe["status"]
             if not isinstance(status, str):
                 raise ValueError("reconciliation probe status must be a string")
-            if status not in {"found", "empty", "not_found", "unavailable"}:
+            if status not in {"found", "empty", "not_found", "unavailable", "skipped"}:
                 raise ValueError("reconciliation probe status is invalid")
             artifact_data = probe["artifact"]
             if not isinstance(artifact_data, dict) or set(artifact_data) != {"path", "sha256", "mime"}:
@@ -378,7 +385,40 @@ class Harness:
             if not isinstance(artifact_payload, dict) or set(artifact_payload) != expected_payload_keys:
                 raise ValueError("reconciliation probe artifact content does not match its declaration")
             result = artifact_payload["result"]
-            if not isinstance(result, dict) or set(result) != {"target_found"} or not isinstance(result["target_found"], bool):
+            inventory_result = (
+                tool == "list_screens"
+                and status == "found"
+                and outcome == "not_applied"
+                and isinstance(result, dict)
+                and result.get("target_found") is False
+            )
+            valid_result_keys = (
+                {"target_found", "project_id", "complete", "title_hashes"}
+                if inventory_result
+                else ({"target_found", "reason"} if status == "skipped" else {"target_found"})
+            )
+            title_hashes = result.get("title_hashes") if isinstance(result, dict) else None
+            if (
+                not isinstance(result, dict)
+                or set(result) != valid_result_keys
+                or not isinstance(result.get("target_found"), bool)
+                or (status == "skipped" and result.get("reason") != "no_candidate_id")
+                or (
+                    inventory_result
+                    and (
+                        not isinstance(result.get("project_id"), str)
+                        or not isinstance(result.get("complete"), bool)
+                        or not isinstance(title_hashes, list)
+                        or len(title_hashes) > 100
+                        or len(set(title_hashes)) != len(title_hashes)
+                        or not all(
+                            isinstance(item, str)
+                            and re.fullmatch(r"[0-9a-f]{64}", item) is not None
+                            for item in title_hashes
+                        )
+                    )
+                )
+            ):
                 raise ValueError("reconciliation probe result contract is invalid")
             if (
                 artifact_payload["tool"] != tool
@@ -397,6 +437,16 @@ class Harness:
                 "tool": tool, "invoked_at": timestamp, "response_id": response_id,
                 "status": status, "result_sha256": result_hash,
                 "target_found": result["target_found"],
+                **({"reason": result["reason"]} if "reason" in result else {}),
+                **(
+                    {
+                        "project_id": result["project_id"],
+                        "complete": result["complete"],
+                        "title_hashes": tuple(result["title_hashes"]),
+                    }
+                    if inventory_result
+                    else {}
+                ),
             })
         if set(tools) != {"get_project", "list_screens", "get_screen"} or len(set(tools)) != 3:
             raise ValueError("reconciliation requires get_project, list_screens, and get_screen")
@@ -407,11 +457,36 @@ class Harness:
         if outcome == "applied":
             valid_contract = all(contracts[tool] == ("found", True) for tool in contracts)
         else:
-            valid_contract = (
+            legacy_contract = (
                 contracts.get("get_project") == ("found", True)
                 and contracts.get("list_screens") == ("not_found", False)
                 and contracts.get("get_screen") == ("not_found", False)
             )
+            manifest_target = self._manifest(run).get("reconciliation_target")
+            list_check = next(
+                (check for check in checks if check["tool"] == "list_screens"),
+                {},
+            )
+            expected_title_hash = (
+                hashlib.sha256(manifest_target["expected_title"].strip().encode("utf-8")).hexdigest()
+                if isinstance(manifest_target, dict)
+                and isinstance(manifest_target.get("expected_title"), str)
+                else None
+            )
+            no_candidate_contract = (
+                isinstance(manifest_target, dict)
+                and contracts.get("get_project") == ("found", True)
+                and contracts.get("list_screens") == ("found", False)
+                and contracts.get("get_screen") == ("skipped", False)
+                and list_check.get("project_id") == manifest_target.get("project_id")
+                and list_check.get("complete") is True
+                and expected_title_hash not in list_check.get("title_hashes", ())
+                and next(
+                    (check.get("reason") for check in checks if check["tool"] == "get_screen"),
+                    None,
+                ) == "no_candidate_id"
+            )
+            valid_contract = legacy_contract or no_candidate_contract
         if not valid_contract:
             raise ValueError(f"reconciliation {outcome} probe contract is contradictory")
         return tuple(records), tuple(checks)
@@ -463,6 +538,24 @@ class Harness:
             expected = _ACTIONS[run.state].expected_evidence_step
             if raw.get("step") != expected:
                 return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], (f"expected {expected} evidence",))
+            target = raw.get("target")
+            if target is not None:
+                if not isinstance(target, dict) or set(target) != {"project_id", "expected_title"}:
+                    return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], ("unknown write target is invalid",))
+                project_id = target.get("project_id")
+                expected_title = target.get("expected_title")
+                if (
+                    not isinstance(project_id, str)
+                    or not project_id.isdigit()
+                    or not isinstance(expected_title, str)
+                    or not expected_title.strip()
+                    or len(expected_title) > 256
+                ):
+                    return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], ("unknown write target is invalid",))
+                try:
+                    reject_sensitive_content(target)
+                except EvidenceError:
+                    return RunStatus(run_id, run.state, 1, _ACTIONS[run.state], ("unknown write target is invalid",))
             timestamp = datetime.now(UTC).isoformat()
             receipt = Receipt(
                 run.run_id,
@@ -485,6 +578,7 @@ class Harness:
                     "reconciliation_attempts": 1,
                     "reconciliation_from": source_state.value,
                     "reconciliation_step": raw["step"],
+                    **({"reconciliation_target": target} if target is not None else {}),
                 },
             )
             return RunStatus(run_id, run.state, 3, _ACTIONS[run.state], reconciliation_attempts=1)

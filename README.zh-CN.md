@@ -4,7 +4,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/candidate-0.7.3-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin)
+[![版本](https://img.shields.io/badge/release-0.7.4-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.4)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -155,9 +155,9 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前候选版本 | `0.7.3` |
-| 当前版本 | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
-| 上一版本 | [v0.7.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.0) |
+| 当前候选版本 | `0.7.4` |
+| 当前版本 | [v0.7.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.4) |
+| 上一版本 | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |
@@ -202,7 +202,7 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 工具 | 用途 |
 |---|---|
 | `stitch_local_upload_asset` | 把已审核的本地图片或 HTML 上传到当前工程 |
-| `stitch_local_download_assets` | 下载页面 HTML、截图与引用资产，原子写入并生成 SHA-256 清单 |
+| `stitch_local_download_assets` | 下载页面 HTML、截图与引用资产，原子写入并生成 SHA-256 清单；`referencedAssetPolicy` 默认 `best_effort`，也可设为 `strict` |
 
 ### 错误契约
 
@@ -270,7 +270,9 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-0.7.3 继续要求 Stitch 主 HTML、截图和 DESIGN.md 来自 Google/Stitch 白名单，但允许 HTML 引用的依赖来自任意安全的公网 HTTPS 主机，例如 `cdn.tailwindcss.com`。HTTP、带账号密码的 URL、localhost、本地/内部域名、IP 字面量、重定向、超限文件和不支持的 MIME 仍会被阻止。0.7.2 增加缺少或失效凭据时自动打开本地 Token 页面；0.7.1 将 `withgoogle.com` 加入主下载白名单。
+0.7.4 继续要求 Stitch 主 HTML、截图和 DESIGN.md 来自 Google/Stitch 白名单，但允许 HTML 引用的依赖来自任意安全的公网 HTTPS 主机，例如 `cdn.tailwindcss.com`。引用依赖现在默认使用 `best_effort`：安全依赖临时不可用或返回不支持的响应时，跳过该依赖、返回仅含主机名的 warning，并继续原子发布主产物；设置 `referencedAssetPolicy: "strict"` 可恢复全有或全无。非安全 URL、HTTP、带账号密码的 URL、localhost、本地/内部域名、IP 字面量、重定向、主产物失败、路径逃逸、字节/文件上限和独立的500条引用URL发现预算仍会被阻止。
+
+未知写入证据可以绑定 `target.project_id` 与 `target.expected_title`。完整 `list_screens` 证据必须绑定项目ID、完整性标记和规范化标题哈希清单；只有Harness自行计算出预期标题哈希不在清单中时，才允许把 `get_screen` 记录为 `skipped/no_candidate_id`。一旦发现候选，仍必须成功调用 `get_screen` 才能判定已应用。三轮上限、时间戳、哈希和防重复写保护保持不变。
 
 Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行一次 `always()` 清理后再只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
 

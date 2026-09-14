@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/candidate-0.7.3-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin)
+[![Version](https://img.shields.io/badge/release-0.7.4-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.4)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -155,9 +155,9 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.7.3` |
-| Current release | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
-| Previous release | [v0.7.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.0) |
+| Current candidate | `0.7.4` |
+| Current release | [v0.7.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.4) |
+| Previous release | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
 | License | Apache-2.0 |
@@ -202,7 +202,7 @@ The bundled stdio proxy exposes 17 tools: 15 from the Google Stitch MCP server a
 | Tool | Purpose |
 |---|---|
 | `stitch_local_upload_asset` | Upload a reviewed local image or HTML file into the current project |
-| `stitch_local_download_assets` | Download screen HTML, screenshots, and referenced assets with an atomic write and a SHA-256 manifest |
+| `stitch_local_download_assets` | Download screen HTML, screenshots, and referenced assets with an atomic write and SHA-256 manifest; `referencedAssetPolicy` defaults to `best_effort` and may be set to `strict` |
 
 ### Error contract
 
@@ -281,7 +281,9 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-Version 0.7.3 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, oversized files, and unsupported MIME types remain blocked. Version 0.7.2 added automatic local Token setup for missing or rejected credentials. Version 0.7.1 added `withgoogle.com` to the primary download allowlist.
+Version 0.7.4 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. Referenced dependencies now default to `best_effort`: a safe dependency that is temporarily unavailable or has an unsupported response is skipped with a host-only warning while primary artifacts are still published. Set `referencedAssetPolicy: "strict"` to retain all-or-nothing export. Unsafe URLs, HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, primary-artifact failures, path escapes, byte/file limits, and the independent 500-URL reference discovery budget remain blocked.
+
+Unknown-write reconciliation may bind `target.project_id` and `target.expected_title`. When a complete `list_screens` read succeeds, its evidence binds the project ID, completeness flag and normalized title-hash inventory. Only when the Harness derives that the expected-title hash is absent may `get_screen` be recorded as `skipped` with reason `no_candidate_id`; an applied or discovered candidate still requires a successful `get_screen`. Attempt limits, timestamps, hashes, and duplicate-write protection remain enforced.
 
 Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md).
 

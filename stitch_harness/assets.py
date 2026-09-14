@@ -26,6 +26,7 @@ MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024
 MAX_EXPORT_BYTES = 100 * 1024 * 1024
 MAX_SCREENS = 100
 MAX_EXPORT_FILES = 500
+MAX_REFERENCED_URLS = 500
 UPLOAD_MIMES = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
     ".webp": "image/webp", ".html": "text/html", ".htm": "text/html",
@@ -47,6 +48,10 @@ REFERENCE_URL_PATTERN = re.compile(r'''(?:src|href)=["'](https://[^"']+)["']''',
 
 class AssetError(ValueError):
     """A local asset request is unsafe or has an ambiguous remote result."""
+
+
+class AssetLimitError(AssetError):
+    """An asset violates a byte limit that best-effort mode must not relax."""
 
 
 class UnknownAssetWriteResult(AssetError):
@@ -76,7 +81,11 @@ def local_tool_definitions() -> list[dict[str, Any]]:
             "path": {"type": "string"}, "sha256": {"type": "string"},
             "mime": {"type": "string"}, "size": {"type": "integer"},
         }, ["path", "sha256", "mime", "size"])},
-    }, ["outputDir", "count", "files"])
+        "warnings": {"type": "array", "items": _schema({
+            "kind": {"type": "string"}, "host": {"type": "string"},
+            "reason": {"type": "string"},
+        }, ["kind", "host", "reason"])},
+    }, ["outputDir", "count", "files", "warnings"])
     return [
         {
             "name": "stitch_local_upload_asset",
@@ -96,6 +105,11 @@ def local_tool_definitions() -> list[dict[str, Any]]:
                 "projectId": {"type": "string", "pattern": "^[0-9]+$"},
                 "outputDir": {"type": "string"},
                 "assetsSubdir": {"type": "string", "default": "assets"},
+                "referencedAssetPolicy": {
+                    "type": "string",
+                    "enum": ["best_effort", "strict"],
+                    "default": "best_effort",
+                },
                 "screenNames": {
                     "type": "array",
                     "items": {"type": "string", "pattern": r"^projects/[0-9]+/screens/[A-Za-z0-9_-]{1,128}$"},
@@ -128,13 +142,13 @@ def _read_limited(response, limit: int) -> bytes:
     if declared is not None:
         try:
             declared_size = int(declared)
-            if declared_size < 0 or declared_size > limit:
-                raise AssetError("download exceeds maximum size")
         except ValueError as error:
-            raise AssetError("download Content-Length is invalid") from error
+            raise AssetLimitError("download Content-Length is invalid") from error
+        if declared_size < 0 or declared_size > limit:
+            raise AssetLimitError("download exceeds maximum size")
     body = response.read(limit + 1)
     if len(body) > limit:
-        raise AssetError("download exceeds maximum size")
+        raise AssetLimitError("download exceeds maximum size")
     return body
 
 
@@ -335,8 +349,18 @@ class LocalAssetManager:
             names.append({"name": name})
         return {"screens": names}
 
-    def download_assets(self, project_id: str, output_dir: Path, *, assets_subdir: str = "assets", screens: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    def download_assets(
+        self,
+        project_id: str,
+        output_dir: Path,
+        *,
+        assets_subdir: str = "assets",
+        screens: Iterable[dict[str, Any]],
+        referenced_asset_policy: str = "best_effort",
+    ) -> dict[str, Any]:
         _validate_project(project_id)
+        if referenced_asset_policy not in {"best_effort", "strict"}:
+            raise AssetError("referencedAssetPolicy must be best_effort or strict")
         relative_root = _safe_subdir(assets_subdir)
         output_path = Path(output_dir)
         if not output_path.is_absolute():
@@ -355,8 +379,14 @@ class LocalAssetManager:
         output.mkdir(mode=0o700, parents=True, exist_ok=True)
         stage = Path(tempfile.mkdtemp(prefix=".stitch-assets-", dir=output))
         records: list[dict[str, Any]] = []
+        warnings: list[dict[str, str]] = []
         total = 0
         referenced_urls: list[str] = []
+
+        def require_file_capacity(additional: int = 1) -> None:
+            if len(records) + additional > MAX_EXPORT_FILES:
+                raise AssetError(f"asset export supports at most {MAX_EXPORT_FILES} files")
+
         try:
             for index, screen in enumerate(materialized_screens):
                 if not isinstance(screen, dict):
@@ -399,6 +429,7 @@ class LocalAssetManager:
                         stream.write(body)
                         stream.flush()
                         os.fsync(stream.fileno())
+                    require_file_capacity()
                     records.append({"path": (relative_root / filename).as_posix(), "sha256": hashlib.sha256(body).hexdigest(), "mime": mime, "size": len(body)})
                     if mime == "text/html":
                         try:
@@ -408,9 +439,11 @@ class LocalAssetManager:
                         for reference in REFERENCE_URL_PATTERN.findall(html_text):
                             reference = html.unescape(reference)
                             if reference not in referenced_urls:
+                                if len(referenced_urls) >= MAX_REFERENCED_URLS:
+                                    raise AssetError(
+                                        f"asset export supports at most {MAX_REFERENCED_URLS} referenced URLs"
+                                    )
                                 referenced_urls.append(reference)
-                                if len(records) + len(referenced_urls) > MAX_EXPORT_FILES:
-                                    raise AssetError(f"asset export supports at most {MAX_EXPORT_FILES} files")
             for index, url in enumerate(referenced_urls):
                 if not _referenced_url_allowed(url):
                     raise AssetError(
@@ -428,8 +461,19 @@ class LocalAssetManager:
                             raise AssetError("referenced asset Content-Type is not allowed")
                         body = _read_limited(response, MAX_DOWNLOAD_BYTES)
                         _validate_file_content(mime, body)
-                except (urllib.error.URLError, OSError) as error:
-                    raise AssetError("referenced asset download failed") from error
+                except AssetLimitError:
+                    raise
+                except (urllib.error.URLError, OSError, AssetError) as error:
+                    if referenced_asset_policy == "strict":
+                        if isinstance(error, AssetError):
+                            raise
+                        raise AssetError("referenced asset download failed") from error
+                    warnings.append({
+                        "kind": "referenced_asset_skipped",
+                        "host": (urlsplit(url).hostname or "unparseable").lower(),
+                        "reason": str(error) if isinstance(error, AssetError) else "download failed",
+                    })
+                    continue
                 total += len(body)
                 if total > MAX_EXPORT_BYTES:
                     raise AssetError("asset export exceeds maximum total size")
@@ -440,10 +484,16 @@ class LocalAssetManager:
                     stream.write(body)
                     stream.flush()
                     os.fsync(stream.fileno())
+                require_file_capacity()
                 records.append({"path": (relative_root / filename).as_posix(), "sha256": hashlib.sha256(body).hexdigest(), "mime": mime, "size": len(body)})
             destination.parent.mkdir(parents=True, exist_ok=True)
             stage.replace(destination)
         except Exception:
             shutil.rmtree(stage, ignore_errors=True)
             raise
-        return {"outputDir": str(output), "count": len(records), "files": records}
+        return {
+            "outputDir": str(output),
+            "count": len(records),
+            "files": records,
+            "warnings": warnings,
+        }

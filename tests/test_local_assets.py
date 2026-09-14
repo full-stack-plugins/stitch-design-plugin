@@ -50,6 +50,11 @@ class LocalAssetTests(unittest.TestCase):
         self.assertFalse(download["annotations"]["readOnlyHint"])
         self.assertFalse(download["annotations"]["idempotentHint"])
         self.assertIn("screenNames", download["inputSchema"]["properties"])
+        self.assertEqual(
+            download["inputSchema"]["properties"]["referencedAssetPolicy"]["default"],
+            "best_effort",
+        )
+        self.assertIn("warnings", download["outputSchema"]["properties"])
 
     def test_upload_rejects_unsupported_symlink_and_oversize_before_transport(self):
         target = self.root / "payload.exe"
@@ -212,6 +217,148 @@ class LocalAssetTests(unittest.TestCase):
 
         self.assertEqual(result["count"], 2)
         self.assertTrue(any(item["mime"] == "application/javascript" for item in result["files"]))
+
+    def test_html_export_best_effort_keeps_primary_files_when_safe_reference_fails(self):
+        output = self.root / "export-best-effort-reference-failure"
+        html = b'<script src="https://cdn.example.com/app.js"></script>'
+
+        def transport(request, **_):
+            if request.full_url == "https://lh3.googleusercontent.com/html":
+                return Response(html, "text/html")
+            raise urllib.error.URLError("temporary CDN failure")
+
+        manager = LocalAssetManager(secret_provider=lambda: "secret", transport=transport)
+        screens = [{
+            "name": "projects/123/screens/" + "f" * 32,
+            "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+        }]
+
+        result = manager.download_assets("123", output, screens=screens)
+
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(len(result["warnings"]), 1)
+        self.assertEqual(result["warnings"][0]["kind"], "referenced_asset_skipped")
+        self.assertEqual(result["warnings"][0]["host"], "cdn.example.com")
+        self.assertNotIn("app.js", json.dumps(result["warnings"]))
+        self.assertTrue((output / result["files"][0]["path"]).is_file())
+
+    def test_html_export_strict_rejects_safe_reference_failure(self):
+        output = self.root / "export-strict-reference-failure"
+        html = b'<script src="https://cdn.example.com/app.js"></script>'
+
+        def transport(request, **_):
+            if request.full_url == "https://lh3.googleusercontent.com/html":
+                return Response(html, "text/html")
+            raise urllib.error.URLError("temporary CDN failure")
+
+        manager = LocalAssetManager(secret_provider=lambda: "secret", transport=transport)
+        screens = [{
+            "name": "projects/123/screens/" + "f" * 32,
+            "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+        }]
+
+        with self.assertRaisesRegex(AssetError, "referenced asset download failed"):
+            manager.download_assets(
+                "123", output, screens=screens, referenced_asset_policy="strict"
+            )
+        self.assertFalse((output / "assets").exists())
+
+    def test_html_export_best_effort_does_not_relax_reference_size_limit(self):
+        output = self.root / "export-best-effort-oversize"
+        html = b'<script src="https://cdn.example.com/oversize.js"></script>'
+        responses = {
+            "https://lh3.googleusercontent.com/html": Response(html, "text/html"),
+            "https://cdn.example.com/oversize.js": Response(
+                b"x" * (25 * 1024 * 1024 + 1),
+                "application/javascript",
+            ),
+        }
+        manager = LocalAssetManager(
+            secret_provider=lambda: "secret",
+            transport=lambda request, **_: responses[request.full_url],
+        )
+        screens = [{
+            "name": "projects/123/screens/" + "f" * 32,
+            "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+        }]
+
+        with self.assertRaisesRegex(AssetError, "maximum size"):
+            manager.download_assets("123", output, screens=screens)
+        self.assertFalse((output / "assets").exists())
+
+    def test_multi_screen_export_enforces_final_file_count_limit(self):
+        output = self.root / "export-file-count-limit"
+        html = b'<script src="https://cdn.example.com/shared.js"></script>'
+        def transport(request, **_):
+            if request.full_url == "https://lh3.googleusercontent.com/html":
+                return Response(html, "text/html")
+            if request.full_url == "https://lh3.googleusercontent.com/image":
+                return Response(b"\x89PNG\r\n\x1a\n", "image/png")
+            return Response(b"window.shared = true;", "application/javascript")
+        screens = [
+            {
+                "name": "projects/123/screens/" + character * 32,
+                "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+                "screenshot": {"downloadUrl": "https://lh3.googleusercontent.com/image"},
+            }
+            for character in ("a", "b")
+        ]
+        manager = LocalAssetManager(
+            secret_provider=lambda: "secret",
+            transport=transport,
+        )
+
+        with mock.patch("stitch_harness.assets.MAX_EXPORT_FILES", 3):
+            with self.assertRaisesRegex(AssetError, "at most 3 files"):
+                manager.download_assets("123", output, screens=screens)
+        self.assertFalse((output / "assets").exists())
+
+    def test_best_effort_file_limit_counts_only_successfully_exported_references(self):
+        output = self.root / "export-skipped-references-dont-count"
+        html = (
+            b'<script src="https://cdn-one.example.com/app.js"></script>'
+            b'<link href="https://cdn-two.example.com/app.css" rel="stylesheet">'
+        )
+
+        def transport(request, **_):
+            if request.full_url == "https://lh3.googleusercontent.com/html":
+                return Response(html, "text/html")
+            raise urllib.error.URLError("temporary CDN failure")
+
+        manager = LocalAssetManager(secret_provider=lambda: "secret", transport=transport)
+        screens = [{
+            "name": "projects/123/screens/" + "c" * 32,
+            "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+        }]
+
+        with mock.patch("stitch_harness.assets.MAX_EXPORT_FILES", 1):
+            result = manager.download_assets("123", output, screens=screens)
+
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(len(result["warnings"]), 2)
+        self.assertTrue((output / result["files"][0]["path"]).is_file())
+
+    def test_best_effort_enforces_independent_referenced_url_budget(self):
+        output = self.root / "export-reference-request-budget"
+        html = "".join(
+            f'<script src="https://cdn.example.com/{index}.js"></script>'
+            for index in range(501)
+        ).encode("utf-8")
+
+        def transport(request, **_):
+            if request.full_url == "https://lh3.googleusercontent.com/html":
+                return Response(html, "text/html")
+            raise urllib.error.URLError("temporary CDN failure")
+
+        manager = LocalAssetManager(secret_provider=lambda: "secret", transport=transport)
+        screens = [{
+            "name": "projects/123/screens/" + "d" * 32,
+            "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+        }]
+
+        with self.assertRaisesRegex(AssetError, "at most 500 referenced URLs"):
+            manager.download_assets("123", output, screens=screens)
+        self.assertFalse((output / "assets").exists())
 
     def test_html_export_rejects_unsafe_non_google_references(self):
         unsafe_references = (

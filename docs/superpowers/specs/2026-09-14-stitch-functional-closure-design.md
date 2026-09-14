@@ -79,9 +79,9 @@ Receipt hashes detect accidental or post-approval artifact changes; they are not
 The stdio proxy adds two namespaced local tools without shadowing provider tools:
 
 - `stitch_local_upload_asset(projectId, filePath, title?, createScreenInstances?)`
-- `stitch_local_download_assets(projectId, outputDir, assetsSubdir?, screenNames?)`; `screenNames` carries already verified same-project resources when the live provider does not enumerate screens.
+- `stitch_local_download_assets(projectId, outputDir, assetsSubdir?, screenNames?, referencedAssetPolicy?)`; `screenNames` carries already verified same-project resources when the live provider does not enumerate screens. `referencedAssetPolicy` defaults to `best_effort` and also accepts `strict`.
 
-Both tools appear in `tools/list` with complete input/output schemas and annotations. Paths are validated, downloads are HTTPS allowlisted, signed URLs never enter argv or logs, writes stage into private temporary files, and final files are atomically published. Download validates status, Content-Type, maximum size, hashes, and contained output paths; it exports HTML, screenshots, referenced assets, and available DESIGN.md.
+Both tools appear in `tools/list` with complete input/output schemas and annotations. Paths are validated, downloads are HTTPS allowlisted, signed URLs never enter argv or logs, writes stage into private temporary files, and final files are atomically published. Download validates status, Content-Type, maximum size, hashes, and contained output paths; it exports HTML, screenshots, referenced assets, and available DESIGN.md. Primary artifacts always fail closed. Under `best_effort`, a safe referenced dependency may be skipped after a download or content-validation failure and must produce a host-only warning; `strict` preserves all-or-nothing referenced-asset export. URL safety, path containment, size limits, successful-file limits, total export limits and an independent 500-URL discovery/request budget are never downgraded.
 
 ### 5.2 Executable Harness
 
@@ -90,7 +90,7 @@ Both tools appear in `tools/list` with complete input/output schemas and annotat
 - Add evidence builders for Stitch generation, ImageGen, OCR/business, roundtrip, editability, and visual review.
 - Add a `compare` command that runs with the isolated Harness Python and writes three comparison images plus computed layout evidence.
 - Editability evidence requires before, edited, restored HTML/render hashes and proves the restored hashes equal the before hashes.
-- Unknown writes enter an explicit reconciliation state. Attempts increment and block after three unresolved rounds.
+- Unknown writes enter an explicit reconciliation state. Unknown evidence may bind a sanitized project ID and expected title. A `not_applied` result may use a successful screen inventory only when it binds the same project ID, declares complete pagination and contains normalized title hashes from which the Harness derives that the expected title is absent; only then may `get_screen` be `skipped/no_candidate_id`. Wrong-project, incomplete and matching inventories fail closed; any discovered candidate still requires `get_screen`. Attempts increment and block after three unresolved rounds.
 - `BLOCKED` is resumable only through an explicit recovery command with a recorded reason.
 - Archive publication is recoverable if copying succeeds but state persistence is interrupted.
 

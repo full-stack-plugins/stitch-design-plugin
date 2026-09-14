@@ -114,6 +114,36 @@ class Harness060Tests(unittest.TestCase):
             })
         return probes
 
+    def no_candidate_reconciliation_probes(self, run, *, project_id="123", expected_title="Gate Fix", complete=True, include_match=False):
+        probes = self.reconciliation_probes(run)
+        expected_hash = hashlib.sha256(expected_title.strip().encode("utf-8")).hexdigest()
+        desired = {
+            "get_project": ("found", {"target_found": True}),
+            "list_screens": ("found", {
+                "target_found": include_match,
+                "project_id": project_id,
+                "complete": complete,
+                "title_hashes": [expected_hash] if include_match else [],
+            }),
+            "get_screen": ("skipped", {"target_found": False, "reason": "no_candidate_id"}),
+        }
+        for probe in probes:
+            status_value, result = desired[probe["tool"]]
+            artifact = run.path / probe["artifact"]["path"]
+            payload = json.loads(artifact.read_text(encoding="utf-8"))
+            payload["status"] = status_value
+            payload["result"] = result
+            artifact.write_text(
+                json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+            )
+            probe["status"] = status_value
+            probe["result_sha256"] = hashlib.sha256(
+                json.dumps(result, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            probe["artifact"]["sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        return probes
+
     def test_spec_init_is_valid_and_never_overwrites(self):
         output = self.project / ".stitch/specs/new-page.json"
         self.assertEqual(main(["spec", "init", "--project", str(self.project), "--page-id", "new-page"]), 0)
@@ -401,6 +431,76 @@ class Harness060Tests(unittest.TestCase):
                     }), encoding="utf-8")
                     with self.assertRaisesRegex(ValueError, "contract"):
                         harness.reconcile(project, status.run_id, evidence)
+
+    def test_not_applied_reconciliation_allows_missing_screen_id_after_complete_list_probe(self):
+        harness = Harness(preflight=lambda _: ())
+        status = harness.start(self.project, "login", now=FIXED)
+        unknown = self.project / "unknown-with-target.json"
+        unknown.write_text(json.dumps({
+            "schema_version": 1,
+            "step": "stitch.generate",
+            "result": "unknown",
+            "target": {"project_id": "123", "expected_title": "Gate Fix"},
+        }), encoding="utf-8")
+        status = harness.resume(self.project, status.run_id, unknown)
+        run = harness.store.load(self.project, status.run_id)
+        probes = self.no_candidate_reconciliation_probes(run)
+        evidence = self.project / "no-candidate-id.json"
+        evidence.write_text(json.dumps({
+            "schema_version": 1,
+            "step": "stitch.generate",
+            "reconciliation": {
+                "outcome": "not_applied",
+                "reason": "complete screen inventory contains no matching title",
+                "read_probes": probes,
+            },
+        }), encoding="utf-8")
+
+        resolved = harness.reconcile(self.project, status.run_id, evidence)
+
+        self.assertEqual(resolved.state, RunState.PREFLIGHT_PASSED)
+        manifest = json.loads((run.path / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(
+            manifest["last_reconciliation_target"],
+            {"project_id": "123", "expected_title": "Gate Fix"},
+        )
+
+    def test_no_candidate_reconciliation_rejects_unbound_or_incomplete_inventory(self):
+        cases = (
+            {"project_id": "999"},
+            {"complete": False},
+            {"include_match": True},
+        )
+        for index, options in enumerate(cases):
+            with self.subTest(options=options), tempfile.TemporaryDirectory() as directory:
+                project = Path(directory).resolve()
+                (project / ".stitch/specs").mkdir(parents=True)
+                shutil.copy2(ROOT / "tests/fixtures/page-spec.json", project / ".stitch/specs/login.json")
+                harness = Harness(preflight=lambda _: ())
+                status = harness.start(project, "login", now=FIXED)
+                unknown = project / "unknown-with-target.json"
+                unknown.write_text(json.dumps({
+                    "schema_version": 1,
+                    "step": "stitch.generate",
+                    "result": "unknown",
+                    "target": {"project_id": "123", "expected_title": "Gate Fix"},
+                }), encoding="utf-8")
+                status = harness.resume(project, status.run_id, unknown)
+                run = harness.store.load(project, status.run_id)
+                probes = self.no_candidate_reconciliation_probes(run, **options)
+                evidence = project / f"unsafe-no-candidate-{index}.json"
+                evidence.write_text(json.dumps({
+                    "schema_version": 1,
+                    "step": "stitch.generate",
+                    "reconciliation": {
+                        "outcome": "not_applied",
+                        "reason": "inventory did not contain the target",
+                        "read_probes": probes,
+                    },
+                }), encoding="utf-8")
+
+                with self.assertRaisesRegex(ValueError, "contract|inventory"):
+                    harness.reconcile(project, status.run_id, evidence)
 
     def test_applied_reconciliation_keeps_persisted_state_until_provider_receipt_commit(self):
         harness = Harness(preflight=lambda _: ())

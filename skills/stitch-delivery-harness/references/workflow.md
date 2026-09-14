@@ -10,7 +10,7 @@
 2. `start` 创建不可复用的 run，返回 `stitch.generate`。
 3. 每次真实工具调用后，将文件放入当前 run 的 `artifacts/`，再创建 evidence JSON。
 4. `resume` 校验文件哈希、门禁与状态，只返回一个下一动作。
-5. Stitch 写操作结果未知时，保存 `result: "unknown"` 并进入 `RECONCILING`；随后只执行 `get_project`、`list_screens` 或 `get_screen`，为每次读取保存晚于 unknown receipt 的带时区时间、response ID、枚举状态、结果哈希和唯一 JSON artifact，且 artifact 内容逐字段匹配声明。裸工具名不能作为 evidence。`not_applied` 只接受 project found、screens/screen 均明确 not_found；`applied` 只接受三者均找到目标。完整 receipt 与最终状态一次提交前始终保持 `RECONCILING`。每次未解对账递增 attempts，第三次转为 `BLOCKED`。
+5. Stitch 写操作结果未知时，保存 `result: "unknown"`，并尽量绑定脱敏的 `target.project_id` 与 `target.expected_title`，随后进入 `RECONCILING`。只执行 `get_project`、`list_screens` 或 `get_screen`，为每次读取保存晚于 unknown receipt 的带时区时间、response ID、枚举状态、结果哈希和唯一 JSON artifact。`applied` 只接受三者均找到目标。`not_applied` 除兼容旧式明确 not_found 证据外，也接受 project found、与目标项目一致且分页完整的list_screens标题哈希清单不含预期标题，以及因无候选ID而记录的 `get_screen: skipped/no_candidate_id`；错误项目、不完整清单或命中候选均失败关闭。完整 receipt 与最终状态一次提交前始终保持 `RECONCILING`。每次未解对账递增 attempts，第三次转为 `BLOCKED`。
 6. ImageGen 结果先过尺寸、OCR 和业务断言，不通过不回灌。
 7. 回灌结果必须含重新下载的 HTML 和渲染图。探针编辑需保存 before/edited/restored 三份 HTML 与三张 render；edited 哈希必须变化，restored HTML/render 哈希必须分别与 before 完全相等。
 8. 双图阶段从 receipts 读取已接受的 ImageGen art render 与最终 Stitch render，禁止接受调用者另传图片；生成 `side-by-side.png`、`overlay.png`、`diff-heatmap.png`，并把两张源图写入 evidence `source_artifacts` 和 receipt `inputs`。未接受 visual receipt 时可原子替换完整三图且失败回滚；一旦通过的 visual receipt 已存在，即使状态更新曾中断，也禁止覆盖。布局分数和五个视觉维度通过后进入 `AWAITING_USER_APPROVAL`。
