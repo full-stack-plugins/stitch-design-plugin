@@ -157,6 +157,8 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn('src="/logo.png"', html)
         self.assertEqual(html.count('type="password"'), 1)
         self.assertIn('Google Stitch <span aria-hidden="true"></span> <em>MCP</em>', html)
+        self.assertIn('href="/title.css"', html)
+        self.assertIn("h1{font-weight:400}", (ROOT / "assets" / "setup" / "title.css").read_text(encoding="utf-8"))
         self.assertIn("<details", html)
         self.assertNotIn('id="launch"', html)
 

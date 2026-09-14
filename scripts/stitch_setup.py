@@ -172,6 +172,7 @@ def create_setup_server(
             files = {
                 "/": ("index.html", "text/html; charset=utf-8", SETUP_ASSETS),
                 "/styles.css": ("styles.css", "text/css; charset=utf-8", SETUP_ASSETS),
+                "/title.css": ("title.css", "text/css; charset=utf-8", SETUP_ASSETS),
                 "/app.js": ("app.js", "text/javascript; charset=utf-8", SETUP_ASSETS),
                 "/logo.png": ("logo.png", "image/png", PLUGIN_ROOT / "assets"),
             }
