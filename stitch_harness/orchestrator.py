@@ -61,11 +61,20 @@ class ApprovalDecision:
     artifact_hashes: dict[str, str]
 
 
+@dataclass(frozen=True)
+class ArtEnhancementDecision:
+    decision: str
+    source: str
+
+
 _ACTIONS = {
     RunState.DRAFT: NextAction("preflight"),
     RunState.PREFLIGHT_PASSED: NextAction("stitch.generate", "stitch.generate"),
     RunState.STITCH_GENERATED: NextAction("stitch.validate-source", "stitch.generate"),
-    RunState.SOURCE_ACCEPTED: NextAction("imagegen.generate", "imagegen"),
+    RunState.SOURCE_ACCEPTED: NextAction("prepare-art-enhancement-decision"),
+    RunState.AWAITING_ART_DECISION: NextAction("await-art-enhancement-decision"),
+    RunState.ART_ENHANCEMENT_APPROVED: NextAction("imagegen.generate", "imagegen"),
+    RunState.STITCH_ONLY_SELECTED: NextAction("stitch.editability-probe", "editability"),
     RunState.ART_GENERATED: NextAction("ocr-and-business.validate", "ocr"),
     RunState.ART_ACCEPTED: NextAction("stitch.roundtrip", "stitch.roundtrip"),
     RunState.ROUNDTRIPPED: NextAction("stitch.editability-probe", "editability"),
@@ -76,6 +85,7 @@ _ACTIONS = {
     RunState.ARCHIVED: NextAction("complete"),
     RunState.RECONCILING: NextAction("stitch.reconcile-read"),
     RunState.BLOCKED: NextAction("blocked"),
+    RunState.CANCELLED: NextAction("cancelled"),
 }
 
 
@@ -154,7 +164,7 @@ class Harness:
                 return device.failures
             gate = validate_html(spec, run.path / html_artifacts[0].path, render_metadata)
             return gate.failures
-        if state == RunState.SOURCE_ACCEPTED:
+        if state == RunState.ART_ENHANCEMENT_APPROVED:
             images = [item for item in evidence.artifacts if item.mime and item.mime.startswith("image/")]
             if len(images) != 1 or (images[0].width, images[0].height) != (spec.canvas.width, spec.canvas.height):
                 return (f"ImageGen output must be exactly {spec.canvas.width}x{spec.canvas.height}",)
@@ -167,7 +177,7 @@ class Harness:
             if len(html_artifacts) != 1 or not isinstance(render_metadata, dict):
                 return ("Stitch roundtrip evidence requires one HTML artifact and render metadata",)
             return validate_html(spec, run.path / html_artifacts[0].path, render_metadata).failures
-        if state == RunState.ROUNDTRIPPED:
+        if state in {RunState.ROUNDTRIPPED, RunState.STITCH_ONLY_SELECTED}:
             expected_mimes = {
                 "before_html": "text/html", "edited_html": "text/html", "restored_html": "text/html",
                 "before_render": "image/png", "edited_render": "image/png", "restored_render": "image/png",
@@ -186,7 +196,11 @@ class Harness:
             if not correct_shape:
                 return ("editability artifact hashes require six unique typed semantic artifacts and two before sources",)
             try:
-                expected_before = self.store.required_roundtrip_artifacts(run)
+                expected_before = (
+                    self.store.required_source_artifacts(run)
+                    if state == RunState.STITCH_ONLY_SELECTED
+                    else self.store.required_roundtrip_artifacts(run)
+                )
             except ValueError as error:
                 return (str(error),)
             expected_before_set = {(item.path, item.sha256, item.mime) for item in expected_before}
@@ -220,14 +234,54 @@ class Harness:
     @staticmethod
     def _target_states(state: RunState) -> tuple[RunState, ...]:
         return {
-            RunState.PREFLIGHT_PASSED: (RunState.STITCH_GENERATED, RunState.SOURCE_ACCEPTED),
-            RunState.STITCH_GENERATED: (RunState.SOURCE_ACCEPTED,),
-            RunState.SOURCE_ACCEPTED: (RunState.ART_GENERATED,),
+            RunState.PREFLIGHT_PASSED: (
+                RunState.STITCH_GENERATED,
+                RunState.SOURCE_ACCEPTED,
+                RunState.AWAITING_ART_DECISION,
+            ),
+            RunState.STITCH_GENERATED: (RunState.SOURCE_ACCEPTED, RunState.AWAITING_ART_DECISION),
+            RunState.ART_ENHANCEMENT_APPROVED: (RunState.ART_GENERATED,),
             RunState.ART_GENERATED: (RunState.ART_ACCEPTED,),
             RunState.ART_ACCEPTED: (RunState.ROUNDTRIPPED,),
             RunState.ROUNDTRIPPED: (RunState.EDITABILITY_VERIFIED,),
+            RunState.STITCH_ONLY_SELECTED: (RunState.AWAITING_USER_APPROVAL,),
             RunState.EDITABILITY_VERIFIED: (RunState.COMPARISON_ACCEPTED, RunState.AWAITING_USER_APPROVAL),
         }.get(state, ())
+
+    def decide_art(
+        self,
+        project_root: Path,
+        run_id: str,
+        decision: ArtEnhancementDecision,
+    ) -> RunStatus:
+        run = self.store.load(project_root, run_id)
+        if run.state != RunState.AWAITING_ART_DECISION:
+            raise InvalidTransition("run is not awaiting an art enhancement decision")
+        if decision.source != "user":
+            raise ApprovalRequired("art enhancement decision source must be an explicit user decision")
+        targets = {
+            "enhance": RunState.ART_ENHANCEMENT_APPROVED,
+            "keep_stitch": RunState.STITCH_ONLY_SELECTED,
+            "cancel": RunState.CANCELLED,
+        }
+        target = targets.get(decision.decision)
+        if target is None:
+            raise ApprovalRequired("art enhancement decision must be enhance, keep_stitch, or cancel")
+        run = self.store.append_receipt(
+            run,
+            Receipt.passed(
+                run.run_id,
+                run.page_id,
+                "art-decision",
+                checks=({"decision": decision.decision, "source": "user"},),
+            ),
+        )
+        run = self.store.update_states(
+            run,
+            (target,),
+            manifest_updates={"art_mode": decision.decision},
+        )
+        return RunStatus(run_id, run.state, 0, _ACTIONS[run.state])
 
     @staticmethod
     def _matching_receipt_hash(

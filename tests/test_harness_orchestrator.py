@@ -6,7 +6,9 @@ import unittest
 from datetime import UTC, datetime
 from pathlib import Path
 
-from stitch_harness.orchestrator import ApprovalDecision, ApprovalRequired, Harness
+from stitch_harness.orchestrator import ArtEnhancementDecision, ApprovalDecision, ApprovalRequired, Harness
+from stitch_harness.evidence_writer import EvidenceWriter
+from stitch_harness.cli import main
 from stitch_harness.state import RunState
 from stitch_harness.storage import ArtifactRecord, Receipt, RunStore
 
@@ -33,6 +35,8 @@ class HarnessTests(unittest.TestCase):
         ordered = [
             RunState.STITCH_GENERATED,
             RunState.SOURCE_ACCEPTED,
+            RunState.AWAITING_ART_DECISION,
+            RunState.ART_ENHANCEMENT_APPROVED,
             RunState.ART_GENERATED,
             RunState.ART_ACCEPTED,
             RunState.ROUNDTRIPPED,
@@ -101,6 +105,21 @@ class HarnessTests(unittest.TestCase):
 
         run = self.harness.store.update_state(run, RunState.STITCH_GENERATED)
         run = self.harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
+        run = self.harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+        run = self.harness.store.append_receipt(
+            run,
+            Receipt.passed(
+                run.run_id,
+                run.page_id,
+                "art-decision",
+                checks=({"decision": "enhance", "source": "user"},),
+            ),
+        )
+        run = self.harness.store.update_states(
+            run,
+            (RunState.ART_ENHANCEMENT_APPROVED,),
+            manifest_updates={"art_mode": "enhance"},
+        )
         art = ArtifactRecord.from_path(run.path, run.path / "artifacts/art.png", "image/png")
         run = self.harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "imagegen", outputs=[art]))
         run = self.harness.store.update_state(run, RunState.ART_GENERATED)
@@ -241,8 +260,126 @@ class HarnessTests(unittest.TestCase):
 
         status = self.harness.resume(self.project, started.run_id, evidence)
 
-        self.assertEqual(status.state, RunState.SOURCE_ACCEPTED)
-        self.assertEqual(status.next_action.kind, "imagegen.generate")
+        self.assertEqual(status.state, RunState.AWAITING_ART_DECISION)
+        self.assertEqual(status.next_action.kind, "await-art-enhancement-decision")
+
+    def test_art_enhancement_decision_branches_require_user_source(self):
+        for decision, expected_state, expected_action in (
+            ("enhance", RunState.ART_ENHANCEMENT_APPROVED, "imagegen.generate"),
+            ("keep_stitch", RunState.STITCH_ONLY_SELECTED, "stitch.editability-probe"),
+            ("cancel", RunState.CANCELLED, "cancelled"),
+        ):
+            with self.subTest(decision=decision), tempfile.TemporaryDirectory() as directory:
+                project = Path(directory)
+                specs = project / ".stitch" / "specs"
+                specs.mkdir(parents=True)
+                shutil.copy2(FIXTURE, specs / "login.json")
+                harness = Harness(preflight=lambda _project: ())
+                started = harness.start(project, "login", now=FIXED_TIME)
+                run = harness.store.load(project, started.run_id)
+                run = harness.store.update_state(run, RunState.STITCH_GENERATED)
+                run = harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
+                run = harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+                with self.assertRaises(ApprovalRequired):
+                    harness.decide_art(
+                        project,
+                        run.run_id,
+                        ArtEnhancementDecision(decision, "agent"),
+                    )
+                status = harness.decide_art(
+                    project,
+                    run.run_id,
+                    ArtEnhancementDecision(decision, "user"),
+                )
+                self.assertEqual(status.state, expected_state)
+                self.assertEqual(status.next_action.kind, expected_action)
+
+    def test_imagegen_evidence_is_rejected_before_art_enhancement_choice(self):
+        run = self.run_at_state(RunState.SOURCE_ACCEPTED)
+        run = self.harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+        evidence = self.evidence_for(run, "imagegen", {"status": "generated"}, width=1350, height=768)
+
+        status = self.harness.resume(self.project, run.run_id, evidence)
+
+        self.assertEqual(status.state, RunState.AWAITING_ART_DECISION)
+        self.assertEqual(status.exit_code, 1)
+
+    def test_keep_stitch_path_verifies_source_editability_and_binds_source_for_approval(self):
+        started = self.harness.start(self.project, "login", now=FIXED_TIME)
+        run = self.harness.store.load(self.project, started.run_id)
+        source_html = run.path / "artifacts/source.html"
+        source_render = run.path / "artifacts/source.png"
+        source_html.write_text("<main>source</main>", encoding="utf-8")
+        source_render.write_bytes(b"source-render")
+        run = self.harness.store.append_receipt(
+            run,
+            Receipt.passed(
+                run.run_id,
+                run.page_id,
+                "stitch.generate",
+                outputs=(
+                    ArtifactRecord.from_path(run.path, source_html, "text/html"),
+                    ArtifactRecord.from_path(run.path, source_render, "image/png"),
+                ),
+            ),
+        )
+        run = self.harness.store.update_state(run, RunState.STITCH_GENERATED)
+        run = self.harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
+        run = self.harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+        status = self.harness.decide_art(
+            self.project,
+            run.run_id,
+            ArtEnhancementDecision("keep_stitch", "user"),
+        )
+        run = self.harness.store.load(self.project, status.run_id)
+        edited_html = run.path / "artifacts/edited.html"
+        restored_html = run.path / "artifacts/restored.html"
+        edited_render = run.path / "artifacts/edited.png"
+        restored_render = run.path / "artifacts/restored.png"
+        edited_html.write_text("<main>edited</main>", encoding="utf-8")
+        restored_html.write_bytes(source_html.read_bytes())
+        edited_render.write_bytes(b"edited-render")
+        restored_render.write_bytes(source_render.read_bytes())
+        evidence = EvidenceWriter(run.path).editability(
+            source_html,
+            edited_html,
+            restored_html,
+            source_render,
+            edited_render,
+            restored_render,
+        )
+
+        resolved = self.harness.resume(self.project, run.run_id, evidence)
+
+        self.assertEqual(resolved.state, RunState.AWAITING_USER_APPROVAL)
+        self.assertEqual(
+            self.harness.store.required_approval_artifacts(
+                self.harness.store.load(self.project, run.run_id)
+            ),
+            {
+                "artifacts/source.html": hashlib.sha256(source_html.read_bytes()).hexdigest(),
+                "artifacts/source.png": hashlib.sha256(source_render.read_bytes()).hexdigest(),
+            },
+        )
+
+    def test_art_decision_cli_records_the_explicit_user_choice(self):
+        started = self.harness.start(self.project, "login", now=FIXED_TIME)
+        run = self.harness.store.load(self.project, started.run_id)
+        run = self.harness.store.update_state(run, RunState.STITCH_GENERATED)
+        run = self.harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
+        self.harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+
+        code = main([
+            "art-decision",
+            "--project", str(self.project),
+            "--run", run.run_id,
+            "--decision", "enhance",
+            "--source", "user",
+        ])
+
+        self.assertEqual(code, 0)
+        loaded = self.harness.store.load(self.project, run.run_id)
+        self.assertEqual(loaded.state, RunState.ART_ENHANCEMENT_APPROVED)
 
     def test_automatic_scores_cannot_approve(self):
         started = self.harness.start(self.project, "login", now=FIXED_TIME)
@@ -250,6 +387,8 @@ class HarnessTests(unittest.TestCase):
         for state in (
             RunState.STITCH_GENERATED,
             RunState.SOURCE_ACCEPTED,
+            RunState.AWAITING_ART_DECISION,
+            RunState.ART_ENHANCEMENT_APPROVED,
             RunState.ART_GENERATED,
             RunState.ART_ACCEPTED,
             RunState.ROUNDTRIPPED,
@@ -314,12 +453,12 @@ class HarnessTests(unittest.TestCase):
             self.harness.store.required_approval_artifacts(run)
 
     def test_imagegen_wrong_canvas_does_not_advance(self):
-        run = self.run_at_state(RunState.SOURCE_ACCEPTED)
+        run = self.run_at_state(RunState.ART_ENHANCEMENT_APPROVED)
         evidence = self.evidence_for(run, "imagegen", {"status": "generated"}, width=1280, height=768)
 
         status = self.harness.resume(self.project, run.run_id, evidence)
 
-        self.assertEqual(status.state, RunState.SOURCE_ACCEPTED)
+        self.assertEqual(status.state, RunState.ART_ENHANCEMENT_APPROVED)
         self.assertEqual(status.exit_code, 1)
         self.assertIn("1350", " ".join(status.errors))
 

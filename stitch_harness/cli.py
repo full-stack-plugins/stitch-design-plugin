@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .archive import ArchiveManager
 from .contracts import ContractError, PageSpec
-from .orchestrator import ApprovalDecision, ApprovalRequired, Harness
+from .orchestrator import ArtEnhancementDecision, ApprovalDecision, ApprovalRequired, Harness
 from .state import RunState
 from .evidence_writer import EvidenceWriter
 from .visual_gate import compare_images
@@ -29,13 +29,16 @@ def _parser() -> argparse.ArgumentParser:
     compare.add_argument("--project", required=True, type=Path)
     compare.add_argument("--run", required=True)
     compare.add_argument("--scores", type=Path)
-    for command in ("preflight", "start", "resume", "status", "approve", "archive", "recover", "reconcile"):
+    for command in ("preflight", "start", "resume", "status", "art-decision", "approve", "archive", "recover", "reconcile"):
         child = subparsers.add_parser(command)
         child.add_argument("--project", required=True, type=Path)
         if command == "start":
             child.add_argument("--spec", required=True)
-        if command in {"resume", "status", "approve", "archive", "recover", "reconcile"}:
+        if command in {"resume", "status", "art-decision", "approve", "archive", "recover", "reconcile"}:
             child.add_argument("--run", required=True)
+        if command == "art-decision":
+            child.add_argument("--decision", required=True, choices=("enhance", "keep_stitch", "cancel"))
+            child.add_argument("--source", required=True)
         if command == "resume":
             child.add_argument("--evidence", type=Path)
         if command == "approve":
@@ -121,6 +124,12 @@ def main(arguments: list[str] | None = None) -> int:
             status = harness.resume(args.project, args.run, args.evidence)
         elif args.command == "status":
             status = harness.status(args.project, args.run)
+        elif args.command == "art-decision":
+            status = harness.decide_art(
+                args.project,
+                args.run,
+                ArtEnhancementDecision(args.decision, args.source),
+            )
         elif args.command == "approve":
             payload = json.loads(args.confirmation.read_text(encoding="utf-8"))
             status = harness.approve(

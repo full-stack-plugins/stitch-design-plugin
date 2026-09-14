@@ -88,6 +88,9 @@ Both tools appear in `tools/list` with complete input/output schemas and annotat
 - Add a checked-in page-spec JSON Schema and starter template.
 - Add a `spec init` command that creates a non-overwriting starter spec.
 - Add evidence builders for Stitch generation, ImageGen, OCR/business, roundtrip, editability, and visual review.
+- After Stitch source acceptance, stop in `AWAITING_ART_DECISION` and ask the user to choose `enhance`, `keep_stitch`, or `cancel`. Only an explicit user-sourced `enhance` decision may authorize ImageGen; the Harness must not infer this choice from the original request, a model recommendation, or source acceptance.
+- `keep_stitch` skips ImageGen, OCR, roundtrip, and image comparison, but still requires a reversible editability probe against the accepted Stitch HTML/render before entering final user approval. Its approval and archive artifact set binds the accepted Stitch source rather than synthetic art artifacts.
+- `cancel` is terminal and records the decision without generating or archiving design artifacts.
 - Add a `compare` command that runs with the isolated Harness Python and writes three comparison images plus computed layout evidence.
 - Editability evidence requires before, edited, restored HTML/render hashes and proves the restored hashes equal the before hashes.
 - Unknown writes enter an explicit reconciliation state. Unknown evidence may bind a sanitized project ID and expected title. A `not_applied` result may use a successful screen inventory only when it binds the same project ID, declares complete pagination and contains normalized title hashes from which the Harness derives that the expected title is absent; only then may `get_screen` be `skipped/no_candidate_id`. Wrong-project, incomplete and matching inventories fail closed; any discovered candidate still requires `get_screen`. Attempts increment and block after three unresolved rounds.

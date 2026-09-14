@@ -19,6 +19,14 @@ class RunStateTests(unittest.TestCase):
         with self.assertRaises(InvalidTransition):
             transition(RunState.STITCH_GENERATED, RunState.ART_GENERATED)
 
+    def test_art_enhancement_requires_an_explicit_decision_state(self):
+        self.assertEqual(
+            transition(RunState.SOURCE_ACCEPTED, RunState.AWAITING_ART_DECISION),
+            RunState.AWAITING_ART_DECISION,
+        )
+        with self.assertRaises(InvalidTransition):
+            transition(RunState.AWAITING_ART_DECISION, RunState.ART_GENERATED)
+
     def test_approved_artifacts_may_advance_to_archive(self):
         self.assertEqual(transition(RunState.APPROVED, RunState.ARCHIVED), RunState.ARCHIVED)
 

@@ -4,7 +4,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/release-0.7.4-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.4)
+[![版本](https://img.shields.io/badge/release-0.7.5-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.5)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -132,7 +132,7 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 把现有 UI 带入 Stitch | 上传已审核 HTML/图片 | 同项目屏幕资源 |
 | 生产导出 | 下载 HTML、截图和引用资产 | 原子文件与 SHA-256 清单 |
 | 生成前端代码 | React、React Native、shadcn/ui、Vue、Vant、Element Plus、Bootstrap、Layui、uView | 可编辑组件源码 |
-| 门禁化交付 | Stitch → ImageGen → OCR → 回灌 → 对比 → 批准 | Receipt 链与明确人工批准 |
+| 门禁化交付 | Stitch → 明确美术决策 → 可选 ImageGen 闭环或仅验证 Stitch → 批准 | Receipt 链与明确人工决策 |
 
 插件不托管 Stitch，不内置共享 Key。写操作结果不明时，必须先读取远端状态再决定是否重试。
 
@@ -155,8 +155,8 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前候选版本 | `0.7.4` |
-| 当前版本 | [v0.7.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.4) |
+| 当前候选版本 | `0.7.5` |
+| 当前版本 | [v0.7.5](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.5) |
 | 上一版本 | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
@@ -270,7 +270,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-0.7.4 继续要求 Stitch 主 HTML、截图和 DESIGN.md 来自 Google/Stitch 白名单，但允许 HTML 引用的依赖来自任意安全的公网 HTTPS 主机，例如 `cdn.tailwindcss.com`。引用依赖现在默认使用 `best_effort`：安全依赖临时不可用或返回不支持的响应时，跳过该依赖、返回仅含主机名的 warning，并继续原子发布主产物；设置 `referencedAssetPolicy: "strict"` 可恢复全有或全无。非安全 URL、HTTP、带账号密码的 URL、localhost、本地/内部域名、IP 字面量、重定向、主产物失败、路径逃逸、字节/文件上限和独立的500条引用URL发现预算仍会被阻止。
+0.7.5 继续要求 Stitch 主 HTML、截图和 DESIGN.md 来自 Google/Stitch 白名单，但允许 HTML 引用的依赖来自任意安全的公网 HTTPS 主机，例如 `cdn.tailwindcss.com`。引用依赖现在默认使用 `best_effort`：安全依赖临时不可用或返回不支持的响应时，跳过该依赖、返回仅含主机名的 warning，并继续原子发布主产物；设置 `referencedAssetPolicy: "strict"` 可恢复全有或全无。非安全 URL、HTTP、带账号密码的 URL、localhost、本地/内部域名、IP 字面量、重定向、主产物失败、路径逃逸、字节/文件上限和独立的500条引用URL发现预算仍会被阻止。
 
 未知写入证据可以绑定 `target.project_id` 与 `target.expected_title`。完整 `list_screens` 证据必须绑定项目ID、完整性标记和规范化标题哈希清单；只有Harness自行计算出预期标题哈希不在清单中时，才允许把 `get_screen` 记录为 `skipped/no_candidate_id`。一旦发现候选，仍必须成功调用 `get_screen` 才能判定已应用。三轮上限、时间戳、哈希和防重复写保护保持不变。
 
@@ -285,7 +285,9 @@ Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配�
 | 回执链 | 与每次运行同目录 | 防篡改；随每个通过的门禁增长 | 否 |
 | 已下载资产 | 你选择的输出目录 | 直到你删除 | 否 |
 
-运行状态机：`DRAFT`、`PREFLIGHT_PASSED`、`STITCH_GENERATED`、`SOURCE_ACCEPTED`、`ART_GENERATED`、`ART_ACCEPTED`, `ROUNDTRIPPED`、`EDITABILITY_VERIFIED`、`COMPARISON_ACCEPTED`、`AWAITING_USER_APPROVAL`、`APPROVED`、`ARCHIVED`、`RECONCILING`、`BLOCKED`。
+运行状态机：`DRAFT`、`PREFLIGHT_PASSED`、`STITCH_GENERATED`、`SOURCE_ACCEPTED`、`AWAITING_ART_DECISION`、`ART_ENHANCEMENT_APPROVED`、`STITCH_ONLY_SELECTED`、`ART_GENERATED`、`ART_ACCEPTED`、`ROUNDTRIPPED`、`EDITABILITY_VERIFIED`、`COMPARISON_ACCEPTED`、`AWAITING_USER_APPROVAL`、`APPROVED`、`ARCHIVED`、`CANCELLED`、`RECONCILING`、`BLOCKED`。
+
+接受 Stitch 原稿不等于授权 ImageGen。Harness 必须暂停并询问用户选择 `enhance`、`keep_stitch` 或 `cancel`；只有来源明确为用户的 `enhance` 决策才能进入二次图片生成路径。
 
 ## 故障排查
 

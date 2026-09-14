@@ -19,6 +19,7 @@ from .state import RunState, transition
 RECEIPT_STEP_SLUGS = {
     "preflight": "preflight",
     "stitch.generate": "stitch-generate",
+    "art-decision": "art-decision",
     "imagegen": "imagegen",
     "ocr": "ocr",
     "stitch.roundtrip": "stitch-roundtrip",
@@ -32,7 +33,9 @@ EXPECTED_RECEIPT_STEP = {
     RunState.DRAFT: "preflight",
     RunState.PREFLIGHT_PASSED: "stitch.generate",
     RunState.STITCH_GENERATED: "stitch.generate",
-    RunState.SOURCE_ACCEPTED: "imagegen",
+    RunState.AWAITING_ART_DECISION: "art-decision",
+    RunState.ART_ENHANCEMENT_APPROVED: "imagegen",
+    RunState.STITCH_ONLY_SELECTED: "editability",
     RunState.ART_GENERATED: "ocr",
     RunState.ART_ACCEPTED: "stitch.roundtrip",
     RunState.ROUNDTRIPPED: "editability",
@@ -452,6 +455,20 @@ class RunStore:
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             outputs_by_step[payload["step"]] = list(payload.get("outputs", []))
 
+        manifest = json.loads((run.path / "manifest.json").read_text(encoding="utf-8"))
+        if manifest.get("art_mode") == "keep_stitch":
+            source = outputs_by_step.get("stitch.generate", [])
+            source_html = [item for item in source if item.get("mime") == "text/html"]
+            source_images = [
+                item for item in source if str(item.get("mime", "")).startswith("image/")
+            ]
+            if len(source_html) != 1 or len(source_images) != 1:
+                raise ValueError("stitch-only approval requires one source HTML and render")
+            return {
+                str(item["path"]): str(item["sha256"])
+                for item in (source_html[0], source_images[0])
+            }
+
         imagegen = outputs_by_step.get("imagegen", [])
         roundtrip = outputs_by_step.get("stitch.roundtrip", [])
         visual = outputs_by_step.get("visual-judge", [])
@@ -520,6 +537,26 @@ class RunStore:
         return (
             ArtifactRecord(str(html[0]["path"]), str(html[0]["sha256"]), "text/html", html[0].get("width"), html[0].get("height")),
             ArtifactRecord(str(render[0]["path"]), str(render[0]["sha256"]), "image/png", render[0].get("width"), render[0].get("height")),
+        )
+
+    def required_source_artifacts(self, run: Run) -> tuple[ArtifactRecord, ArtifactRecord]:
+        """Return the exact accepted source HTML and render for Stitch-only review."""
+
+        verification = self.verify_chain(run)
+        if not verification.valid:
+            raise ValueError("cannot derive source artifacts from an invalid receipt chain")
+        source: list[dict[str, Any]] = []
+        for receipt_path in _sorted_receipt_paths(run.path / "receipts"):
+            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if payload.get("step") == "stitch.generate" and payload.get("result") == "passed":
+                source = list(payload.get("outputs", []))
+        html = [item for item in source if item.get("mime") == "text/html"]
+        render = [item for item in source if str(item.get("mime", "")).startswith("image/")]
+        if len(html) != 1 or len(render) != 1:
+            raise ValueError("editability requires one accepted source HTML and render")
+        return (
+            ArtifactRecord(str(html[0]["path"]), str(html[0]["sha256"]), str(html[0]["mime"]), html[0].get("width"), html[0].get("height")),
+            ArtifactRecord(str(render[0]["path"]), str(render[0]["sha256"]), str(render[0]["mime"]), render[0].get("width"), render[0].get("height")),
         )
 
     def verify_approval(self, run: Run) -> ChainVerification:

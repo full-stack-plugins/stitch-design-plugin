@@ -48,6 +48,21 @@ class Harness060Tests(unittest.TestCase):
         shutil.copy2(ROOT / "tests/fixtures/images/stitch.png", stitch)
         run = harness.store.update_state(run, RunState.STITCH_GENERATED)
         run = harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
+        run = harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+        run = harness.store.append_receipt(
+            run,
+            Receipt.passed(
+                run.run_id,
+                run.page_id,
+                "art-decision",
+                checks=({"decision": "enhance", "source": "user"},),
+            ),
+        )
+        run = harness.store.update_states(
+            run,
+            (RunState.ART_ENHANCEMENT_APPROVED,),
+            manifest_updates={"art_mode": "enhance"},
+        )
         run = harness.store.append_receipt(run, Receipt.passed(
             run.run_id, run.page_id, "imagegen",
             outputs=[ArtifactRecord.from_path(run.path, art, "image/png")],
@@ -338,7 +353,7 @@ class Harness060Tests(unittest.TestCase):
 
         resolved = harness.reconcile(self.project, status.run_id, evidence)
 
-        self.assertEqual(resolved.state, RunState.SOURCE_ACCEPTED)
+        self.assertEqual(resolved.state, RunState.AWAITING_ART_DECISION)
         self.assertEqual(resolved.exit_code, 0)
 
     def test_not_applied_reconciliation_rejects_untyped_or_unbound_probe_evidence(self):
@@ -543,7 +558,7 @@ class Harness060Tests(unittest.TestCase):
 
         resolved = harness.reconcile(self.project, status.run_id, evidence)
 
-        self.assertEqual(resolved.state, RunState.SOURCE_ACCEPTED)
+        self.assertEqual(resolved.state, RunState.AWAITING_ART_DECISION)
         receipts = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((run.path / "receipts").glob("*.json"))]
         self.assertEqual(sum(item["step"] == "reconciliation" for item in receipts), 1)
         self.assertEqual(sum(item["step"] == "stitch.generate" and item["result"] == "passed" for item in receipts), 1)

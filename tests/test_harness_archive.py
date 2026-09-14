@@ -71,6 +71,21 @@ class ArchiveTests(unittest.TestCase):
         run = store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "stitch.generate"))
         run = store.update_state(run, RunState.STITCH_GENERATED)
         run = store.update_state(run, RunState.SOURCE_ACCEPTED)
+        run = store.update_state(run, RunState.AWAITING_ART_DECISION)
+        run = store.append_receipt(
+            run,
+            Receipt.passed(
+                run.run_id,
+                run.page_id,
+                "art-decision",
+                checks=({"decision": "enhance", "source": "user"},),
+            ),
+        )
+        run = store.update_states(
+            run,
+            (RunState.ART_ENHANCEMENT_APPROVED,),
+            manifest_updates={"art_mode": "enhance"},
+        )
         art = ArtifactRecord.from_path(run.path, run.path / "artifacts/art.png", "image/png")
         run = store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "imagegen", outputs=[art]))
         run = store.update_state(run, RunState.ART_GENERATED)

@@ -2,6 +2,8 @@
 
 Stitch、ImageGen、OCR和视觉评估由真实工具执行；本地 Harness 只接收以下脱敏 envelope：
 
+Stitch source evidence 通过后不会直接请求 ImageGen，而是进入 `AWAITING_ART_DECISION`。美术决策不是外部工具 evidence；它通过 `art-decision` 命令写入独立 `art-decision` receipt，且 `source` 必须是 `user`。`enhance` 才允许后续 imagegen evidence；`keep_stitch` 的 editability evidence 必须绑定当前 run 已接受的 Stitch source HTML/render；`cancel` 不接受后续 evidence。
+
 ```json
 {
   "schema_version": 1,
