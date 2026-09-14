@@ -4,6 +4,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [技术方案](docs/Stitch-Design-Technical-Solution.zh_CN.md) · [0.6.0 真实 smoke 验收](docs/live-canary-acceptance.zh_CN.md)
 
+![Stitch Design 插件概览](assets/readme/stitch-design-plugin-overview.png)
+
 ## 项目状态
 
 | 属性 | 值 |

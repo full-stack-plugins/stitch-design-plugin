@@ -4,6 +4,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [Architecture](docs/Stitch-Design-Architecture.md) · [Technical solution](docs/Stitch-Design-Technical-Solution.md) · [0.6.0 live-smoke acceptance](docs/live-canary-acceptance.md)
 
+![Stitch Design plugin overview](assets/readme/stitch-design-plugin-overview.png)
+
 ## Project status
 
 | Property | Value |
