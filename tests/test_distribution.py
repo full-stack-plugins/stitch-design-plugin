@@ -272,8 +272,9 @@ class DistributionContractTests(unittest.TestCase):
             "--sparse .agents/plugins",
             "codex plugin marketplace add ./codex-stitch-plugin",
             "codex plugin add stitch-design@partme-ai-stitch",
-            "Agent%20Skills-43",
+            "tests-222%20passing",
             "MCP%20tools-17",
+            "assets/stitch-hero.png",
         )
         for readme in readmes:
             for value in required:

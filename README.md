@@ -1,19 +1,25 @@
 # Stitch Design for Codex
 
+![Codex × Google Stitch — Turn ideas into editable interfaces](assets/stitch-hero.png)
+
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[English](README.md) | [简体中文](README.zh-CN.md) · [Architecture](docs/Stitch-Design-Architecture.md) · [Technical solution](docs/Stitch-Design-Technical-Solution.md) · [0.6.0 live-smoke acceptance](docs/live-canary-acceptance.md)
+[![Version](https://img.shields.io/badge/version-0.6.0-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.0)
+[![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
+[![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-<p align="center">
-  <img src="assets/readme/stitch-design-plugin-overview.png" width="760" alt="Stitch Design plugin overview">
-</p>
+[English](README.md) | [简体中文](README.zh-CN.md) · [Quick start](#install-in-two-commands) · [Examples](#example-requests) · [Architecture](docs/Stitch-Design-Architecture.md) · [Troubleshooting](#troubleshooting)
 
-<p align="center">
-  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-1A73E8">
-  <img alt="43 Agent Skills" src="https://img.shields.io/badge/Agent%20Skills-43-6C63FF">
-  <img alt="17 MCP tools" src="https://img.shields.io/badge/MCP%20tools-17-00A67E">
-  <img alt="CI on three operating systems" src="https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-222222">
-</p>
+## Stitch Design in Codex
+
+![Stitch Design plugin details in Codex, including starter prompts, MCP server, and 43 Skills](assets/readme/stitch-design-plugin-overview.png)
+
+The installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP server, 43 workflow Skills, and a secure local Token setup directly in Codex.
+
+## Positioning
+
+`stitch-design` turns product ideas and existing interfaces into editable Google Stitch screens, then carries those artifacts into production frontend workflows. It combines live Stitch generation and editing, design-system operations, code-to-design, local asset import/export, framework conversion, and an evidence-driven Delivery Harness.
 
 | 43 workflow Skills | 17 MCP tools | 15+ frontend targets | 3 verified viewports |
 |:---:|:---:|:---:|:---:|

@@ -1,19 +1,25 @@
 # Stitch Design for Codex
 
+![Codex × Google Stitch — 把想法转化为可编辑界面](assets/stitch-hero.png)
+
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[English](README.md) | [简体中文](README.zh-CN.md) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [技术方案](docs/Stitch-Design-Technical-Solution.zh_CN.md) · [0.6.0 真实 smoke 验收](docs/live-canary-acceptance.zh_CN.md)
+[![版本](https://img.shields.io/badge/version-0.6.0-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.0)
+[![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
+[![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
+[![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-<p align="center">
-  <img src="assets/readme/stitch-design-plugin-overview.png" width="760" alt="Stitch Design 插件概览">
-</p>
+[English](README.md) | [简体中文](README.zh-CN.md) · [快速安装](#两条命令完成安装) · [使用示例](#使用示例) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [故障排查](#故障排查)
 
-<p align="center">
-  <img alt="版本 0.6.0" src="https://img.shields.io/badge/version-0.6.0-1A73E8">
-  <img alt="43 个 Agent Skills" src="https://img.shields.io/badge/Agent%20Skills-43-6C63FF">
-  <img alt="17 个 MCP 工具" src="https://img.shields.io/badge/MCP%20tools-17-00A67E">
-  <img alt="三系统 CI" src="https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-222222">
-</p>
+## Codex 中的 Stitch Design
+
+![Codex 中的 Stitch Design 插件详情，包含快捷提示、MCP 服务器和 43 个 Skills](assets/readme/stitch-design-plugin-overview.png)
+
+安装后，Codex 会直接展示三个可运行提示、一个内置 Stitch MCP 服务器、43 个工作流 Skills 和安全的本地 Token 设置。
+
+## 项目定位
+
+`stitch-design` 把产品想法和现有界面转化为可编辑的 Google Stitch 屏幕，并继续交付到生产前端工作流。它组合了 Stitch 实时生成与编辑、设计系统操作、code-to-design、本地资产导入导出、框架转换和证据驱动 Delivery Harness。
 
 | 43 个工作流 Skills | 17 个 MCP 工具 | 15+ 前端目标 | 3 种验证视口 |
 |:---:|:---:|:---:|:---:|
