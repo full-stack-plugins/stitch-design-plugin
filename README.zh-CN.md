@@ -25,7 +25,7 @@
 |:---:|:---:|:---:|:---:|
 | 设计、安全、转换、交付 | 15 个 Google Stitch + 2 个本地资产工具 | React、Vue、移动端等 | Desktop、Tablet、Mobile |
 
-## 两条命令完成安装
+## 快速开始
 
 推荐显式跟踪本仓库 `main` 分支：
 
@@ -138,7 +138,7 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 
 当前仓库在 portable/public 迁移门禁关闭前，保持 Codex compatibility package。详见 [Portable 迁移门禁](docs/portable-migration.md)。
 
-## 项目状态
+## 状态与版本
 
 | 属性 | 值 |
 |:---|:---|

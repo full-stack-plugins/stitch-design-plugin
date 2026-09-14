@@ -25,7 +25,7 @@ The installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP 
 |:---:|:---:|:---:|:---:|
 | Design, safety, conversion, delivery | 15 Google Stitch + 2 local asset tools | React, Vue, mobile and more | Desktop, tablet, mobile |
 
-## Install in two commands
+## Quick start
 
 Recommended: track the repository's `main` branch explicitly.
 
@@ -138,7 +138,7 @@ The plugin does not host Stitch or bundle a shared key. Ambiguous writes are rec
 
 This repository intentionally remains a Codex compatibility package while the portable/public migration gate is open. See [Portable migration gate](docs/portable-migration.md).
 
-## Project status
+## Status and version
 
 | Property | Value |
 |:---|:---|
