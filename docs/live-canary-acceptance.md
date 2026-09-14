@@ -60,8 +60,8 @@ Version 0.6.1 is the current GitHub/repo Marketplace release. Publication to the
 
 ## Post-release verification (2026-09-14)
 
-- **Source equality:** local HEAD = `origin/main` = tag `v0.6.1` = marketplace tracking clone = installed cache = `40d9255`.
-- **Installed artifact parity:** all 435 tracked files are byte-identical between the repository tree and the installed copy; the installed manifest reports 0.6.1, and no 0.6.0 install remains.
+- **Source equality at the release commit:** tag `v0.6.1`, the marketplace tracking clone refreshed for this release, and the installed cache all resolve to `40d9255`. `origin/main` was also `40d9255` when the release was cut and has since advanced only by this verification record, so the tag and the installed copy remain the release reference.
+- **Installed artifact parity at `40d9255`:** all 435 tracked files were byte-identical between the repository tree and the installed copy; the installed manifest reports 0.6.1, and no 0.6.0 install remains.
 - **Fresh-task exposure:** a new ephemeral task exposed and successfully called `mcp__stitch__list_projects` through the plugin-owned stdio proxy with `STITCH_API_KEY` unset, so the credential came from the restricted user configuration rather than the process environment.
 - **Tool catalog:** driving the installed `scripts/stitch_mcp_proxy.py` directly returned the exact 17-tool catalog (15 provider tools plus the two namespaced local tools).
 - **Continuous integration:** the `Validate` workflow completed successfully on both `main` and the `v0.6.1` tag.
