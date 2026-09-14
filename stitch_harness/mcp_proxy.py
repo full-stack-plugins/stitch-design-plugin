@@ -10,10 +10,11 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import IO, Iterable
+from typing import Callable, IO, Iterable
 from urllib.parse import urlsplit
 
 from .secrets import SecretProvider, SecretStoreError, platform_secret_provider
+from .setup_trigger import launch_setup_ui_once
 from .tool_catalog import ToolCatalog
 from .assets import AssetError, LocalAssetManager, SCREEN_PATTERN, UnknownAssetWriteResult, local_tool_definitions
 
@@ -84,6 +85,10 @@ class McpHttpSession:
     session_id: str | None = None
     tool_catalog: ToolCatalog = field(default_factory=ToolCatalog, repr=False)
     asset_transport: object | None = field(default=None, repr=False)
+    missing_credential_handler: Callable[[], object] = field(
+        default=launch_setup_ui_once,
+        repr=False,
+    )
     _cached_secret: str | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -255,6 +260,10 @@ class McpHttpSession:
                     raise ProxyError("Stitch credential could not be read") from error
             secret = self._cached_secret
             if not secret:
+                try:
+                    self.missing_credential_handler()
+                except Exception:
+                    pass
                 raise ProxyError("Stitch credential is not configured")
             request = self._request(message, secret)
             try:
@@ -276,6 +285,10 @@ class McpHttpSession:
                     continue
                 if error.code == 401:
                     error.close()
+                    try:
+                        self.missing_credential_handler()
+                    except Exception:
+                        pass
                     raise ProxyError("Stitch authentication failed after one credential refresh") from error
                 if error.code == 403:
                     error.close()

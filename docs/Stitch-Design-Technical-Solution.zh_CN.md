@@ -1,6 +1,6 @@
 # Stitch Design 技术方案
 
-> **范围**：说明 Stitch Design 0.7.1 的实现决策、接口、安全、测试、发布和迁移方案。
+> **范围**：说明 Stitch Design 0.7.2 的实现决策、接口、安全、测试、发布和迁移方案。
 >
 > **最后更新**：2026-09-14
 
@@ -40,19 +40,20 @@
 
 ```mermaid
 sequenceDiagram
-    participant S as Setup Skill
+    participant S as MCP 代理
     participant U as 用户
     participant L as 本地向导
     participant F as 用户受限配置
-    S->>S: 检查凭据
+    S->>S: 解析凭据
     alt 缺失
-      S->>L: 监听 127.0.0.1 随机端口
+      S->>S: 获取 10 分钟启动标记
+      S->>L: 分离启动 127.0.0.1 随机端口
       L-->>U: 单卡片 Token 页面
       U->>L: 提交密码输入框中的 Key
       L->>L: Origin/CSRF/大小/JSON 校验
       L->>F: 原子写入
       L->>L: 清空输入框
-      U->>S: 回到 Codex
+      U->>S: 重新发起原请求
     end
 ```
 
@@ -74,9 +75,12 @@ flowchart TD
     Env -->|是| Direct["直接使用进程变量"]
     Env -->|否| Store{"用户受限配置存在 Key？"}
     Store -->|是| Inject["本地 stdio 代理每进程读取一次"]
-    Store -->|否| Wizard["打开本地设置向导"]
+    Store -->|否| Gate{"启动标记仍有效？"}
+    Gate -->|否| Wizard["打开本地设置向导"]
+    Gate -->|是| Wait["沿用当前向导，不重复打开"]
     Wizard --> Save["校验并保存 Key"]
     Save --> Inject
+    Wait --> Save
     Direct --> Ready(["调用 Stitch MCP"])
     Inject --> Ready
 ```
@@ -195,4 +199,4 @@ git diff --check
 
 ---
 
-**文档版本**：2.7.1 · **状态**：与 0.7.1 发布对齐
+**文档版本**：2.7.2 · **状态**：与 0.7.2 发布候选对齐

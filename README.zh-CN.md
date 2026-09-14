@@ -4,7 +4,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/version-0.7.1-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1)
+[![版本](https://img.shields.io/badge/candidate-0.7.2-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -95,11 +95,13 @@ flowchart LR
     G --> H[生成 · 编辑 · 导出]
 ```
 
+首次发起 MCP 请求且凭据缺失，或刷新凭据后仍收到 HTTP 401 时，插件会自动打开这个本地 Token 页面。设置期间启用 10 分钟冷却，避免重复请求不断弹窗。
+
 1. 在 [Stitch Settings](https://stitch.withgoogle.com/settings) 创建 Key。
 2. 粘贴到本地密码输入框，不要发送到聊天。
 3. 回到 Codex，先执行“列出我的 Stitch 项目”这类只读请求。
 
-手动打开设置页：
+浏览器没有自动打开时的手动降级方式：
 
 ```bash
 # macOS / Linux
@@ -109,7 +111,7 @@ python /已安装插件路径/scripts/stitch_setup.py ui
 python C:\已安装插件路径\scripts\stitch_setup.py ui
 ```
 
-设置页仅监听 `127.0.0.1`，只加载内置资产，校验 Origin 与 CSRF，不记录 Key，每次响应后清空输入框。PATH 中的 `python` 命令必须解析为 Python 3.11 或更高版本。
+设置页仅监听 `127.0.0.1`，只加载内置资产，校验 Origin 与 CSRF，不记录 Key，每次响应后清空输入框；冷却标记只保存启动时间。PATH 中的 `python` 命令必须解析为 Python 3.11 或更高版本。
 
 ## 可完成的工作
 
@@ -143,6 +145,7 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
+| 当前候选版本 | `0.7.2` |
 | 当前版本 | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | 上一版本 | [v0.7.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.0) |
 | Marketplace | `partme-ai-stitch` |

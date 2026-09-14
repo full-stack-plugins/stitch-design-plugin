@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/version-0.7.1-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1)
+[![Version](https://img.shields.io/badge/candidate-0.7.2-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -95,11 +95,13 @@ flowchart LR
     G --> H[Generate · edit · export]
 ```
 
+On the first MCP request without a credential, or after a refreshed credential is still rejected with HTTP 401, the plugin automatically opens this local Token screen. A 10-minute cooldown prevents repeated windows while setup is in progress.
+
 1. Create your key in [Stitch Settings](https://stitch.withgoogle.com/settings).
 2. Paste it into the masked local field. Never paste it into chat.
 3. Return to Codex; start with a read-only request such as “List my Stitch projects.”
 
-Manual setup launch:
+Manual fallback if the browser does not open:
 
 ```bash
 # macOS / Linux
@@ -109,7 +111,7 @@ python /path/to/installed/plugin/scripts/stitch_setup.py ui
 python C:\path\to\installed\plugin\scripts\stitch_setup.py ui
 ```
 
-The setup page listens only on `127.0.0.1`, loads bundled assets, validates Origin and CSRF, never logs the key, and clears the field after every response. The `python` command on PATH must resolve to Python 3.11 or newer.
+The setup page listens only on `127.0.0.1`, loads bundled assets, validates Origin and CSRF, never logs the key, and clears the field after every response. The cooldown marker stores only a launch timestamp. The `python` command on PATH must resolve to Python 3.11 or newer.
 
 ## What you can build
 
@@ -143,6 +145,7 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
+| Current candidate | `0.7.2` |
 | Current release | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Previous release | [v0.7.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.0) |
 | Marketplace | `partme-ai-stitch` |

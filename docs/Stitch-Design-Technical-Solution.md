@@ -1,6 +1,6 @@
 # Stitch Design Technical Solution
 
-> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.1.
+> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.2.
 >
 > **Updated:** 2026-09-14
 
@@ -40,19 +40,20 @@ The runtime remains Python-only. On every supported host, PATH `python` must res
 
 ```mermaid
 sequenceDiagram
-    participant S as Setup Skill
+    participant S as MCP proxy
     participant U as User
     participant L as Local Wizard
     participant F as Restricted User Config
-    S->>S: check credential presence
+    S->>S: resolve credential
     alt missing
-      S->>L: start ui on 127.0.0.1 random port
+      S->>S: acquire 10-minute launch marker
+      S->>L: detached ui on 127.0.0.1 random port
       L-->>U: single-card Token page
       U->>L: submit masked key
       L->>L: Origin + CSRF + size + JSON validation
       L->>F: atomic write
       L->>L: clear input
-      U->>S: return to Codex
+      U->>S: retry the original request
     end
 ```
 
@@ -76,9 +77,12 @@ flowchart TD
     Env -->|Yes| Direct["Use process value"]
     Env -->|No| Store{"Restricted user config contains key?"}
     Store -->|Yes| Inject["Read once inside local stdio proxy"]
-    Store -->|No| Wizard["Open local setup wizard"]
+    Store -->|No| Gate{"Launch marker is fresh?"}
+    Gate -->|No| Wizard["Open local setup wizard"]
+    Gate -->|Yes| Wait["Keep current wizard; do not reopen"]
     Wizard --> Save["Validate and save key"]
     Save --> Inject
+    Wait --> Save
     Direct --> Ready(["Invoke Stitch MCP"])
     Inject --> Ready
 ```
@@ -206,4 +210,4 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 2.7.1 · **Status:** Aligned with the 0.7.1 release
+**Document version:** 2.7.2 · **Status:** Aligned with the 0.7.2 release candidate

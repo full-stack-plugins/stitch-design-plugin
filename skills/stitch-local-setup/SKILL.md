@@ -49,9 +49,9 @@ license: Apache-2.0
 2. 检查通过后继续原来的 Stitch 任务。
 3. 检查失败时暂停远程调用，并按最后一行输出区分两个分支，不要混为一谈：
 
-   - `STITCH_API_KEY is not configured`：凭据缺失。告诉用户从 Stitch Settings 创建 key；不要让用户把 key 粘贴到聊天。
+   - `STITCH_API_KEY is not configured`：凭据缺失。MCP 代理会自动打开本地 Token 页面；告诉用户从 Stitch Settings 创建 key，不要让用户把 key 粘贴到聊天。代理在刷新一次后仍收到 401 时也会打开同一页面，用于更换失效 Key。
    - `Stitch MCP configuration is missing`：凭据可读但插件根缺少 `.mcp.json`，属于安装不完整。此时新建 key 无效，应修复或重新安装插件后重跑 `check`。
-4. 从当前 `SKILL.md` 向上两级定位插件根目录，打开极简本地设置向导：
+4. 正常情况下等待自动打开的本地页面。代理使用 10 分钟冷却标记避免同一缺失凭据连续弹窗；标记只记录启动时间，不包含 key。只有浏览器被系统策略阻止或页面未出现时，才从当前 `SKILL.md` 向上两级定位插件根目录并手动打开：
 
    - Windows：
 
@@ -67,7 +67,7 @@ license: Apache-2.0
 
 5. 用户在单卡片中粘贴并保存 Token；获取链接、三条说明和高级命令保持轻量，不再显示独立三步向导。
 6. 凭据仅来自当前进程或受限的用户配置文件；没有其他存储迁移入口。
-7. 设置后启动 Codex：
+7. 设置后先回到对话重新发起原请求。若当前宿主没有重新建立 MCP 进程，再使用配置器启动 Codex：
 
    ```bash
    python /absolute/plugin/root/scripts/stitch_setup.py cli
@@ -90,6 +90,8 @@ license: Apache-2.0
 **Q2：为什么安装后还需要 key？** 安装已完成 MCP 配置；key 用于 Stitch 用户认证。
 
 **Q3：会修改 shell 配置吗？** 不会。配置器使用独立的用户凭据文件。
+
+**Q3.1：为什么页面没有自动打开？** 自动打开由本地 MCP 代理在首次缺少凭据时触发，并有 10 分钟防重复冷却。若浏览器策略阻止打开，请使用上面的 `ui` 命令；不需要把 key 发到聊天。
 
 **Q4：保存在哪里？** Unix 使用 `$XDG_CONFIG_HOME/stitch-design/credentials.json` 或 `~/.config/...`，Windows 使用 `%APPDATA%\stitch-design\credentials.json`。移除方式为先在 Stitch Settings 吊销 key，再删除该凭据文件；删除后不要继续使用旧 key。
 

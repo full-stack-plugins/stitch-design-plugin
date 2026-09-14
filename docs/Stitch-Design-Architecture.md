@@ -2,7 +2,7 @@
 
 > **Purpose:** Define the verified architecture, trust boundaries, lifecycle, failure semantics, and evolution constraints of Stitch Design.
 >
-> **Version:** 0.7.1 · **Status:** Released · **Evidence date:** 2026-09-14
+> **Version:** 0.7.2 · **Status:** Release candidate · **Evidence date:** 2026-09-14
 
 [简体中文](Stitch-Design-Architecture.zh_CN.md) | [Technical solution](Stitch-Design-Technical-Solution.md) | [README](../README.md)
 
@@ -164,8 +164,8 @@ sequenceDiagram
     participant M as Marketplace / source
     participant P as Plugin
     U->>C: add marketplace and plugin
-    C->>M: resolve main for 0.7.1 candidate
-    M-->>C: stitch-design 0.7.1 candidate
+    C->>M: resolve main for 0.7.2 candidate
+    M-->>C: stitch-design 0.7.2 candidate
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -177,10 +177,12 @@ stateDiagram-v2
     [*] --> CredentialCheck
     CredentialCheck --> Ready: environment or restricted user config found
     CredentialCheck --> SetupRequired: missing
-    SetupRequired --> WizardOpen
+    SetupRequired --> LaunchGate
+    LaunchGate --> WizardOpen: no marker or marker expired
+    LaunchGate --> SetupRequired: marker younger than 10 minutes
     WizardOpen --> Saved: valid local submission
-    Saved --> Restarted: launch new Codex process
-    Restarted --> Verified: list_projects returns list or empty list
+    Saved --> Retried: retry original request or restart host if needed
+    Retried --> Verified: list_projects returns list or empty list
     Verified --> Ready
     WizardOpen --> SetupRequired: invalid or cancelled
 ```
@@ -314,4 +316,4 @@ The manual live-canary workflow validates MCP lifecycle/catalog behavior plus pr
 
 ---
 
-**Document version:** 2.7.1 · **Status:** Aligned with the 0.7.1 release · **Updated:** 2026-09-14
+**Document version:** 2.7.2 · **Status:** Aligned with the 0.7.2 release candidate · **Updated:** 2026-09-14

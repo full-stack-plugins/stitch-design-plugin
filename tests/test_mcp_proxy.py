@@ -5,6 +5,7 @@ import urllib.error
 import unittest
 from email.message import Message
 from pathlib import Path
+from unittest import mock
 
 
 from stitch_harness import mcp_proxy
@@ -91,6 +92,48 @@ INITIALIZE = {
 
 
 class McpHttpSessionTests(unittest.TestCase):
+    def test_missing_credential_opens_local_setup_before_returning_error(self):
+        handler = mock.Mock()
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider([None]),
+            opener=FakeOpener([]),
+            missing_credential_handler=handler,
+        )
+
+        with self.assertRaisesRegex(mcp_proxy.ProxyError, "credential is not configured"):
+            session.send(INITIALIZE)
+
+        handler.assert_called_once_with()
+
+    def test_setup_launch_failure_does_not_mask_missing_credential_error(self):
+        handler = mock.Mock(side_effect=RuntimeError("browser unavailable"))
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider([None]),
+            opener=FakeOpener([]),
+            missing_credential_handler=handler,
+        )
+
+        with self.assertRaisesRegex(mcp_proxy.ProxyError, "credential is not configured"):
+            session.send(INITIALIZE)
+
+        handler.assert_called_once_with()
+
+    def test_configured_credential_does_not_open_local_setup(self):
+        handler = mock.Mock()
+        response = FakeResponse(
+            200,
+            b'{"jsonrpc":"2.0","id":1,"result":{}}',
+        )
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["configured-secret"]),
+            opener=FakeOpener([response]),
+            missing_credential_handler=handler,
+        )
+
+        session.send(INITIALIZE)
+
+        handler.assert_not_called()
+
     def test_schema_repair_injects_all_referenced_known_definitions(self):
         tools = load_tool_fixture()
 
@@ -398,6 +441,25 @@ class McpHttpSessionTests(unittest.TestCase):
         self.assertEqual(provider.read_count, 2)
         self.assertEqual(len(opener.requests), 2)
         self.assertEqual(opener.requests[1].headers["X-goog-api-key"], "fresh-secret")
+
+    def test_terminal_unauthorized_opens_local_setup_for_key_rotation(self):
+        handler = mock.Mock()
+        opener = FakeOpener(
+            [
+                ("http-error", 401, b'{"error":"unauthorized"}'),
+                ("http-error", 401, b'{"error":"unauthorized"}'),
+            ]
+        )
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["expired-secret", "still-expired-secret"]),
+            opener=opener,
+            missing_credential_handler=handler,
+        )
+
+        with self.assertRaisesRegex(mcp_proxy.ProxyError, "authentication failed"):
+            session.send(INITIALIZE)
+
+        handler.assert_called_once_with()
 
     def test_forbidden_does_not_refresh_or_replay(self):
         opener = FakeOpener([("http-error", 403, b'{"error":"forbidden"}')])
