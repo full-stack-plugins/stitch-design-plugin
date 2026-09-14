@@ -4,65 +4,96 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [技术方案](docs/Stitch-Design-Technical-Solution.zh_CN.md) · [0.6.0 真实 smoke 验收](docs/live-canary-acceptance.zh_CN.md)
 
-![Stitch Design 插件概览](assets/readme/stitch-design-plugin-overview.png)
+<p align="center">
+  <img src="assets/readme/stitch-design-plugin-overview.png" width="760" alt="Stitch Design 插件概览">
+</p>
 
-## 项目状态
+<p align="center">
+  <img alt="版本 0.6.0" src="https://img.shields.io/badge/version-0.6.0-1A73E8">
+  <img alt="43 个 Agent Skills" src="https://img.shields.io/badge/Agent%20Skills-43-6C63FF">
+  <img alt="17 个 MCP 工具" src="https://img.shields.io/badge/MCP%20tools-17-00A67E">
+  <img alt="三系统 CI" src="https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-222222">
+</p>
 
-| 属性 | 值 |
-|:---|:---|
-| 插件 ID | `stitch-design` |
-| 本地候选版本 | `0.6.0` — 尚未发布 |
-| 已发布基线 | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
-| 宿主布局 | Codex compatibility plugin |
-| Skills | 43 |
-| MCP Endpoint | `https://stitch.googleapis.com/mcp` |
-| 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
-| 许可证 | Apache-2.0 |
+| 43 个工作流 Skills | 17 个 MCP 工具 | 15+ 前端目标 | 3 种验证视口 |
+|:---:|:---:|:---:|:---:|
+| 设计、安全、转换、交付 | 15 个 Google Stitch + 2 个本地资产工具 | React、Vue、移动端等 | Desktop、Tablet、Mobile |
 
-```text
-Codex
-  │ 用户请求
-  ▼
-Stitch Design
-  ├─ 43 个 Skills：路由、安全、设计、转换、交付
-  ├─ Delivery Harness：契约 → 门禁 → receipts → 批准
-  ├─ 本地设置页：获取 Key → 用户受限配置
-  └─ 内置 stdio 代理 → Google Stitch HTTPS MCP
-                         │
-                         ▼
-                 Google Stitch MCP
-```
+## 两条命令完成安装
 
-## 提供的能力
-
-- 创建、检查、编辑 Stitch 屏幕并生成变体。
-- 管理设计系统和 DESIGN.md 工作流。
-- 把本地 HTML/图片导入已授权的 Stitch 项目；下载时若服务端不枚举屏幕，传入已验证的 `screenNames` 精确资源名。
-- 转换为 React、React Native、shadcn/ui、Vue、Vant、Element Plus、Bootstrap、Layui、uView、uView Pro 和 uview-plus。
-- 生成站点规格、提示词、视觉规范和 Remotion 演示。
-- 写操作结果不明时先读取远端状态，再决定是否恢复。
-- 执行 Stitch → ImageGen → OCR/业务 → 回灌 → 对比 → 批准的门禁闭环。
-
-插件不托管 Stitch、不内置共享 Key，也不把 ChatGPT 网页认证描述为生产可用。
-
-## 安装
+推荐显式跟踪本仓库 `main` 分支：
 
 ```bash
 codex plugin marketplace add partme-ai/codex-stitch-plugin --ref main
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
-安装或升级后重启 Codex，并新建任务。
+安装后重启 Codex 或 ChatGPT 桌面应用，新建任务，并让 Stitch Design 列出你的项目。
 
-## 第一次使用
+### 其他官方支持的 Marketplace 来源
 
-插件已经内置 MCP URL。首次本地 Stitch 请求会由 `stitch-local-setup` 检查凭据；缺少时打开本地单卡片 Token 页面：
+使用 GitHub shorthand 和仓库默认分支：
 
-1. 打开 Stitch Settings 创建 API Key。
-2. 在本地密码输入框粘贴并保存。
-3. 回到 Codex 并执行只读项目检查。
+```bash
+codex plugin marketplace add partme-ai/codex-stitch-plugin
+codex plugin add stitch-design@partme-ai-stitch
+```
 
-手动启动：
+使用完整 Git URL 并固定 `main`：
+
+```bash
+codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git --ref main
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+仅稀疏检出 Marketplace 元数据：
+
+```bash
+codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git \
+  --ref main \
+  --sparse .agents/plugins
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+本地克隆，适用于开发与调试：
+
+```bash
+git clone https://github.com/partme-ai/codex-stitch-plugin.git
+codex plugin marketplace add ./codex-stitch-plugin
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+检查或刷新安装：
+
+```bash
+codex plugin marketplace list
+codex plugin list
+codex plugin marketplace upgrade partme-ai-stitch
+```
+
+Marketplace 名称是 `partme-ai-stitch`，插件安装选择器是 `stitch-design@partme-ai-stitch`。
+
+## 第一次使用：一张本地 Token 页面
+
+插件已经内置 MCP 连接。第一次 Stitch 请求会检查凭据，仅在缺少 `STITCH_API_KEY` 时打开本地 Token 页面。
+
+```mermaid
+flowchart LR
+    A[安装插件] --> B[重启并新建任务]
+    B --> C{Token 是否存在}
+    C -->|否| D[打开本地 Token 页]
+    D --> E[在 Stitch Settings 创建 Key]
+    E --> F[保存到用户受限配置]
+    C -->|是| G[只读列出项目]
+    F --> G
+    G --> H[生成 · 编辑 · 导出]
+```
+
+1. 在 [Stitch Settings](https://stitch.withgoogle.com/settings) 创建 Key。
+2. 粘贴到本地密码输入框，不要发送到聊天。
+3. 回到 Codex，先执行“列出我的 Stitch 项目”这类只读请求。
+
+手动打开设置页：
 
 ```bash
 # macOS / Linux
@@ -72,9 +103,45 @@ python /已安装插件路径/scripts/stitch_setup.py ui
 python C:\已安装插件路径\scripts\stitch_setup.py ui
 ```
 
-页面只监听 `127.0.0.1`，不加载外部资产，校验 CSRF 和 Origin，不记录 Key，并在每次响应后清空输入。所有平台默认保存到当前用户的受限配置文件。详见 [使用指南](docs/getting-started.zh-CN.md) 与 [隐私说明](PRIVACY.md)。
+设置页仅监听 `127.0.0.1`，只加载内置资产，校验 Origin 与 CSRF，不记录 Key，每次响应后清空输入框。PATH 中的 `python` 命令必须解析为 Python 3.11 或更高版本。
 
-所有支持的宿主上，PATH 中的 `python` 命令必须解析为 Python 3.11 或更高版本。插件 MCP 与 Windows 设置说明有意使用同一个命令。
+## 可完成的工作
+
+| 工作流 | 内置路径 | 可验证输出 |
+|:---|:---|:---|
+| 创建与迭代 | 生成、检查、编辑、变体 | 绑定的项目与屏幕身份 |
+| 管理视觉系统 | 创建、更新、列出、应用设计系统 | 设计系统身份与版本证据 |
+| 把现有 UI 带入 Stitch | 上传已审核 HTML/图片 | 同项目屏幕资源 |
+| 生产导出 | 下载 HTML、截图和引用资产 | 原子文件与 SHA-256 清单 |
+| 生成前端代码 | React、React Native、shadcn/ui、Vue、Vant、Element Plus、Bootstrap、Layui、uView | 可编辑组件源码 |
+| 门禁化交付 | Stitch → ImageGen → OCR → 回灌 → 对比 → 批准 | Receipt 链与明确人工批准 |
+
+插件不托管 Stitch，不内置共享 Key。写操作结果不明时，必须先读取远端状态再决定是否重试。
+
+## 对照 OpenAI 官方规范的包自检
+
+| 官方要求 | 当前仓库 | 结果 |
+|:---|:---|:---:|
+| 稳定插件身份与元数据 | `.codex-plugin/plugin.json`、`stitch-design`、开发者与 URL | 通过 |
+| 根目录 Skills | `skills/` 中 43 个已验证 Skills | 通过 |
+| 内置 MCP 配置 | `.mcp.json` 兼容映射到本地 stdio 代理 | Codex 兼容模式通过 |
+| 安装面视觉元数据 | Logo、composer icon、默认提示与 README 截图 | 通过 |
+| Marketplace 策略元数据 | 安装策略、`ON_USE` 认证和 `Creativity` 分类 | 通过 |
+| Portable Agent Plugins 根清单 | 根 `plugin.json` 与 portable `mcp.json` | 尚未迁移 |
+| Universal 公共 Plugins Directory | 需要独立 OpenAI 提交和远端 HTTPS MCP 审查 | 未发布 |
+
+当前仓库在 portable/public 迁移门禁关闭前，保持 Codex compatibility package。详见 [Portable 迁移门禁](docs/portable-migration.md)。
+
+## 项目状态
+
+| 属性 | 值 |
+|:---|:---|
+| 插件 ID | `stitch-design` |
+| 候选版本 | `0.6.0` — 本地/仓库 Marketplace 候选 |
+| 已发布基线 | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
+| Marketplace | `partme-ai-stitch` |
+| 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
+| 许可证 | Apache-2.0 |
 
 ## 使用示例
 

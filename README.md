@@ -4,67 +4,96 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [Architecture](docs/Stitch-Design-Architecture.md) · [Technical solution](docs/Stitch-Design-Technical-Solution.md) · [0.6.0 live-smoke acceptance](docs/live-canary-acceptance.md)
 
-![Stitch Design plugin overview](assets/readme/stitch-design-plugin-overview.png)
+<p align="center">
+  <img src="assets/readme/stitch-design-plugin-overview.png" width="760" alt="Stitch Design plugin overview">
+</p>
 
-## Project status
+<p align="center">
+  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-1A73E8">
+  <img alt="43 Agent Skills" src="https://img.shields.io/badge/Agent%20Skills-43-6C63FF">
+  <img alt="17 MCP tools" src="https://img.shields.io/badge/MCP%20tools-17-00A67E">
+  <img alt="CI on three operating systems" src="https://img.shields.io/badge/CI-Linux%20%7C%20macOS%20%7C%20Windows-222222">
+</p>
 
-| Property | Value |
-|:---|:---|
-| Plugin ID | `stitch-design` |
-| Candidate | `0.6.0` — local, not yet published |
-| Released baseline | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
-| Host layout | Codex compatibility plugin |
-| Skills | 43 |
-| MCP endpoint | `https://stitch.googleapis.com/mcp` |
-| Authentication | User-owned `STITCH_API_KEY`, requested on first use |
-| License | Apache-2.0 |
+| 43 workflow Skills | 17 MCP tools | 15+ frontend targets | 3 verified viewports |
+|:---:|:---:|:---:|:---:|
+| Design, safety, conversion, delivery | 15 Google Stitch + 2 local asset tools | React, Vue, mobile and more | Desktop, tablet, mobile |
 
-```text
-Codex
-  │ user request
-  ▼
-Stitch Design
-  ├─ 43 Skills: routing, safety, design, conversion, delivery
-  ├─ Delivery Harness: contracts → gates → receipts → approval
-  ├─ local asset tools: safe upload → verified atomic export
-  ├─ local setup UI: get key → user configuration
-  └─ bundled stdio proxy → Google Stitch HTTPS MCP
-                         │
-                         ▼
-                 Google Stitch MCP
-```
+## Install in two commands
 
-## What it provides
-
-- Create, inspect, edit, and generate variants of Stitch screens.
-- Manage design systems and DESIGN.md-based workflows.
-- Import local HTML/images into authorized Stitch projects.
-- Export HTML, screenshots, available DESIGN.md, and referenced assets with hashes through `stitch_local_download_assets`; pass verified `screenNames` when the provider does not enumerate screens.
-- Convert Stitch outputs to React, React Native, shadcn/ui, Vue, Vant, Element Plus, Bootstrap, Layui, uView, uView Pro, and uview-plus.
-- Generate site specifications, prompt architecture, visual guidance, and Remotion walkthroughs.
-- Recover safely from ambiguous remote writes by reading state before any retry.
-- Run a gated Stitch → ImageGen → OCR/business → roundtrip → comparison → approval workflow.
-
-The plugin does not host Stitch, bundle a shared API key, or make ChatGPT web authentication production-ready.
-
-## Install
+Recommended: track the repository's `main` branch explicitly.
 
 ```bash
 codex plugin marketplace add partme-ai/codex-stitch-plugin --ref main
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
-Restart Codex and open a new task after installing or upgrading.
+Restart Codex or the ChatGPT desktop app, open a new task, and ask Stitch Design to list your projects.
 
-## First use
+### Other supported Marketplace sources
 
-The plugin already contains its MCP URL. On the first local Stitch request, `stitch-local-setup` checks for credentials. If none are available, it opens a single-card local Token page:
+GitHub shorthand using the repository's default branch:
 
-1. Open Stitch Settings and create an API key.
-2. Paste the key into the masked local input and save.
-3. Return to Codex and run a read-only project check.
+```bash
+codex plugin marketplace add partme-ai/codex-stitch-plugin
+codex plugin add stitch-design@partme-ai-stitch
+```
 
-Manual launch:
+Full Git URL pinned to `main`:
+
+```bash
+codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git --ref main
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+Sparse Git checkout when only Marketplace metadata is needed:
+
+```bash
+codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git \
+  --ref main \
+  --sparse .agents/plugins
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+Local checkout for development:
+
+```bash
+git clone https://github.com/partme-ai/codex-stitch-plugin.git
+codex plugin marketplace add ./codex-stitch-plugin
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+Confirm or refresh the installation:
+
+```bash
+codex plugin marketplace list
+codex plugin list
+codex plugin marketplace upgrade partme-ai-stitch
+```
+
+The Marketplace name is `partme-ai-stitch`; the install selector is `stitch-design@partme-ai-stitch`.
+
+## First use: one local Token screen
+
+The plugin already bundles its MCP connection. The first Stitch request checks credentials and opens the local Token screen only when `STITCH_API_KEY` is missing.
+
+```mermaid
+flowchart LR
+    A[Install plugin] --> B[Restart and open a new task]
+    B --> C{Token available?}
+    C -->|No| D[Open local Token screen]
+    D --> E[Create key in Stitch Settings]
+    E --> F[Save to restricted user config]
+    C -->|Yes| G[Read-only project check]
+    F --> G
+    G --> H[Generate · edit · export]
+```
+
+1. Create your key in [Stitch Settings](https://stitch.withgoogle.com/settings).
+2. Paste it into the masked local field. Never paste it into chat.
+3. Return to Codex; start with a read-only request such as “List my Stitch projects.”
+
+Manual setup launch:
 
 ```bash
 # macOS / Linux
@@ -74,9 +103,45 @@ python /path/to/installed/plugin/scripts/stitch_setup.py ui
 python C:\path\to\installed\plugin\scripts\stitch_setup.py ui
 ```
 
-The page binds only to `127.0.0.1`, loads no external assets, uses CSRF and Origin checks, never logs the key, and clears the input after every response. It stores the key in a restricted current-user configuration file on every supported platform. See [Getting started](docs/getting-started.zh-CN.md) and [Privacy](PRIVACY.md).
+The setup page listens only on `127.0.0.1`, loads bundled assets, validates Origin and CSRF, never logs the key, and clears the field after every response. The `python` command on PATH must resolve to Python 3.11 or newer.
 
-The `python` command on PATH must resolve to Python 3.11 or newer on every supported host. The plugin MCP and Windows setup instructions intentionally use that same command.
+## What you can build
+
+| Workflow | Built-in path | Verifiable output |
+|:---|:---|:---|
+| Create and iterate | Generate, inspect, edit, variants | Bound project and screen identities |
+| Govern visual systems | Create, update, list, apply design systems | Design-system identity and version evidence |
+| Bring existing UI into Stitch | Upload reviewed HTML/images | Same-project screen resources |
+| Export for production | Download HTML, screenshots and referenced assets | Atomic files and SHA-256 manifest |
+| Generate frontend code | React, React Native, shadcn/ui, Vue, Vant, Element Plus, Bootstrap, Layui, uView | Editable component source |
+| Deliver with gates | Stitch → ImageGen → OCR → roundtrip → comparison → approval | Receipt chain and explicit human approval |
+
+The plugin does not host Stitch or bundle a shared key. Ambiguous writes are reconciled with read operations before any retry.
+
+## Package self-check against OpenAI guidance
+
+| Official requirement | Current repository | Result |
+|:---|:---|:---:|
+| Stable plugin identity and metadata | `.codex-plugin/plugin.json`, `stitch-design`, publisher and URLs | Pass |
+| Skills at the plugin root | `skills/` with 43 validated Skills | Pass |
+| Bundled MCP configuration | `.mcp.json` compatibility mapping to the local stdio proxy | Pass for Codex compatibility |
+| Visual install metadata | Logo, composer icon, default prompts and README screenshot | Pass |
+| Marketplace policy metadata | Installation, `ON_USE` authentication and `Creativity` category | Pass |
+| Portable Agent Plugins root manifest | Root `plugin.json` and portable `mcp.json` | Not yet migrated |
+| Universal public Plugins Directory | Requires separate OpenAI submission and remote HTTPS MCP review | Not published |
+
+This repository intentionally remains a Codex compatibility package while the portable/public migration gate is open. See [Portable migration gate](docs/portable-migration.md).
+
+## Project status
+
+| Property | Value |
+|:---|:---|
+| Plugin ID | `stitch-design` |
+| Candidate | `0.6.0` — local/repo Marketplace candidate |
+| Released baseline | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
+| Marketplace | `partme-ai-stitch` |
+| Authentication | User-owned `STITCH_API_KEY`, requested on first use |
+| License | Apache-2.0 |
 
 ## Example requests
 

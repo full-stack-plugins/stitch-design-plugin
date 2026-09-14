@@ -253,6 +253,24 @@ class DistributionContractTests(unittest.TestCase):
             self.assertNotIn("stitch_setup.py migrate", text)
             self.assertNotIn("Native system-store migration", text)
 
+    def test_readmes_use_real_marketplace_install_commands_and_visual_metrics(self) -> None:
+        readmes = (
+            (ROOT / "README.md").read_text(encoding="utf-8"),
+            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
+        )
+        required = (
+            "codex plugin marketplace add partme-ai/codex-stitch-plugin --ref main",
+            "codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git --ref main",
+            "--sparse .agents/plugins",
+            "codex plugin marketplace add ./codex-stitch-plugin",
+            "codex plugin add stitch-design@partme-ai-stitch",
+            "Agent%20Skills-43",
+            "MCP%20tools-17",
+        )
+        for readme in readmes:
+            for value in required:
+                self.assertIn(value, readme)
+
     def test_bilingual_overview_counts_current_skill_inventory(self) -> None:
         self.assertIn("43 workflow-oriented Agent Skills", (ROOT / "README.md").read_text(encoding="utf-8"))
         self.assertIn("43 个面向工作流的 Agent Skills", (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"))
