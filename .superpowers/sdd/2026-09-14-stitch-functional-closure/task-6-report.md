@@ -35,8 +35,8 @@
 
 - RED 覆盖：缺少 initialized notification/分页目录/session seam；mismatched ID、JSON-RPC error、`isError`；unknown create 唯一/重复标题对账；unknown/失败 delete 后不存在性读取；创建身份未落盘时按私有标题恢复；零匹配禁止删除；跨项目 edit、空 upload；variant 复用源身份；schema/acceptance 混淆；checkout credential persistence；Harness 边界文档失真。
 - Recording fake session 覆盖真实 `StitchBackend` 的完整 provider/asset stage chain、两页 17 工具目录、精确参数、输出合同、未知 create/delete 与身份约束。
-- `python -m unittest tests.test_live_canary -v`：20/20 PASS。
-- `python -m unittest discover -s tests -q`：215/215 PASS。
+- `python -m unittest tests.test_live_canary -v`：22/22 PASS。
+- `python -m unittest discover -s tests -q`：217/217 PASS。
 - `python scripts/validate_distribution.py .`：43 Skills，compatibility distribution 0.6.0，PASS。
 - `python scripts/validate_skills.py skills`、Markdown links、secret scan、compileall、两份 workflow actionlint、ShellCheck 与 `git diff --check`：PASS。
 
@@ -52,3 +52,11 @@
 
 - Task 6 仓库准备与 Fix Round 2：完成，待本提交落库。
 - Provider + asset 真实 smoke、交互式 Harness acceptance、独立审查、远端发布与安装等价性：待控制器。
+
+## Post-push Windows CI 修复
+
+- 失败来源：GitHub Actions run `34796729100` 的 Windows job 执行 `_atomic_private_json` 时进入 POSIX `os.fchmod`；该调用在 `os.fdopen` 接管 descriptor 前失败，旧 `finally` 只尝试 unlink，未先关闭原始 fd，Windows 还会因打开句柄阻止临时文件清理。
+- 修复：仅在 `os.name != "nt"` 时调用 `fchmod(0600)`；移除原子替换后的冗余 `chmod`。原始 descriptor 在所有前置权限/`fdopen` 异常路径中先显式关闭，再清理临时文件；正常路径由 `with stream` 在 `os.replace` 前关闭句柄。
+- 平台隐私合同：POSIX 继续断言目标文件 mode `0600`；Windows 不模拟 POSIX mode bits，依赖当前用户 runner temp/profile ACL，同时完整执行原子写入、JSON 读取和敏感值不输出测试，无功能 skip。
+- TDD：Windows 分支先因调用 `fchmod` RED；权限失败注入先证明 fd 泄漏 RED。最小实现后两项转 GREEN，Task 6 聚焦测试 22/22、完整套件 217/217 PASS。
+- 版本保持 0.6.0 本地候选；未 tag、release 或执行其他远端写入。

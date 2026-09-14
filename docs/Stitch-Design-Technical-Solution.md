@@ -185,7 +185,7 @@ actionlint .github/workflows/live-canary.yml
 git diff --check
 ```
 
-The live workflow is intentionally excluded from push and pull-request triggers. It performs provider + asset smoke only, not Harness acceptance. Authentication is mapped only from the `STITCH_API_KEY` repository secret. Opaque identifiers remain in private `0600` runner state. Cleanup can recover a missing resource name only through bounded exact-title reads, then checkpoints identity before one delete; bounded absence reads follow every delete outcome. Variant acceptance requires exactly one same-project identity different from the source. Schema-valid evidence and accepted evidence are separate contracts. Full ImageGen/OCR/editability/comparison/explicit-human-approval/archive acceptance uses the [local Harness controller](live-harness-controller.md).
+The live workflow is intentionally excluded from push and pull-request triggers. It performs provider + asset smoke only, not Harness acceptance. Authentication is mapped only from the `STITCH_API_KEY` repository secret. Opaque identifiers remain in private runner state: POSIX applies `0600`; Windows uses current-user runner temp/profile ACLs without POSIX mode calls. Cleanup can recover a missing resource name only through bounded exact-title reads, then checkpoints identity before one delete; bounded absence reads follow every delete outcome. Variant acceptance requires exactly one same-project identity different from the source. Full Harness acceptance uses the [local Harness controller](live-harness-controller.md).
 
 Release proof for 0.4.0:
 

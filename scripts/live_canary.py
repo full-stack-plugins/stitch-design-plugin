@@ -63,15 +63,22 @@ def _atomic_private_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}-", dir=path.parent)
     try:
-        os.fchmod(descriptor, 0o600)
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        if os.name != "nt":
+            os.fchmod(descriptor, 0o600)
+        stream = os.fdopen(descriptor, "w", encoding="utf-8")
+        descriptor = None
+        with stream:
             json.dump(payload, stream, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary_name, path)
-        os.chmod(path, 0o600)
     finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
         Path(temporary_name).unlink(missing_ok=True)
 
 

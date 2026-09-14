@@ -181,7 +181,7 @@ actionlint .github/workflows/live-canary.yml
 git diff --check
 ```
 
-真实 workflow 有意不配置 push 与 pull request 触发，只执行 provider + asset smoke，不是 Harness 验收。认证只映射 `STITCH_API_KEY` Repository Secret；opaque ID 仅保存在 runner 内 `0600` 私有状态。缺失资源名时，清理只能通过有界的精确标题读取恢复，先落盘身份再单次删除；所有删除结果之后都执行有界不存在性读取。变体验收要求同项目内精确一个且不同于源屏幕的身份。Schema 合法与 acceptance 通过是两个独立合同；完整 Harness 验收走[本地 Harness 控制器](live-harness-controller.zh_CN.md)。
+真实 workflow 有意不配置 push 与 pull request 触发，只执行 provider + asset smoke，不是 Harness 验收。认证只映射 `STITCH_API_KEY` Repository Secret；opaque ID 仅保存在 runner 私有状态：POSIX 使用 `0600`，Windows 使用当前用户 runner temp/profile ACL 且不调用 POSIX mode API。缺失资源名时，清理只能通过有界的精确标题读取恢复，先落盘身份再单次删除；所有删除结果之后都执行有界不存在性读取。完整 Harness 验收走[本地 Harness 控制器](live-harness-controller.zh_CN.md)。
 
 0.4.0 证据：提交/标签/远端 SHA 均为 `6cf533ee884157a5a265c6200bbff6842b62c0f5`；16 项测试、40 个 Skills、公开 Marketplace 安装、安装产物对比，以及 390×884、768×1024、1280×1024 视觉检查通过。
 

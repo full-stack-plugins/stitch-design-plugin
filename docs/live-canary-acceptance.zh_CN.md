@@ -29,7 +29,7 @@ flowchart LR
 
 真实 backend 要求 JSON-RPC ID 精确匹配、无 JSON-RPC error、`isError != true`、结构化工具内容以及逐工具输出合同。每个屏幕和资产结果都绑定私有状态中的精确项目、屏幕或设计系统身份。项目创建结果不明时，只读列出项目并且只接受唯一一个标题精确相等的结果；零个或多个匹配都不会写入项目身份。
 
-Opaque ID 仅保存在 runner 内 `0600` 私有文件且不上传。公开 evidence 使用精确 schema，仅包含布尔值、验收所需正数计数、一个聚合 SHA-256 和 UTC 时间戳。schema 校验与 acceptance 校验相互独立：结构合法的部分 evidence 不等于 smoke 已验收。
+Opaque ID 仅保存在 runner 私有文件且不上传。POSIX 显式使用 `0600`；Windows 依赖当前用户 runner temp/profile ACL，不应用 POSIX mode bits。公开 evidence 使用精确 schema，仅包含布尔值、验收所需正数计数、一个聚合 SHA-256 和 UTC 时间戳。schema 校验与 acceptance 校验相互独立：结构合法的部分 evidence 不等于 smoke 已验收。
 
 最后一个 `always()` 步骤是唯一删除入口。如果尚未落盘 `project_name`，清理会使用私有唯一 `project_title`，以两秒退避最多执行三次只读对账。只有精确一个合法匹配才先落盘身份再执行一次删除；零个或多个匹配都保持 unknown 并失败关闭。删除尝试先落盘且不重放。无论删除成功、失败还是结果不明，都用有界的新 `list_projects` 探针证明精确项目资源不存在；无法证明时保留 `project_absent: false` 并让验收失败。
 

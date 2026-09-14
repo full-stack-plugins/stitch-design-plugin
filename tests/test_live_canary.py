@@ -1,9 +1,12 @@
 import importlib.util
+import contextlib
+import io
 import json
 import os
 import stat
 import tempfile
 import unittest
+from unittest import mock
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -137,7 +140,8 @@ class LiveCanaryTests(unittest.TestCase):
             state_mode = stat.S_IMODE(state.stat().st_mode)
 
         self.assertEqual(private_state["project_title"], "codex-stitch-canary-20260914t080000z-abcdef123456")
-        self.assertEqual(state_mode, 0o600)
+        if os.name != "nt":
+            self.assertEqual(state_mode, 0o600)
         serialized = json.dumps(public_evidence, sort_keys=True)
         for forbidden in ("123456", "projects/", "screen-instance", "project_title", "project_id", "screen_id"):
             self.assertNotIn(forbidden, serialized)
@@ -145,6 +149,50 @@ class LiveCanaryTests(unittest.TestCase):
         self.assertEqual(result["counts"]["downloaded_files"], 3)
         self.assertEqual(result["counts"]["screens_read"], 1)
         self.assertEqual(result["hashes"]["download_manifest_sha256"], "4" * 64)
+
+    def test_windows_atomic_write_uses_profile_acl_without_posix_mode_calls_or_disclosure(self) -> None:
+        module = load_module()
+        private_value = "private-value-must-not-be-printed"
+        output = io.StringIO()
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "private.json"
+            with (
+                mock.patch.object(module.os, "name", "nt"),
+                mock.patch.object(module.os, "fchmod", side_effect=AssertionError("must not call fchmod")),
+                mock.patch.object(module.os, "chmod", side_effect=AssertionError("must not call chmod")),
+                contextlib.redirect_stdout(output),
+                contextlib.redirect_stderr(output),
+            ):
+                module._atomic_private_json(destination, {"value": private_value})
+            payload = json.loads(destination.read_text(encoding="utf-8"))
+        self.assertEqual(payload, {"value": private_value})
+        self.assertNotIn(private_value, output.getvalue())
+
+    def test_permission_failure_closes_descriptor_before_removing_temporary_file(self) -> None:
+        module = load_module()
+        descriptors: list[int] = []
+        real_mkstemp = tempfile.mkstemp
+
+        def recording_mkstemp(*args, **kwargs):
+            descriptor, name = real_mkstemp(*args, **kwargs)
+            descriptors.append(descriptor)
+            return descriptor, name
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            destination = root / "private.json"
+            with (
+                mock.patch.object(module.tempfile, "mkstemp", side_effect=recording_mkstemp),
+                mock.patch.object(module.os, "name", "posix"),
+                mock.patch.object(module.os, "fchmod", side_effect=PermissionError("denied"), create=True),
+                self.assertRaises(PermissionError),
+            ):
+                module._atomic_private_json(destination, {"value": "private"})
+            leftovers = list(root.iterdir())
+        self.assertEqual(leftovers, [])
+        self.assertEqual(len(descriptors), 1)
+        with self.assertRaises(OSError):
+            os.fstat(descriptors[0])
 
     def test_run_orders_the_complete_canary_chain(self) -> None:
         module = load_module()
