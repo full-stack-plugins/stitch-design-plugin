@@ -4,7 +4,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/version-0.6.1-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.1)
+[![版本](https://img.shields.io/badge/version-0.7.0-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.0)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -143,8 +143,8 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前版本 | [v0.6.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.1) |
-| 上一版本 | [v0.6.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.0) |
+| 当前版本 | [v0.7.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.0) |
+| 上一版本 | [v0.6.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.1) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |
@@ -200,7 +200,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-0.6.1 把所有 workflow action 固定到不可变 commit SHA，并让本地设置 Skill 与 `check` 命令契约对齐。0.6.0 的功能集不变：43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。Provider + asset canary 已通过并验证清理；Delivery Harness 在发布前已取得用户明确批准并完成归档。
+0.7.0 在 Stitch 提供方忽略请求设备时**失败关闭**，桌面回退稿不能再作为平板屏幕交付。页面规格现在要求 `canvas.device`，类型化证据写入器要求生成屏幕的元数据，因此已有 spec 文件必须补上该字段才能加载。被拒的下载现在会报出被拒主机名。0.6.0 的功能集不变：43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。
 
 Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行单次删除后只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
 

@@ -4,7 +4,7 @@ This is the separate, interactive controller path for real Delivery Harness acce
 
 ## Preconditions
 
-- Use a freshly installed 0.6.1 candidate in a new Codex task and prove the plugin's 15 provider tools plus two namespaced local tools are exposed.
+- Use a freshly installed 0.7.0 candidate in a new Codex task and prove the plugin's 15 provider tools plus two namespaced local tools are exposed.
 - Use the already approved temporary Stitch project scope or create one unique project with a cleanup plan.
 - Install/check the isolated Harness runtime without putting credentials in argv:
 

@@ -6,7 +6,7 @@
 
 ## 前置条件
 
-- 在新 Codex task 中使用全新安装的 0.6.1 候选，并证明 15 个 provider 工具与两个 namespaced 本地工具可见。
+- 在新 Codex task 中使用全新安装的 0.7.0 候选，并证明 15 个 provider 工具与两个 namespaced 本地工具可见。
 - 使用已批准范围内的临时 Stitch 项目，或创建带清理方案的唯一项目。
 - 检查隔离 Harness runtime，凭据不得进入 argv：
 

@@ -6,11 +6,11 @@
 >
 > Harness acceptance: passed and archived locally
 >
-> GitHub Release/repo Marketplace: v0.6.1 published
+> GitHub Release/repo Marketplace: v0.7.0 published
 
 [简体中文](live-canary-acceptance.zh_CN.md) | [Harness controller](live-harness-controller.md) | [Architecture](Stitch-Design-Architecture.md)
 
-The provider and Harness runtime measured below is unchanged in 0.6.1. 0.6.1 pins workflow actions to immutable commit SHAs, aligns the local-setup Skill with the `check` command contract, and updates the version constants that the distribution validator and this smoke record. No provider, Harness, or gate behavior changed, so the live evidence recorded here remains the applicable acceptance for 0.6.1.
+The provider contract measured below is unchanged, so this smoke remains the applicable provider evidence for 0.7.0. The Harness contract did change in 0.7.0: page specs now require `canvas.device`, and the new device-fidelity gate fails a screen whose provider device or geometry does not match the requested canvas. The live run recorded here predates that gate, so re-run the local Harness controller on 0.7.0 with specs that declare `canvas.device`. The tablet screens recorded in the 0.6.x evidence came back as DESKTOP from the provider and would now be rejected by design.
 
 This register separates two different external gates. The manual GitHub workflow is a bounded Google Stitch provider + local asset smoke; it is not Harness acceptance and it does not fabricate automated user approval. The full Delivery Harness remains an interactive local controller path.
 
@@ -41,7 +41,7 @@ Every action reference in both workflows is pinned to an immutable commit SHA: `
 
 ## Separate Harness gate
 
-After this smoke passes, run the [local Harness controller](live-harness-controller.md) from the installed 0.6.1 candidate. That path must obtain actual Stitch, ImageGen, OCR/business, roundtrip, editability, comparison, explicit human approval, and archive receipts. Neither manual workflow dispatch nor a green provider smoke counts as explicit human approval of Harness artifacts.
+After this smoke passes, run the [local Harness controller](live-harness-controller.md) from the installed 0.7.0 candidate. That path must obtain actual Stitch, ImageGen, OCR/business, roundtrip, editability, comparison, explicit human approval, and archive receipts. Neither manual workflow dispatch nor a green provider smoke counts as explicit human approval of Harness artifacts.
 
 ## Acceptance ledger
 
@@ -54,11 +54,11 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 | Local upload/download | Passed locally | upload 1; download 2; manifest hash recorded |
 | Delete and prove absence | Passed locally | `delete_requested` and `project_absent` true |
 | Full Delivery Harness | Passed locally | real receipts + explicit human approval + verified archive |
-| 0.6.1 tag/Release/repo Marketplace/install | Published | exact source/remote/tag/release/install equality |
+| 0.7.0 tag/Release/repo Marketplace/install | Published | exact source/remote/tag/release/install equality |
 
-Version 0.6.1 is the current GitHub/repo Marketplace release. Publication to the universal public Plugins Directory remains a separate OpenAI submission gate.
+Version 0.7.0 is the current GitHub/repo Marketplace release. Publication to the universal public Plugins Directory remains a separate OpenAI submission gate.
 
-## Post-release verification (2026-09-14)
+## Post-release verification for 0.6.1 (2026-09-14)
 
 - **Source equality at the release commit:** tag `v0.6.1`, the marketplace tracking clone refreshed for this release, and the installed cache all resolve to `40d9255`. `origin/main` was also `40d9255` when the release was cut and has since advanced only by this verification record, so the tag and the installed copy remain the release reference.
 - **Installed artifact parity at `40d9255`:** all 435 tracked files were byte-identical between the repository tree and the installed copy; the installed manifest reports 0.6.1, and no 0.6.0 install remains.
