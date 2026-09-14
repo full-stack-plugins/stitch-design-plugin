@@ -137,8 +137,8 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Candidate | `0.6.0` — local/repo Marketplace candidate |
-| Released baseline | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
+| Current release | [v0.6.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.0) |
+| Previous release | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
 | License | Apache-2.0 |
@@ -205,7 +205,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-The local 0.6.0 candidate contains 43 Skills, two namespaced local asset tools, typed Harness evidence writers, isolated comparison, explicit reconciliation/recovery, and recoverable archive publication. The local provider + asset canary passed on 2026-09-14 with verified cleanup; Harness approval, GitHub Release, and final installed-source equality remain separate gates. v0.5.4 is the published baseline.
+Version 0.6.0 contains 43 Skills, two namespaced local asset tools, typed Harness evidence writers, isolated comparison, explicit reconciliation/recovery, and recoverable archive publication. The provider + asset canary passed with verified cleanup, and the Delivery Harness reached explicit user approval and verified archive before release.
 
 Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md).
 

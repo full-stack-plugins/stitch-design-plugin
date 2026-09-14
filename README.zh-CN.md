@@ -137,8 +137,8 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 候选版本 | `0.6.0` — 本地/仓库 Marketplace 候选 |
-| 已发布基线 | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
+| 当前版本 | [v0.6.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.6.0) |
+| 上一版本 | [v0.5.4](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.5.4) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |
@@ -194,7 +194,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-本地 0.6.0 候选包含 43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。2026-09-14 本机 provider + asset canary 已通过并验证清理；Harness 人工批准、GitHub Release 与最终安装源码等价性仍是独立门禁。v0.5.4 是已发布基线。
+0.6.0 包含 43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。Provider + asset canary 已通过并验证清理；Delivery Harness 在发布前已取得用户明确批准并完成归档。
 
 Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行单次删除后只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
 

@@ -70,7 +70,7 @@ class FakeBackend:
 
 
 class LiveCanaryTests(unittest.TestCase):
-    def test_bilingual_docs_keep_060_as_candidate_until_live_controller_evidence_exists(self) -> None:
+    def test_bilingual_docs_record_060_harness_and_repo_release_gates(self) -> None:
         english = (ROOT / "docs" / "live-canary-acceptance.md").read_text(encoding="utf-8")
         chinese = (ROOT / "docs" / "live-canary-acceptance.zh_CN.md").read_text(encoding="utf-8")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -79,12 +79,12 @@ class LiveCanaryTests(unittest.TestCase):
             self.assertIn("0.6.0", text)
         self.assertIn("Repository preparation: complete", english)
         self.assertIn("Provider + asset live smoke: passed locally", english)
-        self.assertIn("Harness acceptance: not executed", english)
-        self.assertIn("Release/Marketplace: not published", english)
+        self.assertIn("Harness acceptance: passed and archived locally", english)
+        self.assertIn("GitHub Release/repo Marketplace: v0.6.0 published", english)
         self.assertIn("仓库准备：已完成", chinese)
         self.assertIn("Provider + asset 真实 smoke：2026-09-14 本机通过", chinese)
-        self.assertIn("Harness 验收：未执行", chinese)
-        self.assertIn("Release/Marketplace：未发布", chinese)
+        self.assertIn("Harness 验收：本机通过并归档", chinese)
+        self.assertIn("GitHub Release/仓库 Marketplace：v0.6.0 已发布", chinese)
         self.assertIn("docs/live-canary-acceptance.md", readme)
         self.assertIn("docs/live-canary-acceptance.zh_CN.md", readme_cn)
         controller = (ROOT / "docs" / "live-harness-controller.md").read_text(encoding="utf-8")

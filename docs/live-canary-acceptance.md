@@ -4,9 +4,9 @@
 >
 > Provider + asset live smoke: passed locally on 2026-09-14
 >
-> Harness acceptance: not executed
+> Harness acceptance: passed and archived locally
 >
-> Release/Marketplace: not published
+> GitHub Release/repo Marketplace: v0.6.0 published
 
 [简体中文](live-canary-acceptance.zh_CN.md) | [Harness controller](live-harness-controller.md) | [Architecture](Stitch-Design-Architecture.md)
 
@@ -51,7 +51,7 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 | Design-system create/update/list/apply | Passed locally | bound identity results; positive count |
 | Local upload/download | Passed locally | upload 1; download 2; manifest hash recorded |
 | Delete and prove absence | Passed locally | `delete_requested` and `project_absent` true |
-| Full Delivery Harness | Pending local controller | real receipts + explicit human approval + verified archive |
-| 0.6.0 tag/Release/Marketplace/install | Not published | exact source/remote/tag/release/install equality |
+| Full Delivery Harness | Passed locally | real receipts + explicit human approval + verified archive |
+| 0.6.0 tag/Release/repo Marketplace/install | Published | exact source/remote/tag/release/install equality |
 
-Until every applicable gate is closed, 0.6.0 remains a local candidate and v0.5.4 remains the published baseline.
+Version 0.6.0 is the current GitHub/repo Marketplace release. Publication to the universal public Plugins Directory remains a separate OpenAI submission gate.

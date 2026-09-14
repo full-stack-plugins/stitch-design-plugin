@@ -59,11 +59,19 @@ class DistributionContractTests(unittest.TestCase):
                 self.assertIn("0.6.0", text)
 
         self.assertIn(
-            "Released baseline | [v0.5.4]",
+            "Current release | [v0.6.0]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "已发布基线 | [v0.5.4]",
+            "Previous release | [v0.5.4]",
+            (ROOT / "README.md").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "当前版本 | [v0.6.0]",
+            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "上一版本 | [v0.5.4]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 

@@ -4,9 +4,9 @@
 >
 > Provider + asset 真实 smoke：2026-09-14 本机通过
 >
-> Harness 验收：未执行
+> Harness 验收：本机通过并归档
 >
-> Release/Marketplace：未发布
+> GitHub Release/仓库 Marketplace：v0.6.0 已发布
 
 [English](live-canary-acceptance.md) | [Harness 控制器](live-harness-controller.zh_CN.md) | [架构文档](Stitch-Design-Architecture.zh_CN.md)
 
@@ -51,7 +51,7 @@ provider smoke 通过后，从已安装的 0.6.0 候选执行[本地 Harness 控
 | 设计系统创建/更新/列出/应用 | 本机通过 | 身份绑定结果；计数为正 |
 | 本地上传/下载 | 本机通过 | 上传 1；下载 2；已记录清单哈希 |
 | 删除并证明不存在 | 本机通过 | `delete_requested` 与 `project_absent` 均为 true |
-| 完整 Delivery Harness | 待本地控制器 | 真实 receipts + 明确人工批准 + 已验证归档 |
-| 0.6.0 标签/Release/Marketplace/安装 | 未发布 | 精确源码/远端/标签/Release/安装源等价性 |
+| 完整 Delivery Harness | 本机通过 | 真实 receipts + 明确人工批准 + 已验证归档 |
+| 0.6.0 标签/Release/仓库 Marketplace/安装 | 已发布 | 精确源码/远端/标签/Release/安装源等价性 |
 
-所有适用门禁关闭前，0.6.0 仍是本地候选，v0.5.4 仍是已发布基线。
+0.6.0 是当前 GitHub/仓库 Marketplace 正式版本。Universal 公共 Plugins Directory 仍是独立的 OpenAI 提交门禁。
