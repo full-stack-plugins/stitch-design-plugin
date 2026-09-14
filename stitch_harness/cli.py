@@ -37,8 +37,11 @@ def _parser() -> argparse.ArgumentParser:
         if command in {"resume", "status", "art-decision", "approve", "archive", "recover", "reconcile"}:
             child.add_argument("--run", required=True)
         if command == "art-decision":
-            child.add_argument("--decision", required=True, choices=("enhance", "keep_stitch", "cancel"))
-            child.add_argument("--source", required=True)
+            child.add_argument(
+                "--user-response",
+                required=True,
+                choices=("enhance", "keep_stitch", "cancel"),
+            )
         if command == "resume":
             child.add_argument("--evidence", type=Path)
         if command == "approve":
@@ -128,7 +131,7 @@ def main(arguments: list[str] | None = None) -> int:
             status = harness.decide_art(
                 args.project,
                 args.run,
-                ArtEnhancementDecision(args.decision, args.source),
+                ArtEnhancementDecision(args.user_response),
             )
         elif args.command == "approve":
             payload = json.loads(args.confirmation.read_text(encoding="utf-8"))

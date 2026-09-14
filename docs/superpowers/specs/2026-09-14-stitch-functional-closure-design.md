@@ -88,7 +88,7 @@ Both tools appear in `tools/list` with complete input/output schemas and annotat
 - Add a checked-in page-spec JSON Schema and starter template.
 - Add a `spec init` command that creates a non-overwriting starter spec.
 - Add evidence builders for Stitch generation, ImageGen, OCR/business, roundtrip, editability, and visual review.
-- After Stitch source acceptance, stop in `AWAITING_ART_DECISION` and ask the user to choose `enhance`, `keep_stitch`, or `cancel`. Only an explicit user-sourced `enhance` decision may authorize ImageGen; the Harness must not infer this choice from the original request, a model recommendation, or source acceptance.
+- After Stitch source acceptance, stop in `AWAITING_ART_DECISION` and ask the user to choose `enhance`, `keep_stitch`, or `cancel`. The decision command accepts only the user's exact canonical response through `--user-response`; it exposes no `--source user` override and performs no synonym or ambiguous-confirmation mapping. Only an exact `enhance` response may authorize ImageGen; the Harness must not infer this choice from the original request, a model recommendation, source acceptance, or replies such as “确认”“继续”“做按”.
 - `keep_stitch` skips ImageGen, OCR, roundtrip, and image comparison, but still requires a reversible editability probe against the accepted Stitch HTML/render before entering final user approval. Its approval and archive artifact set binds the accepted Stitch source rather than synthetic art artifacts.
 - `cancel` is terminal and records the decision without generating or archiving design artifacts.
 - Add a `compare` command that runs with the isolated Harness Python and writes three comparison images plus computed layout evidence.

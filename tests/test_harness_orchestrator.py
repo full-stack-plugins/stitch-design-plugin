@@ -112,7 +112,7 @@ class HarnessTests(unittest.TestCase):
                 run.run_id,
                 run.page_id,
                 "art-decision",
-                checks=({"decision": "enhance", "source": "user"},),
+                checks=({"decision": "enhance", "source": "explicit-user-response"},),
             ),
         )
         run = self.harness.store.update_states(
@@ -263,7 +263,7 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(status.state, RunState.AWAITING_ART_DECISION)
         self.assertEqual(status.next_action.kind, "await-art-enhancement-decision")
 
-    def test_art_enhancement_decision_branches_require_user_source(self):
+    def test_art_enhancement_decision_requires_an_exact_user_response(self):
         for decision, expected_state, expected_action in (
             ("enhance", RunState.ART_ENHANCEMENT_APPROVED, "imagegen.generate"),
             ("keep_stitch", RunState.STITCH_ONLY_SELECTED, "stitch.editability-probe"),
@@ -280,19 +280,25 @@ class HarnessTests(unittest.TestCase):
                 run = harness.store.update_state(run, RunState.STITCH_GENERATED)
                 run = harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
                 run = harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
-                with self.assertRaises(ApprovalRequired):
-                    harness.decide_art(
-                        project,
-                        run.run_id,
-                        ArtEnhancementDecision(decision, "agent"),
-                    )
                 status = harness.decide_art(
                     project,
                     run.run_id,
-                    ArtEnhancementDecision(decision, "user"),
+                    ArtEnhancementDecision(decision),
                 )
                 self.assertEqual(status.state, expected_state)
                 self.assertEqual(status.next_action.kind, expected_action)
+
+    def test_ambiguous_confirmation_cannot_be_mapped_to_an_art_decision(self):
+        run = self.run_at_state(RunState.SOURCE_ACCEPTED)
+        run = self.harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+
+        for response in ("确认", "做按", "可以", "继续", "user"):
+            with self.subTest(response=response), self.assertRaises(ApprovalRequired):
+                self.harness.decide_art(
+                    self.project,
+                    run.run_id,
+                    ArtEnhancementDecision(response),
+                )
 
     def test_imagegen_evidence_is_rejected_before_art_enhancement_choice(self):
         run = self.run_at_state(RunState.SOURCE_ACCEPTED)
@@ -329,7 +335,7 @@ class HarnessTests(unittest.TestCase):
         status = self.harness.decide_art(
             self.project,
             run.run_id,
-            ArtEnhancementDecision("keep_stitch", "user"),
+            ArtEnhancementDecision("keep_stitch"),
         )
         run = self.harness.store.load(self.project, status.run_id)
         edited_html = run.path / "artifacts/edited.html"
@@ -373,13 +379,23 @@ class HarnessTests(unittest.TestCase):
             "art-decision",
             "--project", str(self.project),
             "--run", run.run_id,
-            "--decision", "enhance",
-            "--source", "user",
+            "--user-response", "enhance",
         ])
 
         self.assertEqual(code, 0)
         loaded = self.harness.store.load(self.project, run.run_id)
         self.assertEqual(loaded.state, RunState.ART_ENHANCEMENT_APPROVED)
+
+    def test_art_decision_cli_rejects_the_removed_source_override(self):
+        code = main([
+            "art-decision",
+            "--project", str(self.project),
+            "--run", "unused",
+            "--decision", "enhance",
+            "--source", "user",
+        ])
+
+        self.assertNotEqual(code, 0)
 
     def test_automatic_scores_cannot_approve(self):
         started = self.harness.start(self.project, "login", now=FIXED_TIME)

@@ -48,7 +48,7 @@ license: Apache-2.0
 
 3. `spec init` 只创建不存在的 starter spec，绝不覆盖现有规格；用户确认后再 `start`。
 4. 已有运行使用 `status` 或 `resume`，不得重新创建 run。
-5. Stitch 原稿验收后，Harness 必须停在 `AWAITING_ART_DECISION` 并询问用户：`enhance`（二次图片生成）、`keep_stitch`（保留 Stitch 原稿）或 `cancel`（取消）。只有用户本人明确选择后，才执行 `art-decision --source user`；不得代选或从旧消息推断。
+5. Stitch 原稿验收后，Harness 必须停在 `AWAITING_ART_DECISION`，逐项向用户展示：`enhance`（二次图片生成）、`keep_stitch`（保留 Stitch 原稿）或 `cancel`（取消），然后结束当前执行并等待新回复。只有用户新回复严格等于其中一个规范值时，才把该原文传给 `art-decision --user-response`；“确认”“继续”“做按”“可以”等模糊回复必须继续追问，不得代选、翻译、同义映射或从旧消息推断。
 6. 只执行 Harness 返回的 `next_action`；调用真实 Stitch、ImageGen、OCR 或视觉评估工具后，用 `stitch_harness.evidence_writer.EvidenceWriter` 的对应类型方法生成 evidence，再调用 `resume --evidence`。
 7. 选择 `enhance` 后，双图比较执行 `python scripts/setup_harness_runtime.py run compare ...`；输入只能从当前 run 的 imagegen 与 roundtrip receipts 派生。选择 `keep_stitch` 时不调用 ImageGen，直接对已接受的 Stitch HTML/render 做可逆编辑探针。
 

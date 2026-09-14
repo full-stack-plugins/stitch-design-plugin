@@ -78,7 +78,7 @@ class ArchiveTests(unittest.TestCase):
                 run.run_id,
                 run.page_id,
                 "art-decision",
-                checks=({"decision": "enhance", "source": "user"},),
+                checks=({"decision": "enhance", "source": "explicit-user-response"},),
             ),
         )
         run = store.update_states(

@@ -55,7 +55,7 @@ class Harness060Tests(unittest.TestCase):
                 run.run_id,
                 run.page_id,
                 "art-decision",
-                checks=({"decision": "enhance", "source": "user"},),
+                checks=({"decision": "enhance", "source": "explicit-user-response"},),
             ),
         )
         run = harness.store.update_states(

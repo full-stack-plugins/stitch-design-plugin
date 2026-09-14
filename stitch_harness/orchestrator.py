@@ -63,8 +63,7 @@ class ApprovalDecision:
 
 @dataclass(frozen=True)
 class ArtEnhancementDecision:
-    decision: str
-    source: str
+    user_response: str
 
 
 _ACTIONS = {
@@ -257,29 +256,30 @@ class Harness:
         run = self.store.load(project_root, run_id)
         if run.state != RunState.AWAITING_ART_DECISION:
             raise InvalidTransition("run is not awaiting an art enhancement decision")
-        if decision.source != "user":
-            raise ApprovalRequired("art enhancement decision source must be an explicit user decision")
         targets = {
             "enhance": RunState.ART_ENHANCEMENT_APPROVED,
             "keep_stitch": RunState.STITCH_ONLY_SELECTED,
             "cancel": RunState.CANCELLED,
         }
-        target = targets.get(decision.decision)
+        target = targets.get(decision.user_response)
         if target is None:
-            raise ApprovalRequired("art enhancement decision must be enhance, keep_stitch, or cancel")
+            raise ApprovalRequired(
+                "user response must be exactly enhance, keep_stitch, or cancel; "
+                "ambiguous confirmation must not be inferred"
+            )
         run = self.store.append_receipt(
             run,
             Receipt.passed(
                 run.run_id,
                 run.page_id,
                 "art-decision",
-                checks=({"decision": decision.decision, "source": "user"},),
+                checks=({"decision": decision.user_response, "source": "explicit-user-response"},),
             ),
         )
         run = self.store.update_states(
             run,
             (target,),
-            manifest_updates={"art_mode": decision.decision},
+            manifest_updates={"art_mode": decision.user_response},
         )
         return RunStatus(run_id, run.state, 0, _ACTIONS[run.state])
 

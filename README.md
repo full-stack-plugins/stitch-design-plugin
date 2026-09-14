@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.7.5-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.5)
+[![Version](https://img.shields.io/badge/release-0.7.6-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.6)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -155,8 +155,8 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.7.5` |
-| Current release | [v0.7.5](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.5) |
+| Current candidate | `0.7.6` |
+| Current release | [v0.7.6](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.6) |
 | Previous release | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
@@ -281,7 +281,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-Version 0.7.5 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. Referenced dependencies now default to `best_effort`: a safe dependency that is temporarily unavailable or has an unsupported response is skipped with a host-only warning while primary artifacts are still published. Set `referencedAssetPolicy: "strict"` to retain all-or-nothing export. Unsafe URLs, HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, primary-artifact failures, path escapes, byte/file limits, and the independent 500-URL reference discovery budget remain blocked.
+Version 0.7.6 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. Referenced dependencies now default to `best_effort`: a safe dependency that is temporarily unavailable or has an unsupported response is skipped with a host-only warning while primary artifacts are still published. Set `referencedAssetPolicy: "strict"` to retain all-or-nothing export. Unsafe URLs, HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, primary-artifact failures, path escapes, byte/file limits, and the independent 500-URL reference discovery budget remain blocked.
 
 Unknown-write reconciliation may bind `target.project_id` and `target.expected_title`. When a complete `list_screens` read succeeds, its evidence binds the project ID, completeness flag and normalized title-hash inventory. Only when the Harness derives that the expected-title hash is absent may `get_screen` be recorded as `skipped` with reason `no_candidate_id`; an applied or discovered candidate still requires a successful `get_screen`. Attempt limits, timestamps, hashes, and duplicate-write protection remain enforced.
 
@@ -298,7 +298,7 @@ Repository preparation for the provider + asset live smoke is complete: the manu
 
 Run state machine: `DRAFT`, `PREFLIGHT_PASSED`, `STITCH_GENERATED`, `SOURCE_ACCEPTED`, `AWAITING_ART_DECISION`, `ART_ENHANCEMENT_APPROVED`, `STITCH_ONLY_SELECTED`, `ART_GENERATED`, `ART_ACCEPTED`, `ROUNDTRIPPED`, `EDITABILITY_VERIFIED`, `COMPARISON_ACCEPTED`, `AWAITING_USER_APPROVAL`, `APPROVED`, `ARCHIVED`, `CANCELLED`, `RECONCILING`, `BLOCKED`.
 
-Accepting a Stitch source never authorizes ImageGen. The Harness pauses and asks the user to choose `enhance`, `keep_stitch`, or `cancel`; only a user-sourced `enhance` decision can enter the ImageGen path.
+Accepting a Stitch source never authorizes ImageGen. The Harness pauses and asks the user to reply with exactly `enhance`, `keep_stitch`, or `cancel`; only the exact `enhance` response can enter the ImageGen path. Ambiguous confirmations are not mapped, and the CLI exposes no self-asserted `--source user` override.
 
 ## Troubleshooting
 
