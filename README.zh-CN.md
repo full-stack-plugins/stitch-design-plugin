@@ -9,7 +9,7 @@
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-[English](README.md) | [简体中文](README.zh-CN.md) · [快速安装](#两条命令完成安装) · [使用示例](#使用示例) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [故障排查](#故障排查)
+[English](README.md) | [简体中文](README.zh-CN.md) · [安装](#安装) · [快速开始](#快速开始) · [使用示例](#使用示例) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [故障排查](#故障排查)
 
 ## Codex 中的 Stitch Design
 
@@ -25,7 +25,15 @@
 |:---:|:---:|:---:|:---:|
 | 设计、安全、转换、交付 | 15 个 Google Stitch + 2 个本地资产工具 | React、Vue、移动端等 | Desktop、Tablet、Mobile |
 
-## 快速开始
+## 安装
+
+### 前置条件
+
+- `PATH` 上有 Python 3.11 或更新版本。
+- 来自 <https://stitch.withgoogle.com/settings> 的 Google Stitch API Key。
+- 仅 Harness 比对工作流需要（可选）：`requirements-harness.txt` 中的 `Pillow`。
+
+### 从插件市场安装
 
 推荐显式跟踪本仓库 `main` 分支：
 
@@ -79,7 +87,9 @@ codex plugin marketplace upgrade partme-ai-stitch
 
 Marketplace 名称是 `partme-ai-stitch`，插件安装选择器是 `stitch-design@partme-ai-stitch`。
 
-## 第一次使用：一张本地 Token 页面
+## 快速开始
+
+### 第一次使用：一张本地 Token 页面
 
 插件已经内置 MCP 连接。第一次 Stitch 请求会检查凭据，仅在缺少 `STITCH_API_KEY` 时打开本地 Token 页面。
 
@@ -163,6 +173,50 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 
 远程写操作需要明确目标项目与范围。写操作超时后不要立即重发，应先检查项目或屏幕状态。
 
+## MCP 工具
+
+内置的 stdio 代理共暴露 17 个工具：15 个来自 Google Stitch MCP 服务器，另有 2 个由本插件添加的本地资产工具。
+
+### Google Stitch 工具（15 个）
+
+| 工具 | 用途 |
+|---|---|
+| `create_project` | 创建 Stitch 工程 |
+| `list_projects` | 列出可访问工程 |
+| `get_project` | 读取单个工程 |
+| `delete_project` | 删除工程 |
+| `generate_screen_from_text` | 按文本提示生成页面 |
+| `list_screens` | 列出工程内页面 |
+| `get_screen` | 读取单个页面 |
+| `edit_screens` | 编辑已有页面 |
+| `generate_variants` | 生成设计变体 |
+| `create_design_system` | 创建设计系统 |
+| `create_design_system_from_design_md` | 依据设计文档创建设计系统 |
+| `update_design_system` | 更新设计系统 |
+| `list_design_systems` | 列出设计系统 |
+| `apply_design_system` | 将设计系统应用到页面 |
+| `upload_design_md` | 上传设计文档 |
+
+### 本插件添加的本地工具（2 个）
+
+| 工具 | 用途 |
+|---|---|
+| `stitch_local_upload_asset` | 把已审核的本地图片或 HTML 上传到当前工程 |
+| `stitch_local_download_assets` | 下载页面 HTML、截图与引用资产，原子写入并生成 SHA-256 清单 |
+
+### 错误契约
+
+| 信号 | 含义 | 下一步 |
+|---|---|---|
+| `ProxyError` | 已脱敏的代理失败 | 阅读消息；不自动重试 |
+| `UnknownWriteResult` | 写入可能已到达 Stitch 但没有确定响应 | 先用读工具核对，再考虑重试 |
+| `ApprovalRequired` | 某个门禁需要人工明确决策 | 在 Harness 中批准或拒绝 |
+| `InvalidTransition` | 状态变更绕过了已批准的门禁 | 从上一步重新执行 |
+| `ContractError` | 页面规格不安全或不完整 | 修正规格 |
+| `SecretStoreError` | 凭据无法被安全读写 | 重新运行本地设置 |
+
+失败以 JSON-RPC 错误返回：已脱敏的代理失败用 `-32000`，未知写入结果用 `-32001`。
+
 ## 配置
 
 `.mcp.json` 从安装后的插件根目录启动内置 stdio 代理。凭据优先级为：
@@ -189,6 +243,19 @@ Codex 负责插件加载和审批；Google Stitch 负责远程设计数据和工
 - [隐私说明](PRIVACY.md)
 - [使用条款](TERMS.md)
 
+### 组件职责
+
+| 组件 | 负责 | 不负责 |
+|---|---|---|
+| `scripts/stitch_mcp_proxy.py` | 启动代理的 stdio 入口 | 凭据存储 |
+| `stitch_harness/mcp_proxy.py` | HTTP 会话处理、工具清单修补与写入结果规则 | 业务批准 |
+| `stitch_harness/secrets.py` | 凭据查找顺序与受限的用户配置 | 远端调用 |
+| `stitch_harness/assets.py` | 两个本地资产工具 | 上游 Stitch 行为 |
+| `stitch_harness/orchestrator.py` | 证据驱动的 Harness 状态机 | 远端执行 |
+| `stitch_harness/storage.py` | 原子运行文件与回执链 | 渲染 |
+| `scripts/stitch_setup.py` | 回环 Token 页面与状态检查 | 设计工作 |
+| `skills/`（43 个） | 路由、设计、转换与交付指令 | 运行时强制 |
+
 ## 开发与验证
 
 ```bash
@@ -205,7 +272,18 @@ git diff --check
 
 0.7.1 把 `withgoogle.com` 纳入下载白名单，使 Stitch 自有 web 域上的产物可以下载；边界测试会拒绝相似域名与不安全的 URL。0.7.0 在 Stitch 提供方忽略请求设备时**失败关闭**，桌面回退稿不能再作为平板屏幕交付。页面规格要求 `canvas.device`，类型化证据写入器要求生成屏幕的元数据，因此已有 spec 文件必须补上该字段才能加载。0.6.0 的功能集不变：43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。
 
-Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行单次删除后只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
+Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行一次 `always()` 清理后再只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
+
+## 数据与状态
+
+| 数据 | 位置 | 生命周期 | 是否含秘密 |
+|---|---|---|---|
+| 凭据 | `$XDG_CONFIG_HOME/stitch-design/credentials.json`，Windows 为 `%APPDATA%\stitch-design\credentials.json` | 直到你轮换或删除 | 是：`STITCH_API_KEY` 的值 |
+| Harness 运行文件 | 工程内的 `.stitch/` | 直到你归档或删除 | 否 |
+| 回执链 | 与每次运行同目录 | 防篡改；随每个通过的门禁增长 | 否 |
+| 已下载资产 | 你选择的输出目录 | 直到你删除 | 否 |
+
+运行状态机：`DRAFT`、`PREFLIGHT_PASSED`、`STITCH_GENERATED`、`SOURCE_ACCEPTED`、`ART_GENERATED`、`ART_ACCEPTED`, `ROUNDTRIPPED`、`EDITABILITY_VERIFIED`、`COMPARISON_ACCEPTED`、`AWAITING_USER_APPROVAL`、`APPROVED`、`ARCHIVED`、`RECONCILING`、`BLOCKED`。
 
 ## 故障排查
 
@@ -223,6 +301,10 @@ Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配�
 codex plugin marketplace upgrade partme-ai-stitch
 codex plugin add stitch-design@partme-ai-stitch
 ```
+
+## 贡献与支持
+
+功能问题请提交到 <https://github.com/partme-ai/codex-stitch-plugin/issues>。提交变更前，请说明你验证所用的 Stitch 接口范围、是否改动工具清单或写入结果规则，并附上受影响的校验器。
 
 ## 来源与许可
 

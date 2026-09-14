@@ -9,7 +9,7 @@
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-[English](README.md) | [简体中文](README.zh-CN.md) · [Quick start](#install-in-two-commands) · [Examples](#example-requests) · [Architecture](docs/Stitch-Design-Architecture.md) · [Troubleshooting](#troubleshooting)
+[English](README.md) | [简体中文](README.zh-CN.md) · [Install](#installation) · [Quick start](#quick-start) · [Examples](#example-requests) · [Architecture](docs/Stitch-Design-Architecture.md) · [Troubleshooting](#troubleshooting)
 
 ## Stitch Design in Codex
 
@@ -25,7 +25,15 @@ The installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP 
 |:---:|:---:|:---:|:---:|
 | Design, safety, conversion, delivery | 15 Google Stitch + 2 local asset tools | React, Vue, mobile and more | Desktop, tablet, mobile |
 
-## Quick start
+## Installation
+
+### Prerequisites
+
+- Python 3.11 or newer on `PATH`.
+- A Google Stitch API key from <https://stitch.withgoogle.com/settings>.
+- Optional, for the Harness comparison workflow: `Pillow` from `requirements-harness.txt`.
+
+### From the plugin marketplace
 
 Recommended: track the repository's `main` branch explicitly.
 
@@ -79,7 +87,9 @@ codex plugin marketplace upgrade partme-ai-stitch
 
 The Marketplace name is `partme-ai-stitch`; the install selector is `stitch-design@partme-ai-stitch`.
 
-## First use: one local Token screen
+## Quick start
+
+### First run: one local Token screen
 
 The plugin already bundles its MCP connection. The first Stitch request checks credentials and opens the local Token screen only when `STITCH_API_KEY` is missing.
 
@@ -163,6 +173,50 @@ Convert: Turn this Stitch screen into production React components.
 
 Remote writes require the target project and intended scope. If a write times out, do not immediately repeat it; inspect the project/screen state first.
 
+## MCP tools
+
+The bundled stdio proxy exposes 17 tools: 15 from the Google Stitch MCP server and 2 local asset tools added by this plugin.
+
+### Google Stitch tools (15)
+
+| Tool | Purpose |
+|---|---|
+| `create_project` | Create a Stitch project |
+| `list_projects` | List accessible projects |
+| `get_project` | Read one project |
+| `delete_project` | Delete a project |
+| `generate_screen_from_text` | Generate a screen from a text prompt |
+| `list_screens` | List screens in a project |
+| `get_screen` | Read one screen |
+| `edit_screens` | Edit an existing screen |
+| `generate_variants` | Generate design variants |
+| `create_design_system` | Create a design system |
+| `create_design_system_from_design_md` | Create a design system from a design document |
+| `update_design_system` | Update a design system |
+| `list_design_systems` | List design systems |
+| `apply_design_system` | Apply a design system to a screen |
+| `upload_design_md` | Upload a design document |
+
+### Local tools added here (2)
+
+| Tool | Purpose |
+|---|---|
+| `stitch_local_upload_asset` | Upload a reviewed local image or HTML file into the current project |
+| `stitch_local_download_assets` | Download screen HTML, screenshots, and referenced assets with an atomic write and a SHA-256 manifest |
+
+### Error contract
+
+| Signal | Meaning | Next action |
+|---|---|---|
+| `ProxyError` | Sanitized proxy failure | Read the message; no automatic retry |
+| `UnknownWriteResult` | A write may have reached Stitch without a definitive response | Reconcile with read tools before retrying |
+| `ApprovalRequired` | A gate needs an explicit human decision | Approve or reject in the Harness |
+| `InvalidTransition` | A state change bypassed an approved gate | Re-run from the previous state |
+| `ContractError` | A page specification is unsafe or incomplete | Fix the specification |
+| `SecretStoreError` | The credential could not be read or written safely | Re-run the local setup |
+
+Failures are returned as JSON-RPC errors with code `-32000` for a sanitized proxy failure and `-32001` for an unknown write result.
+
 ## Configuration
 
 `.mcp.json` starts the bundled proxy from the installed plugin root:
@@ -200,6 +254,19 @@ Codex owns plugin loading and approvals. Google Stitch owns remote design data a
 - [Privacy](PRIVACY.md)
 - [Terms](TERMS.md)
 
+### Component responsibilities
+
+| Component | Owns | Does not own |
+|---|---|---|
+| `scripts/stitch_mcp_proxy.py` | The stdio entry point that starts the proxy | Credential storage |
+| `stitch_harness/mcp_proxy.py` | HTTP session handling, tool-list repair, and the write-result rules | Business approval |
+| `stitch_harness/secrets.py` | Credential lookup order and the restricted user config | Remote calls |
+| `stitch_harness/assets.py` | The two local asset tools | Upstream Stitch behaviour |
+| `stitch_harness/orchestrator.py` | The evidence-driven Harness state machine | Remote execution |
+| `stitch_harness/storage.py` | Atomic run files and receipt chaining | Rendering |
+| `scripts/stitch_setup.py` | The loopback Token screen and the status check | Design work |
+| `skills/` (43) | Routing, design, conversion, and delivery instructions | Runtime enforcement |
+
 ## Development and verification
 
 ```bash
@@ -218,6 +285,17 @@ Version 0.7.1 accepts `withgoogle.com` in the download allowlist, so artwork ser
 
 Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md).
 
+## Data and state
+
+| Data | Location | Lifecycle | Secrets |
+|---|---|---|---|
+| Credential | `$XDG_CONFIG_HOME/stitch-design/credentials.json`, or `%APPDATA%\stitch-design\credentials.json` on Windows | Until you rotate or delete it | Yes: the `STITCH_API_KEY` value |
+| Harness run files | `.stitch/` inside your project | Until you archive or delete them | No |
+| Receipt chain | Alongside each run | Tamper-evident; grows with each accepted gate | No |
+| Downloaded assets | Your chosen output directory | Until you delete them | No |
+
+Run state machine: `DRAFT`, `PREFLIGHT_PASSED`, `STITCH_GENERATED`, `SOURCE_ACCEPTED`, `ART_GENERATED`, `ART_ACCEPTED`, `ROUNDTRIPPED`, `EDITABILITY_VERIFIED`, `COMPARISON_ACCEPTED`, `AWAITING_USER_APPROVAL`, `APPROVED`, `ARCHIVED`, `RECONCILING`, `BLOCKED`.
+
 ## Troubleshooting
 
 | Symptom | Action |
@@ -234,6 +312,10 @@ Repository preparation for the provider + asset live smoke is complete: the manu
 codex plugin marketplace upgrade partme-ai-stitch
 codex plugin add stitch-design@partme-ai-stitch
 ```
+
+## Contributing and support
+
+Open functional issues at <https://github.com/partme-ai/codex-stitch-plugin/issues>. Before proposing a change, state the Stitch API surface you verified against, whether it alters the tool catalogue or the write-result rules, and include the affected validators.
 
 ## Source and license
 
