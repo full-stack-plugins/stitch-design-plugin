@@ -35,7 +35,7 @@ Opaque ID 仅保存在 runner 私有文件且不上传。POSIX 显式使用 `060
 
 最后一个 `always()` 步骤是唯一删除入口。如果尚未落盘 `project_name`，清理会使用私有唯一 `project_title`，以两秒退避最多执行三次只读对账。只有精确一个合法匹配才先落盘身份再执行一次删除；零个或多个匹配都保持 unknown 并失败关闭。删除尝试先落盘且不重放。无论删除成功、失败还是结果不明，都用有界的新 `list_projects` 探针证明精确项目资源不存在；无法证明时保留 `project_absent: false` 并让验收失败。
 
-`actions/checkout@v4` 与 `actions/setup-python@v5` 仍是可移动 major-version 引用，因为本次仓库准备没有独立核验其不可变 commit SHA。checkout 已设置 `persist-credentials: false`；控制器应在把 action 来源作为发布证据前，将其固定到独立核验的 SHA。
+两个 workflow 中的 action 引用均已固定到不可变 commit SHA：`actions/checkout@11d5960a326750d5838078e36cf38b85af677262`（v4.4.0）与 `actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065`（v5.6.0）。checkout 已设置 `persist-credentials: false`。升级到更高的 major 版本属于独立变更，必须重新固定 SHA，不得退回可移动 tag。
 
 ## 独立 Harness 门禁
 
@@ -45,7 +45,7 @@ provider smoke 通过后，从已安装的 0.6.0 候选执行[本地 Harness 控
 
 | 门禁 | 当前结果 | 所需证据 |
 |:---|:---|:---|
-| 仅手动触发与 Secret 范围 | 已完成离线准备 | workflow 测试 + actionlint |
+| 仅手动触发与 Secret 范围 | 已离线验证 | workflow 测试 + actionlint；六处 action 引用全部固定到不可变 commit SHA |
 | MCP 生命周期与精确 17 工具目录 | 本机通过 | 真实匹配响应 |
 | Provider 生成/读取/编辑/单一变体 | 本机通过 | 一个同项目且不同于源屏幕身份的变体 |
 | 设计系统创建/更新/列出/应用 | 本机通过 | 身份绑定结果；计数为正 |

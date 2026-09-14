@@ -127,6 +127,34 @@ class DistributionContractTests(unittest.TestCase):
             'python scripts/smoke_mcp_config.py --expected-python "${{ matrix.python-version }}"',
         )
 
+    def test_workflow_actions_are_pinned_to_immutable_commits(self) -> None:
+        workflows = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+        self.assertTrue(workflows, "expected at least one workflow")
+        pinned: list[str] = []
+        for workflow_path in workflows:
+            workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+            for job_name, job in workflow["jobs"].items():
+                for step in job.get("steps", []):
+                    reference = step.get("uses")
+                    if reference is None:
+                        continue
+                    revision = reference.split("@", 1)[1].split()[0]
+                    self.assertEqual(
+                        len(revision),
+                        40,
+                        f"{workflow_path.name}:{job_name} must pin a full commit SHA: {reference}",
+                    )
+                    self.assertTrue(
+                        all(character in "0123456789abcdef" for character in revision),
+                        f"{workflow_path.name}:{job_name} must pin a lowercase hex SHA: {reference}",
+                    )
+                    pinned.append(reference)
+        self.assertEqual(
+            sorted({reference.split("@", 1)[0] for reference in pinned}),
+            ["actions/checkout", "actions/setup-python"],
+            "release provenance requires every workflow action to be pinned and inventoried",
+        )
+
     def test_manifest_declares_official_stitch_brand_assets(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         interface = manifest["interface"]

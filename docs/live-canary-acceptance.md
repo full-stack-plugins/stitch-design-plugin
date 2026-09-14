@@ -35,7 +35,7 @@ Opaque identities remain in a runner-private file and are not uploaded. POSIX ex
 
 The final `always()` step is the sole delete site. If `project_name` was not checkpointed, cleanup uses the private unique `project_title` for up to three read-only reconciliation attempts with a two-second backoff. Exactly one valid match is checkpointed before one delete; zero or multiple matches remain unknown and fail closed. The delete attempt is checkpointed and never replayed. Whether delete succeeds, fails, or has an unknown result, bounded fresh `list_projects` probes must prove the exact project resource absent. Failure to prove absence leaves `project_absent: false` and fails acceptance.
 
-`actions/checkout@v4` and `actions/setup-python@v5` remain moving major-version references because their immutable commit SHAs were not independently verified in this repository-preparation task. Checkout uses `persist-credentials: false`; the controller should pin independently verified SHAs before treating action provenance as release evidence.
+Every action reference in both workflows is pinned to an immutable commit SHA: `actions/checkout@11d5960a326750d5838078e36cf38b85af677262` (v4.4.0) and `actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065` (v5.6.0). Checkout uses `persist-credentials: false`. Upgrading to a later major version is a separate change that must re-pin the SHAs rather than reintroduce a moving tag.
 
 ## Separate Harness gate
 
@@ -45,7 +45,7 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 
 | Gate | Current result | Required evidence |
 |:---|:---|:---|
-| Manual-only workflow and secret scope | Prepared offline | workflow tests + actionlint |
+| Manual-only workflow and secret scope | Verified offline | workflow tests + actionlint; all six action references pinned to immutable commit SHAs |
 | MCP lifecycle and exact 17-tool catalog | Passed locally | live matching responses |
 | Provider generate/read/edit/one variant | Passed locally | one same-project variant identity different from its source |
 | Design-system create/update/list/apply | Passed locally | bound identity results; positive count |
