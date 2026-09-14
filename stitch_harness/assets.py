@@ -35,7 +35,10 @@ DOWNLOAD_MIMES = {
     "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
     "image/svg+xml": ".svg", "font/woff": ".woff", "font/woff2": ".woff2",
 }
-ALLOWED_DOWNLOAD_HOSTS = ("googleusercontent.com", "googleapis.com", "google.com", "gstatic.com")
+# Registrable domains owned by Google that serve Stitch artifacts. `withgoogle.com`
+# is Stitch's own web domain (stitch.withgoogle.com); the other four cover the FIFE
+# image hosts, the API host, and the static asset host observed in live responses.
+ALLOWED_DOWNLOAD_HOSTS = ("googleusercontent.com", "googleapis.com", "google.com", "gstatic.com", "withgoogle.com")
 PROJECT_PATTERN = re.compile(r"^[0-9]+$")
 SCREEN_PATTERN = re.compile(r"^projects/([0-9]+)/screens/([A-Za-z0-9_-]{1,128})$")
 REFERENCE_URL_PATTERN = re.compile(r'''(?:src|href)=["'](https://[^"']+)["']''', re.IGNORECASE)
