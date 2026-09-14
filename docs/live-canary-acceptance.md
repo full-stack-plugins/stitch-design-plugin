@@ -58,6 +58,14 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 
 Version 0.7.0 is the current GitHub/repo Marketplace release. Publication to the universal public Plugins Directory remains a separate OpenAI submission gate.
 
+## Post-release verification for 0.7.0 (2026-09-14)
+
+- **Source equality at the release commit:** tag `v0.7.0`, the marketplace tracking clone refreshed for this release, and the installed cache all resolve to `e86b8b0`. `origin/main` was also `e86b8b0` when the release was cut and has since advanced only by this verification record, so the tag and the installed copy remain the release reference.
+- **Installed artifact parity at `e86b8b0`:** all 437 tracked files were byte-identical between the repository tree and the installed copy; the installed manifest reports 0.7.0, and no 0.6.x install remains.
+- **Fresh-task exposure:** a new ephemeral task exposed and successfully called `mcp__stitch__list_projects` through the plugin-owned stdio proxy with `STITCH_API_KEY` unset, so the credential came from the restricted user configuration.
+- **Continuous integration:** the `Validate` workflow completed successfully on both `main` and the `v0.7.0` tag.
+- **Device gate against the recorded fallback:** feeding the tablet screens observed in the reported project (`DESKTOP` 2560x2048) into the gate against a `TABLET` 768x1024 canvas fails all three, while the shipped mobile screen (`MOBILE` 780x1768 against 390x884) passes at scale 2.
+
 ## Post-release verification for 0.6.1 (2026-09-14)
 
 - **Source equality at the release commit:** tag `v0.6.1`, the marketplace tracking clone refreshed for this release, and the installed cache all resolve to `40d9255`. `origin/main` was also `40d9255` when the release was cut and has since advanced only by this verification record, so the tag and the installed copy remain the release reference.
