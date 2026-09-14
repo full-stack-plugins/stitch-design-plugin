@@ -57,3 +57,12 @@ provider smoke 通过后，从已安装的 0.6.1 候选执行[本地 Harness 控
 | 0.6.1 标签/Release/仓库 Marketplace/安装 | 已发布 | 精确源码/远端/标签/Release/安装源等价性 |
 
 0.6.1 是当前 GitHub/仓库 Marketplace 正式版本。Universal 公共 Plugins Directory 仍是独立的 OpenAI 提交门禁。
+
+## 发布后验证（2026-09-14）
+
+- **源码等价性：** 本地 HEAD = `origin/main` = 标签 `v0.6.1` = marketplace 跟踪副本 = 已安装缓存 = `40d9255`。
+- **安装产物一致性：** 仓库树与已安装副本的全部 435 个受跟踪文件逐字节一致；安装清单为 0.6.1，且不存在残留的 0.6.0 安装。
+- **新任务工具暴露：** 新建 ephemeral 任务成功暴露并调用了 `mcp__stitch__list_projects`，且 `STITCH_API_KEY` 未设置，说明凭据来自受限的用户配置而非进程环境；调用经由插件自带的 stdio 代理。
+- **工具清单：** 直接驱动已安装的 `scripts/stitch_mcp_proxy.py` 返回精确的 17 个工具（15 个 provider 工具 + 2 个带命名空间的本地工具）。
+- **持续集成：** `Validate` workflow 在 `main` 与 `v0.6.1` 标签上均成功完成。
+- **凭据来源：** 用户配置中不再存在 `stitch` MCP 条目与字面 API key 请求头，因此生效服务是插件自带的 stdio 代理；受限凭据文件权限为 `0700`/`0600`。

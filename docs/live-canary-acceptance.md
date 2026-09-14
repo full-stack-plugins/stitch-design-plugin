@@ -57,3 +57,12 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 | 0.6.1 tag/Release/repo Marketplace/install | Published | exact source/remote/tag/release/install equality |
 
 Version 0.6.1 is the current GitHub/repo Marketplace release. Publication to the universal public Plugins Directory remains a separate OpenAI submission gate.
+
+## Post-release verification (2026-09-14)
+
+- **Source equality:** local HEAD = `origin/main` = tag `v0.6.1` = marketplace tracking clone = installed cache = `40d9255`.
+- **Installed artifact parity:** all 435 tracked files are byte-identical between the repository tree and the installed copy; the installed manifest reports 0.6.1, and no 0.6.0 install remains.
+- **Fresh-task exposure:** a new ephemeral task exposed and successfully called `mcp__stitch__list_projects` through the plugin-owned stdio proxy with `STITCH_API_KEY` unset, so the credential came from the restricted user configuration rather than the process environment.
+- **Tool catalog:** driving the installed `scripts/stitch_mcp_proxy.py` directly returned the exact 17-tool catalog (15 provider tools plus the two namespaced local tools).
+- **Continuous integration:** the `Validate` workflow completed successfully on both `main` and the `v0.6.1` tag.
+- **Credential provenance:** no `stitch` MCP entry and no literal API key header remain in the user configuration, so the effective server is the plugin-owned stdio proxy; the restricted credential file is `0700`/`0600`.
