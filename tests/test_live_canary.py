@@ -376,9 +376,32 @@ class RecordingSession:
             outputs = {
                 "create_project": {"name": "projects/123456"},
                 "list_projects": {"projects": [] if self.deleted else [{"name": "projects/123456", "title": "canary-title"}]},
-                "generate_screen_from_text": {"screens": [self._screen(project_id)]},
-                "get_project": {"screenInstances": [self._screen("123456")]},
-                "list_screens": {"screens": [self._screen(project_id)]},
+                "generate_screen_from_text": {
+                    "projectId": project_id,
+                    "sessionId": "session-1",
+                    "outputComponents": [
+                        {"designSystem": {"name": "projects/123456/assets/system-1", "version": "1"}},
+                        {"design": {"screens": [{
+                            "id": "instance-1",
+                            "name": f"projects/{project_id}/screens/" + "a" * 32,
+                            "deviceType": "MOBILE",
+                            "width": "390",
+                            "height": "884",
+                            "htmlCode": {
+                                "name": f"projects/{project_id}/files/html-1",
+                                "downloadUrl": "https://example.invalid/screen.html",
+                                "mimeType": "text/html",
+                            },
+                            "screenshot": {
+                                "name": f"projects/{project_id}/files/image-1",
+                                "downloadUrl": "https://example.invalid/screen.png",
+                            },
+                        }]}, "theme": {}},
+                        {"text": "Generated one screen"},
+                    ],
+                },
+                "get_project": {"name": "projects/123456", "title": "canary-title"},
+                "list_screens": {},
                 "get_screen": {"htmlCode": {"mimeType": "text/html"}, "screenshot": {"mimeType": "image/png"}},
                 "edit_screens": {"screens": [self._screen("123456")]},
                 "generate_variants": {"screens": [
@@ -387,16 +410,28 @@ class RecordingSession:
                         "sourceScreen": "projects/123456/screens/" + "c" * 32,
                     }
                 ]},
-                "create_design_system": {"assetId": "asset-1"},
-                "update_design_system": {"assetId": "asset-1"},
-                "list_design_systems": {"designSystems": [{"assetId": "asset-1"}]},
-                "apply_design_system": {"screens": [self._screen("123456")]},
-                "stitch_local_upload_asset": {"screens": [{"name": "projects/123456/screens/" + "b" * 32}]},
+                "create_design_system": {"name": "assets/asset-1", "designSystem": arguments.get("designSystem")},
+                "update_design_system": {
+                    "name": "projects/123456/sessions/session-1",
+                    "designSystem": {
+                        **arguments.get("designSystem", {}),
+                        "theme": {
+                            **arguments.get("designSystem", {}).get("theme", {}),
+                            "bodyFontFamily": "Inter",
+                        },
+                    },
+                },
+                "list_design_systems": {"designSystems": [{"name": "assets/asset-1"}]},
+                "apply_design_system": {"outputComponents": [{"design": {"screens": [{
+                    "id": "instance-applied",
+                    "name": "projects/123456/screens/" + "d" * 32,
+                }]}}]},
+                "stitch_local_upload_asset": {"screens": [{"name": "projects/123456/screens/" + "1" * 19}]},
                 "stitch_local_download_assets": {
                     "outputDir": arguments.get("outputDir"), "count": 1,
                     "files": [{"path": "assets/screen.png", "sha256": "5" * 64, "mime": "image/png", "size": 10}],
                 },
-                "delete_project": {"deleted": True},
+                "delete_project": {},
             }
             if name == "delete_project" and self.delete_unknown:
                 self.delete_unknown = False
@@ -511,7 +546,8 @@ class StitchBackendProtocolTests(unittest.TestCase):
         context = {
             "project_id": "123456", "project_name": "projects/123456",
             "screen_id": "instance-1", "screen_name": "projects/123456/screens/" + "a" * 32,
-            "design_system_asset_id": "asset-1",
+            "design_system_asset_id": "asset-1", "design_system_name": "assets/asset-1",
+            "design_system": self.module._canary_design_system(),
         }
         backend.execute("edit", context, Path("."))
         backend.execute("variant", context, Path("."))
@@ -520,10 +556,22 @@ class StitchBackendProtocolTests(unittest.TestCase):
         calls = [request["params"] for request in session.requests if request["method"] == "tools/call"]
         selected = {"id": "instance-1", "sourceScreen": context["screen_name"]}
         self.assertEqual(calls[-4:], [
-            {"name": "edit_screens", "arguments": {"selectedScreenInstances": [selected]}},
-            {"name": "generate_variants", "arguments": {"selectedScreenInstances": [selected]}},
-            {"name": "update_design_system", "arguments": {"assetId": "asset-1"}},
-            {"name": "apply_design_system", "arguments": {"selectedScreenInstances": [selected]}},
+            {"name": "edit_screens", "arguments": {
+                "projectId": "123456", "selectedScreenIds": ["instance-1"],
+                "prompt": "Keep the layout and change the primary button label to Continue.",
+            }},
+            {"name": "generate_variants", "arguments": {
+                "projectId": "123456", "selectedScreenIds": ["instance-1"],
+                "prompt": "Create one layout variant while preserving the content hierarchy.",
+                "variantOptions": {"variantCount": 1, "creativeRange": "REFINE", "aspects": ["LAYOUT"]},
+            }},
+            {"name": "update_design_system", "arguments": {
+                "name": "assets/asset-1", "projectId": "123456",
+                "designSystem": self.module._canary_design_system(),
+            }},
+            {"name": "apply_design_system", "arguments": {
+                "projectId": "123456", "selectedScreenInstances": [selected], "assetId": "asset-1",
+            }},
         ])
 
     def test_real_backend_unknown_delete_still_performs_list_projects_probe(self) -> None:
@@ -544,6 +592,20 @@ class StitchBackendProtocolTests(unittest.TestCase):
         calls = [request for request in session.requests if request["method"] == "tools/call"]
         self.assertEqual([call["params"]["name"] for call in calls[-2:]], ["delete_project", "list_projects"])
         self.assertTrue(cleaned["cleanup"]["project_absent"])
+
+    def test_successful_delete_accepts_provider_empty_structured_content(self) -> None:
+        session = RecordingSession(self.tools)
+        backend = self.module.StitchBackend(session=session)
+        deleted = backend.delete_project({
+            "project_name": "projects/123456",
+            "project_id": "123456",
+        })
+        self.assertTrue(deleted)
+        calls = [request for request in session.requests if request["method"] == "tools/call"]
+        self.assertEqual(calls[-1]["params"], {
+            "name": "delete_project",
+            "arguments": {"name": "projects/123456"},
+        })
 
     def test_cleanup_failure_still_reads_and_keeps_absence_unproved(self) -> None:
         class FailedDeleteBackend(FakeBackend):
@@ -581,11 +643,16 @@ class StitchBackendProtocolTests(unittest.TestCase):
             for stage in self.module.STAGES:
                 context.update(backend.execute(stage, context, workspace))
         self.assertEqual(context["project_name"], "projects/123456")
-        self.assertEqual(context["screen_name"], "projects/123456/screens/" + "a" * 32)
+        self.assertEqual(context["screen_name"], "projects/123456/screens/" + "d" * 32)
         self.assertEqual(context["design_system_asset_id"], "asset-1")
         self.assertEqual(context["upload_count"], 1)
         self.assertEqual(context["count"], 1)
         self.assertRegex(context["manifest_sha256"], r"^[0-9a-f]{64}$")
+        calls = [request["params"] for request in session.requests if request["method"] == "tools/call"]
+        download_call = next(call for call in calls if call["name"] == "stitch_local_download_assets")
+        self.assertEqual(download_call["arguments"]["screenNames"], [
+            "projects/123456/screens/" + "1" * 19,
+        ])
 
     def test_variant_rejects_the_source_screen_identity(self) -> None:
         backend = self.module.StitchBackend(session=RecordingSession(self.tools, variant_same_source=True))

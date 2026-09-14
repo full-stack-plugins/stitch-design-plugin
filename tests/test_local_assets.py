@@ -49,6 +49,7 @@ class LocalAssetTests(unittest.TestCase):
         download = next(tool for tool in tools if tool["name"] == "stitch_local_download_assets")
         self.assertFalse(download["annotations"]["readOnlyHint"])
         self.assertFalse(download["annotations"]["idempotentHint"])
+        self.assertIn("screenNames", download["inputSchema"]["properties"])
 
     def test_upload_rejects_unsupported_symlink_and_oversize_before_transport(self):
         target = self.root / "payload.exe"
@@ -73,13 +74,13 @@ class LocalAssetTests(unittest.TestCase):
 
         def transport(request, **kwargs):
             calls.append((request, kwargs))
-            body = {"results": [{"screen": {"name": "projects/123/screens/" + "a" * 32, "private": "ignore"}}]}
+            body = {"results": [{"screen": {"name": "projects/123/screens/" + "1" * 19, "private": "ignore"}}]}
             return Response(json.dumps(body).encode(), "application/json")
 
         manager = LocalAssetManager(secret_provider=lambda: "secret", transport=transport)
         result = manager.upload_asset("123", source, title="Demo", create_screen_instances=True)
 
-        self.assertEqual(result, {"screens": [{"name": "projects/123/screens/" + "a" * 32}]})
+        self.assertEqual(result, {"screens": [{"name": "projects/123/screens/" + "1" * 19}]})
         self.assertEqual(len(calls), 1)
         self.assertTrue(calls[0][0].full_url.startswith("https://stitch.googleapis.com/"))
         self.assertNotIn("secret", json.dumps(result))

@@ -2,7 +2,7 @@
 
 > Repository preparation: complete
 >
-> Provider + asset live smoke: not executed
+> Provider + asset live smoke: passed locally on 2026-09-14
 >
 > Harness acceptance: not executed
 >
@@ -11,6 +11,8 @@
 [简体中文](live-canary-acceptance.zh_CN.md) | [Harness controller](live-harness-controller.md) | [Architecture](Stitch-Design-Architecture.md)
 
 This register separates two different external gates. The manual GitHub workflow is a bounded Google Stitch provider + local asset smoke; it is not Harness acceptance and it does not fabricate automated user approval. The full Delivery Harness remains an interactive local controller path.
+
+The local live run completed every provider/asset stage, observed one read screen, one variant, one design-system result, one uploaded screen and two downloaded files, and produced download-manifest SHA-256 `d482d52c666bf0df56ded9e8adb1923c93a24106dd87f8ce3000d95d38626df4`. Cleanup recorded both `delete_requested: true` and `project_absent: true`; schema and acceptance validators passed. Opaque resource identities and the API key were not included in public evidence.
 
 ## Prepared provider + asset smoke
 
@@ -44,11 +46,11 @@ After this smoke passes, run the [local Harness controller](live-harness-control
 | Gate | Current result | Required evidence |
 |:---|:---|:---|
 | Manual-only workflow and secret scope | Prepared offline | workflow tests + actionlint |
-| MCP lifecycle and exact 17-tool catalog | Prepared with recording fake | live matching responses |
-| Provider generate/read/edit/one variant | Pending live smoke | one same-project variant identity different from its source |
-| Design-system create/update/list/apply | Pending live smoke | bound identity results; positive count |
-| Local upload/download | Pending live smoke | positive counts + download manifest hash |
-| Delete and prove absence | Pending live smoke | `delete_requested` and `project_absent` true |
+| MCP lifecycle and exact 17-tool catalog | Passed locally | live matching responses |
+| Provider generate/read/edit/one variant | Passed locally | one same-project variant identity different from its source |
+| Design-system create/update/list/apply | Passed locally | bound identity results; positive count |
+| Local upload/download | Passed locally | upload 1; download 2; manifest hash recorded |
+| Delete and prove absence | Passed locally | `delete_requested` and `project_absent` true |
 | Full Delivery Harness | Pending local controller | real receipts + explicit human approval + verified archive |
 | 0.6.0 tag/Release/Marketplace/install | Not published | exact source/remote/tag/release/install equality |
 

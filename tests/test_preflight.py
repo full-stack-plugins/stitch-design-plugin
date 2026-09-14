@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -265,6 +266,24 @@ class DefaultPreflightTests(unittest.TestCase):
             errors = default_preflight(Path("."))
 
         self.assertEqual(errors, ())
+
+    def test_installed_cache_stdio_mcp_is_recognized_as_plugin_owned(self):
+        with tempfile.TemporaryDirectory() as directory:
+            cache_root = Path(directory).resolve()
+            plugin_root = cache_root / "market" / "stitch-design" / "0.6.0"
+            (plugin_root / "scripts").mkdir(parents=True)
+            (plugin_root / ".codex-plugin").mkdir()
+            (plugin_root / "scripts" / "stitch_mcp_proxy.py").write_text("# launcher\n")
+            (plugin_root / ".codex-plugin" / "plugin.json").write_text(
+                json.dumps({"name": "stitch-design", "version": "0.6.0"})
+            )
+            fields = {
+                "enabled": "true", "transport": "stdio", "command": "python",
+                "args": "scripts/stitch_mcp_proxy.py", "cwd": str(plugin_root / "."),
+                "env": "-", "remove": "codex mcp remove stitch",
+            }
+            with mock.patch.object(preflight, "_CODEX_PLUGIN_CACHE_ROOT", cache_root):
+                self.assertTrue(preflight._is_plugin_owned_stdio(fields))
 
     def test_mismatched_stdio_command_or_cwd_is_a_conflict(self):
         plugin_root = Path(preflight.__file__).resolve().parents[1]

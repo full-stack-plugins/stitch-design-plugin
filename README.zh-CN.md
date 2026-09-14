@@ -35,7 +35,7 @@ Stitch Design
 
 - 创建、检查、编辑 Stitch 屏幕并生成变体。
 - 管理设计系统和 DESIGN.md 工作流。
-- 把本地 HTML/图片导入已授权的 Stitch 项目。
+- 把本地 HTML/图片导入已授权的 Stitch 项目；下载时若服务端不枚举屏幕，传入已验证的 `screenNames` 精确资源名。
 - 转换为 React、React Native、shadcn/ui、Vue、Vant、Element Plus、Bootstrap、Layui、uView、uView Pro 和 uview-plus。
 - 生成站点规格、提示词、视觉规范和 Remotion 演示。
 - 写操作结果不明时先读取远端状态，再决定是否恢复。
@@ -125,9 +125,9 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-本地 0.6.0 候选包含 43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。正式发布、Marketplace 安装、真实 Canary 与安装宿主证据仍属于 Task 6 门禁；v0.5.4 是已发布基线。
+本地 0.6.0 候选包含 43 个 Skills、两个带命名空间的本地资产工具、类型化 Harness evidence writer、隔离图片比较、显式对账/恢复状态和可恢复归档发布。2026-09-14 本机 provider + asset canary 已通过并验证清理；Harness 人工批准、GitHub Release 与最终安装源码等价性仍是独立门禁。v0.5.4 是已发布基线。
 
-Provider + asset 真实 smoke 的仓库准备已完成：仅手动触发的 workflow 使用 `STITCH_API_KEY` Repository Secret、runner 私有状态、脱敏输出，并在最后一个 `always()` 步骤执行单次删除后只读确认不存在。该 workflow 尚未远端实跑，也不是 Harness 验收；完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
+Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行单次删除后只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
 
 ## 故障排查
 

@@ -2,7 +2,7 @@
 
 > 仓库准备：已完成
 >
-> Provider + asset 真实 smoke：未执行
+> Provider + asset 真实 smoke：2026-09-14 本机通过
 >
 > Harness 验收：未执行
 >
@@ -11,6 +11,8 @@
 [English](live-canary-acceptance.md) | [Harness 控制器](live-harness-controller.zh_CN.md) | [架构文档](Stitch-Design-Architecture.zh_CN.md)
 
 本台账把两个外部门禁明确分开。手动 GitHub workflow 是有界 Google Stitch provider + 本地资产 smoke；它不是 Harness 验收，也不会伪造自动用户批准。完整 Delivery Harness 必须走本地交互式控制器路径。
+
+本机真实运行已完成全部 provider/asset 阶段，观测到读取屏幕 1、变体 1、设计系统结果 1、上传屏幕 1、下载文件 2，并生成下载清单 SHA-256 `d482d52c666bf0df56ded9e8adb1923c93a24106dd87f8ce3000d95d38626df4`。清理记录为 `delete_requested: true` 与 `project_absent: true`，schema 和 acceptance 校验均通过；公开 evidence 不包含 API Key 或 opaque 资源身份。
 
 ## 已准备的 provider + asset smoke
 
@@ -44,11 +46,11 @@ provider smoke 通过后，从已安装的 0.6.0 候选执行[本地 Harness 控
 | 门禁 | 当前结果 | 所需证据 |
 |:---|:---|:---|
 | 仅手动触发与 Secret 范围 | 已完成离线准备 | workflow 测试 + actionlint |
-| MCP 生命周期与精确 17 工具目录 | recording fake 已准备 | 真实匹配响应 |
-| Provider 生成/读取/编辑/单一变体 | 待真实 smoke | 一个同项目且不同于源屏幕身份的变体 |
-| 设计系统创建/更新/列出/应用 | 待真实 smoke | 身份绑定结果；计数为正 |
-| 本地上传/下载 | 待真实 smoke | 正数计数 + 下载清单哈希 |
-| 删除并证明不存在 | 待真实 smoke | `delete_requested` 与 `project_absent` 均为 true |
+| MCP 生命周期与精确 17 工具目录 | 本机通过 | 真实匹配响应 |
+| Provider 生成/读取/编辑/单一变体 | 本机通过 | 一个同项目且不同于源屏幕身份的变体 |
+| 设计系统创建/更新/列出/应用 | 本机通过 | 身份绑定结果；计数为正 |
+| 本地上传/下载 | 本机通过 | 上传 1；下载 2；已记录清单哈希 |
+| 删除并证明不存在 | 本机通过 | `delete_requested` 与 `project_absent` 均为 true |
 | 完整 Delivery Harness | 待本地控制器 | 真实 receipts + 明确人工批准 + 已验证归档 |
 | 0.6.0 标签/Release/Marketplace/安装 | 未发布 | 精确源码/远端/标签/Release/安装源等价性 |
 

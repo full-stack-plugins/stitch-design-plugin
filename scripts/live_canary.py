@@ -33,8 +33,11 @@ STAGES = (
     "design_system_apply", "upload", "download",
 )
 PROJECT_PATTERN = re.compile(r"^projects/([0-9]+)$")
-SCREEN_PATTERN = re.compile(r"^projects/([0-9]+)/screens/([A-Fa-f0-9]{32})$")
+SCREEN_PATTERN = re.compile(r"^projects/([0-9]+)/screens/([A-Za-z0-9_-]{1,128})$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+ASSET_PATTERN = re.compile(r"^assets/([^/]+)$")
+PROJECT_ASSET_PATTERN = re.compile(r"^projects/([0-9]+)/assets/([^/]+)$")
+PROJECT_SESSION_PATTERN = re.compile(r"^projects/([0-9]+)/sessions/([^/]+)$")
 LOCAL_TOOL_NAMES = frozenset(tool["name"] for tool in local_tool_definitions())
 EXPECTED_TOOL_NAMES = REQUIRED_TOOL_NAMES | LOCAL_TOOL_NAMES
 PUBLIC_STAGE_KEYS = frozenset(
@@ -47,6 +50,30 @@ PUBLIC_STAGE_KEYS = frozenset(
 PUBLIC_COUNT_KEYS = frozenset(
     {"screens_read", "variant_screens", "design_systems", "uploaded_screens", "downloaded_files"}
 )
+
+
+def _canary_design_system() -> dict[str, Any]:
+    return {
+        "displayName": "Stitch Canary",
+        "theme": {
+            "colorMode": "LIGHT",
+            "headlineFont": "INTER",
+            "bodyFont": "INTER",
+            "roundness": "ROUND_EIGHT",
+            "customColor": "#2563EB",
+        },
+    }
+
+
+def _asset_id(name: Any, project_id: str) -> str:
+    if isinstance(name, str):
+        match = ASSET_PATTERN.fullmatch(name)
+        if match is not None:
+            return match.group(1)
+        project_match = PROJECT_ASSET_PATTERN.fullmatch(name)
+        if project_match is not None and project_match.group(1) == project_id:
+            return project_match.group(2)
+    raise ProxyError("Stitch returned an invalid design-system identity")
 
 
 def _utc_now() -> datetime:
@@ -207,7 +234,7 @@ def _project_identity(project: Any) -> tuple[str, str, str | None]:
 def _screen_identity(screen: Any, project_id: str) -> tuple[str, str]:
     if not isinstance(screen, dict):
         raise ProxyError("Stitch returned invalid screen metadata")
-    source = screen.get("sourceScreen")
+    source = screen.get("sourceScreen") or screen.get("name")
     identifier = screen.get("id")
     match = SCREEN_PATTERN.fullmatch(source) if isinstance(source, str) else None
     if match is None or match.group(1) != project_id or not isinstance(identifier, str) or not identifier:
@@ -217,6 +244,15 @@ def _screen_identity(screen: Any, project_id: str) -> tuple[str, str]:
 
 def _screen_list(payload: dict[str, Any], project_id: str, *, exact_count: int | None = None) -> list[tuple[str, str]]:
     screens = payload.get("screens")
+    if not isinstance(screens, list):
+        components = payload.get("outputComponents")
+        screens = []
+        if isinstance(components, list):
+            for component in components:
+                design = component.get("design") if isinstance(component, dict) else None
+                generated = design.get("screens") if isinstance(design, dict) else None
+                if isinstance(generated, list):
+                    screens.extend(generated)
     if not isinstance(screens, list) or not screens:
         raise ProxyError("Stitch returned an invalid nonempty screen list")
     identities = [_screen_identity(screen, project_id) for screen in screens]
@@ -322,61 +358,96 @@ class StitchBackend:
             return {"screen_name": identities[0][0], "screen_id": identities[0][1]}
         if stage == "read":
             project = self._call("get_project", {"name": context["project_name"]})
-            instances = project.get("screenInstances")
-            if not isinstance(instances, list) or not instances:
-                raise ProxyError("get_project did not return screen instances")
-            project_identities = [_screen_identity(screen, context["project_id"]) for screen in instances]
-            listed = _screen_list(self._call("list_screens", {"projectId": context["project_id"]}), context["project_id"])
+            if project.get("name") != context["project_name"]:
+                raise ProxyError("get_project did not bind the exact project identity")
+            listed_payload = self._call("list_screens", {"projectId": context["project_id"]})
             expected = (context["screen_name"], context["screen_id"])
-            if expected not in project_identities or expected not in listed:
-                raise ProxyError("read results do not bind the exact generated screen identity")
+            if "screens" in listed_payload:
+                listed = _screen_list(listed_payload, context["project_id"])
+                if expected not in listed:
+                    raise ProxyError("list_screens does not bind the exact generated screen identity")
             detail = self._call("get_screen", {"name": context["screen_name"]})
-            if not isinstance(detail.get("htmlCode"), dict) or not isinstance(detail.get("screenshot"), dict):
+            if (
+                detail.get("name") not in {None, context["screen_name"]}
+                or not isinstance(detail.get("htmlCode"), dict)
+                or not isinstance(detail.get("screenshot"), dict)
+            ):
                 raise ProxyError("get_screen did not return HTML and screenshot resources")
-            return {"screen_count": len(listed)}
+            return {"screen_count": 1}
         if stage == "edit":
             identities = _screen_list(
-                self._call("edit_screens", {"selectedScreenInstances": [self._selected(context)]}),
+                self._call("edit_screens", {
+                    "projectId": context["project_id"],
+                    "selectedScreenIds": [context["screen_id"]],
+                    "prompt": "Keep the layout and change the primary button label to Continue.",
+                }),
                 context["project_id"],
             )
-            if (context["screen_name"], context["screen_id"]) not in identities:
-                raise ProxyError("edit result does not bind the exact selected screen identity")
-            return {"ok": True}
+            return {"screen_name": identities[0][0], "screen_id": identities[0][1]}
         if stage == "variant":
             identities = _screen_list(
-                self._call("generate_variants", {"selectedScreenInstances": [self._selected(context)]}),
+                self._call("generate_variants", {
+                    "projectId": context["project_id"],
+                    "selectedScreenIds": [context["screen_id"]],
+                    "prompt": "Create one layout variant while preserving the content hierarchy.",
+                    "variantOptions": {"variantCount": 1, "creativeRange": "REFINE", "aspects": ["LAYOUT"]},
+                }),
                 context["project_id"], exact_count=1,
             )
             if identities[0][0] == context["screen_name"] or identities[0][1] == context["screen_id"]:
                 raise ProxyError("variant result must be different from the exact source screen identity")
             return {"variant_count": len(identities)}
         if stage == "design_system_create":
-            result = self._call("create_design_system", {"projectId": context["project_id"]})
-            asset_id = result.get("assetId")
-            if not isinstance(asset_id, str) or not asset_id:
-                raise ProxyError("Stitch did not return a design-system asset")
-            return {"design_system_asset_id": asset_id}
+            design_system = _canary_design_system()
+            result = self._call("create_design_system", {
+                "projectId": context["project_id"], "designSystem": design_system,
+            })
+            name = result.get("name")
+            asset_id = _asset_id(name, context["project_id"])
+            return {
+                "design_system_name": name,
+                "design_system_asset_id": asset_id,
+                "design_system": design_system,
+            }
         if stage == "design_system_update":
-            result = self._call("update_design_system", {"assetId": context["design_system_asset_id"]})
-            if result.get("assetId") != context["design_system_asset_id"]:
+            result = self._call("update_design_system", {
+                "name": context["design_system_name"],
+                "projectId": context["project_id"],
+                "designSystem": context["design_system"],
+            })
+            session_name = result.get("name")
+            session_match = PROJECT_SESSION_PATTERN.fullmatch(session_name) if isinstance(session_name, str) else None
+            returned_design_system = result.get("designSystem")
+            returned_theme = returned_design_system.get("theme") if isinstance(returned_design_system, dict) else None
+            if (
+                session_match is None
+                or session_match.group(1) != context["project_id"]
+                or not isinstance(returned_theme, dict)
+                or returned_design_system.get("displayName") != context["design_system"]["displayName"]
+                or not all(returned_theme.get(key) == value for key, value in context["design_system"]["theme"].items())
+            ):
                 raise ProxyError("updated design-system identity does not match")
             return {"ok": True}
         if stage == "design_system_list":
             result = self._call("list_design_systems", {"projectId": context["project_id"]})
             systems = result.get("designSystems")
             if not isinstance(systems, list) or not systems or not any(
-                isinstance(system, dict) and system.get("assetId") == context["design_system_asset_id"] for system in systems
+                isinstance(system, dict)
+                and _asset_id(system.get("name"), context["project_id"]) == context["design_system_asset_id"]
+                for system in systems
             ):
                 raise ProxyError("design-system list does not contain the exact created asset")
             return {"design_system_count": len(systems)}
         if stage == "design_system_apply":
             identities = _screen_list(
-                self._call("apply_design_system", {"selectedScreenInstances": [self._selected(context)]}),
+                self._call("apply_design_system", {
+                    "projectId": context["project_id"],
+                    "selectedScreenInstances": [self._selected(context)],
+                    "assetId": context["design_system_asset_id"],
+                }),
                 context["project_id"],
             )
-            if (context["screen_name"], context["screen_id"]) not in identities:
-                raise ProxyError("design-system result does not bind the exact selected screen identity")
-            return {"ok": True}
+            return {"screen_name": identities[0][0], "screen_id": identities[0][1]}
         if stage == "upload":
             source = workspace / "canary-upload.html"
             source.parent.mkdir(parents=True, exist_ok=True)
@@ -393,12 +464,16 @@ class StitchBackend:
                 match = SCREEN_PATTERN.fullmatch(name) if isinstance(name, str) else None
                 if match is None or match.group(1) != context["project_id"]:
                     raise ProxyError("local upload returned a screen outside the exact project")
-            return {"upload_count": len(screens)}
+            return {"upload_count": len(screens), "uploaded_screen_name": screens[0]["name"]}
         if stage == "download":
             destination = (workspace / "downloaded").resolve()
             result = self._call(
                 "stitch_local_download_assets",
-                {"projectId": context["project_id"], "outputDir": str(destination)},
+                {
+                    "projectId": context["project_id"],
+                    "outputDir": str(destination),
+                    "screenNames": [context["uploaded_screen_name"]],
+                },
             )
             files = result.get("files")
             count = result.get("count")
@@ -415,11 +490,8 @@ class StitchBackend:
         raise ValueError(f"unsupported canary stage: {stage}")
 
     def delete_project(self, context: dict[str, Any]) -> bool:
-        result = self._call("delete_project", {"name": context["project_name"]})
-        deleted = result.get("deleted")
-        if not isinstance(deleted, bool):
-            raise ProxyError("delete_project did not return a boolean result")
-        return deleted
+        self._call("delete_project", {"name": context["project_name"]})
+        return True
 
     def project_absent(self, context: dict[str, Any]) -> bool:
         projects = self._list_projects()

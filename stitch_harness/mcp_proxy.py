@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 
 from .secrets import SecretProvider, SecretStoreError, platform_secret_provider
 from .tool_catalog import ToolCatalog
-from .assets import AssetError, LocalAssetManager, UnknownAssetWriteResult, local_tool_definitions
+from .assets import AssetError, LocalAssetManager, SCREEN_PATTERN, UnknownAssetWriteResult, local_tool_definitions
 
 
 STITCH_ENDPOINT = "https://stitch.googleapis.com/mcp"
@@ -144,18 +144,24 @@ class McpHttpSession:
         structured = result.get("structuredContent")
         return structured if isinstance(structured, dict) else result
 
-    def _read_project_screens(self, project_id: str) -> list[dict]:
-        listed = self._structured_result(self.send({
-            "jsonrpc": "2.0", "id": "local-list-screens", "method": "tools/call",
-            "params": {"name": "list_screens", "arguments": {"projectId": project_id}},
-        }))
-        summaries = listed.get("screens")
-        if not isinstance(summaries, list):
-            raise AssetError("list_screens did not return a screen list")
+    def _read_project_screens(self, project_id: str, screen_names: list[str] | None = None) -> list[dict]:
+        if screen_names is not None:
+            if not screen_names or len(screen_names) > 100 or len(set(screen_names)) != len(screen_names):
+                raise AssetError("screenNames must contain 1 to 100 unique screen resources")
+            summaries = [{"name": name} for name in screen_names]
+        else:
+            listed = self._structured_result(self.send({
+                "jsonrpc": "2.0", "id": "local-list-screens", "method": "tools/call",
+                "params": {"name": "list_screens", "arguments": {"projectId": project_id}},
+            }))
+            summaries = listed.get("screens")
+            if not isinstance(summaries, list):
+                raise AssetError("list_screens did not return a screen list; pass verified screenNames")
         screens: list[dict] = []
         for summary in summaries:
             name = summary.get("name") if isinstance(summary, dict) else None
-            if not isinstance(name, str):
+            match = SCREEN_PATTERN.fullmatch(name) if isinstance(name, str) else None
+            if match is None or match.group(1) != project_id:
                 raise AssetError("list_screens returned an invalid screen name")
             detail = self._structured_result(self.send({
                 "jsonrpc": "2.0", "id": "local-get-screen", "method": "tools/call",
@@ -179,7 +185,7 @@ class McpHttpSession:
             raise ProxyError("local tool arguments must be an object")
         allowed = {
             "stitch_local_upload_asset": {"projectId", "filePath", "title", "createScreenInstances"},
-            "stitch_local_download_assets": {"projectId", "outputDir", "assetsSubdir"},
+            "stitch_local_download_assets": {"projectId", "outputDir", "assetsSubdir", "screenNames"},
         }[name]
         if set(arguments).difference(allowed):
             raise ProxyError("local tool arguments contain unsupported fields")
@@ -203,10 +209,12 @@ class McpHttpSession:
                     raise AssetError("projectId and outputDir must be strings")
                 if "assetsSubdir" in arguments and not isinstance(arguments["assetsSubdir"], str):
                     raise AssetError("assetsSubdir must be a string")
+                if "screenNames" in arguments and not isinstance(arguments["screenNames"], list):
+                    raise AssetError("screenNames must be an array")
                 result = manager.download_assets(
                     project_id, Path(arguments.get("outputDir", "")),
                     assets_subdir=arguments.get("assetsSubdir", "assets"),
-                    screens=self._read_project_screens(project_id),
+                    screens=self._read_project_screens(project_id, arguments.get("screenNames")),
                 )
         except UnknownAssetWriteResult as error:
             raise UnknownWriteResult(str(error)) from error

@@ -37,7 +37,7 @@ Stitch Design
 - Create, inspect, edit, and generate variants of Stitch screens.
 - Manage design systems and DESIGN.md-based workflows.
 - Import local HTML/images into authorized Stitch projects.
-- Export HTML, screenshots, available DESIGN.md, and referenced assets with hashes through `stitch_local_download_assets`.
+- Export HTML, screenshots, available DESIGN.md, and referenced assets with hashes through `stitch_local_download_assets`; pass verified `screenNames` when the provider does not enumerate screens.
 - Convert Stitch outputs to React, React Native, shadcn/ui, Vue, Vant, Element Plus, Bootstrap, Layui, uView, uView Pro, and uview-plus.
 - Generate site specifications, prompt architecture, visual guidance, and Remotion walkthroughs.
 - Recover safely from ambiguous remote writes by reading state before any retry.
@@ -138,7 +138,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-The local 0.6.0 candidate contains 43 Skills, two namespaced local asset tools, typed Harness evidence writers, isolated comparison, explicit reconciliation/recovery, and recoverable archive publication. Release, Marketplace installation, live canary, and installed-host evidence remain separate Task 6 gates; v0.5.4 is the published baseline.
+The local 0.6.0 candidate contains 43 Skills, two namespaced local asset tools, typed Harness evidence writers, isolated comparison, explicit reconciliation/recovery, and recoverable archive publication. The local provider + asset canary passed on 2026-09-14 with verified cleanup; Harness approval, GitHub Release, and final installed-source equality remain separate gates. v0.5.4 is the published baseline.
 
 Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md).
 

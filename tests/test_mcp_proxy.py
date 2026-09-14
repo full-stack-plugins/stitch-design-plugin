@@ -266,6 +266,31 @@ class McpHttpSessionTests(unittest.TestCase):
         self.assertTrue({"stitch_local_upload_asset", "stitch_local_download_assets"}.issubset(names))
         self.assertEqual(session.tool_catalog.validation_errors(), ())
 
+    def test_local_download_can_resolve_explicit_bound_screen_names(self):
+        screen_name = "projects/123/screens/" + "1" * 19
+        body = json.dumps({
+            "jsonrpc": "2.0",
+            "id": "local-get-screen",
+            "result": {"structuredContent": {
+                "name": screen_name,
+                "htmlCode": {"downloadUrl": "https://example.invalid/screen.html"},
+            }},
+        }).encode()
+        opener = FakeOpener([FakeResponse(200, body)])
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider(["test-secret"]),
+            opener=opener,
+        )
+
+        screens = session._read_project_screens("123", [screen_name])
+
+        self.assertEqual(screens, [{
+            "name": screen_name,
+            "htmlCode": {"downloadUrl": "https://example.invalid/screen.html"},
+        }])
+        sent = json.loads(opener.requests[0].data)
+        self.assertEqual(sent["params"], {"name": "get_screen", "arguments": {"name": screen_name}})
+
     def test_local_upload_tool_call_uses_injected_transport_without_provider_forward(self):
         import tempfile
 

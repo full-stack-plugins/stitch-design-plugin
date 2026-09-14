@@ -79,7 +79,7 @@ Receipt hashes detect accidental or post-approval artifact changes; they are not
 The stdio proxy adds two namespaced local tools without shadowing provider tools:
 
 - `stitch_local_upload_asset(projectId, filePath, title?, createScreenInstances?)`
-- `stitch_local_download_assets(projectId, outputDir, assetsSubdir?)`
+- `stitch_local_download_assets(projectId, outputDir, assetsSubdir?, screenNames?)`; `screenNames` carries already verified same-project resources when the live provider does not enumerate screens.
 
 Both tools appear in `tools/list` with complete input/output schemas and annotations. Paths are validated, downloads are HTTPS allowlisted, signed URLs never enter argv or logs, writes stage into private temporary files, and final files are atomically published. Download validates status, Content-Type, maximum size, hashes, and contained output paths; it exports HTML, screenshots, referenced assets, and available DESIGN.md.
 
@@ -121,4 +121,3 @@ No project identifiers, signed URLs, credentials, private HTML, or screenshots a
 ## 7. Release gates
 
 Each release requires: clean unit suite, distribution validator, all Skill validators, link validation, ShellCheck, Python compilation, no secret-like content, independent code review, matching local/tracking/remote/tag SHA, GitHub Release, fresh Marketplace installation, installed-source diff, and a fresh-host smoke appropriate to the release claim.
-

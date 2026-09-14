@@ -37,7 +37,7 @@ DOWNLOAD_MIMES = {
 }
 ALLOWED_DOWNLOAD_HOSTS = ("googleusercontent.com", "googleapis.com", "google.com", "gstatic.com")
 PROJECT_PATTERN = re.compile(r"^[0-9]+$")
-SCREEN_PATTERN = re.compile(r"^projects/([0-9]+)/screens/([A-Fa-f0-9]{32})$")
+SCREEN_PATTERN = re.compile(r"^projects/([0-9]+)/screens/([A-Za-z0-9_-]{1,128})$")
 REFERENCE_URL_PATTERN = re.compile(r'''(?:src|href)=["'](https://[^"']+)["']''', re.IGNORECASE)
 
 
@@ -92,6 +92,13 @@ def local_tool_definitions() -> list[dict[str, Any]]:
                 "projectId": {"type": "string", "pattern": "^[0-9]+$"},
                 "outputDir": {"type": "string"},
                 "assetsSubdir": {"type": "string", "default": "assets"},
+                "screenNames": {
+                    "type": "array",
+                    "items": {"type": "string", "pattern": r"^projects/[0-9]+/screens/[A-Za-z0-9_-]{1,128}$"},
+                    "minItems": 1,
+                    "maxItems": MAX_SCREENS,
+                    "uniqueItems": True,
+                },
             }, ["projectId", "outputDir"]),
             "outputSchema": download_output,
             "annotations": {"readOnlyHint": False, "openWorldHint": True, "idempotentHint": False, "destructiveHint": False},

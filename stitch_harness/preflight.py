@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 import re
 import shutil
 import subprocess
@@ -18,6 +19,7 @@ _MISSING_GLOBAL_MCP = re.compile(
     re.IGNORECASE,
 )
 _PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+_CODEX_PLUGIN_CACHE_ROOT = Path.home() / ".codex" / "plugins" / "cache"
 _STDIO_FIELDS = frozenset(
     {"enabled", "transport", "command", "args", "cwd", "env", "remove"}
 )
@@ -103,12 +105,22 @@ def _is_plugin_owned_stdio(fields: dict[str, str]) -> bool:
         return False
     try:
         resolved_cwd = configured_cwd.resolve()
-        resolved_cwd.relative_to(_PLUGIN_ROOT)
     except (OSError, RuntimeError, ValueError):
         return False
     configured_script = (resolved_cwd / fields["args"]).resolve()
-    expected_script = (_PLUGIN_ROOT / "scripts" / "stitch_mcp_proxy.py").resolve()
-    return configured_script == expected_script
+    source_script = (_PLUGIN_ROOT / "scripts" / "stitch_mcp_proxy.py").resolve()
+    if configured_script == source_script:
+        return True
+    try:
+        resolved_cwd.relative_to(_CODEX_PLUGIN_CACHE_ROOT.resolve())
+        if configured_script != (resolved_cwd / "scripts" / "stitch_mcp_proxy.py").resolve():
+            return False
+        manifest = json.loads(
+            (resolved_cwd / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+    except (OSError, RuntimeError, ValueError, json.JSONDecodeError):
+        return False
+    return isinstance(manifest, dict) and manifest.get("name") == "stitch-design"
 
 
 def _mcp_registration_status(result: subprocess.CompletedProcess[str]) -> str:
