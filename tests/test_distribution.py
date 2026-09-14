@@ -30,9 +30,9 @@ def fake_codex_command(platform_name: str) -> tuple[str, str]:
 
 
 class DistributionContractTests(unittest.TestCase):
-    def test_release_uses_077_across_active_surfaces(self) -> None:
+    def test_release_uses_078_across_active_surfaces(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.7.7")
+        self.assertEqual(manifest["version"], "0.7.8")
 
         validator = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate_distribution.py"), str(ROOT)],
@@ -41,7 +41,7 @@ class DistributionContractTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(validator.returncode, 0, validator.stdout + validator.stderr)
-        self.assertIn("compatibility distribution 0.7.7", validator.stdout)
+        self.assertIn("compatibility distribution 0.7.8", validator.stdout)
 
         active_version_surfaces = (
             ROOT / "README.md",
@@ -56,10 +56,10 @@ class DistributionContractTests(unittest.TestCase):
         for path in active_version_surfaces:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.relative_to(ROOT)):
-                self.assertIn("0.7.7", text)
+                self.assertIn("0.7.8", text)
 
         self.assertIn(
-            "Current release | [v0.7.7]",
+            "Current release | [v0.7.8]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
@@ -67,7 +67,7 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "当前版本 | [v0.7.7]",
+            "当前版本 | [v0.7.8]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
@@ -260,7 +260,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(manifest["name"], "stitch-design")
-        self.assertEqual(manifest["version"], "0.7.7")
+        self.assertEqual(manifest["version"], "0.7.8")
         self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
@@ -336,13 +336,13 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("Only HTTP 401", privacy)
         self.assertIn("HTTP 403 is permission denied and is not refreshed or replayed", privacy)
 
-    def test_manifest_and_readmes_remain_truthful_at_077(self) -> None:
+    def test_manifest_and_readmes_remain_truthful_at_078(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.7.7")
+        self.assertEqual(manifest["version"], "0.7.8")
         for path in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.7.7", text)
+                self.assertIn("0.7.8", text)
 
     def test_stitch_setup_check_never_prints_the_key(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
@@ -455,7 +455,7 @@ class DistributionContractTests(unittest.TestCase):
         for path in paths:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.7.7", text)
+                self.assertIn("0.7.8", text)
                 self.assertIn("stdio", text)
                 self.assertIn("Harness", text)
                 self.assertNotIn("env_http_headers", text)
@@ -463,7 +463,7 @@ class DistributionContractTests(unittest.TestCase):
         architecture = paths[0].read_text(encoding="utf-8")
         self.assertNotIn("environment or system store found", architecture)
         self.assertIn("environment or restricted user config found", architecture)
-        self.assertIn("stitch-design 0.7.7", architecture)
+        self.assertIn("stitch-design 0.7.8", architecture)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"

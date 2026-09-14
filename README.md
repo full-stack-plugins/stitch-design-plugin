@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.7.7-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.7)
+[![Version](https://img.shields.io/badge/release-0.7.8-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -155,8 +155,8 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.7.7` |
-| Current release | [v0.7.7](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.7) |
+| Current candidate | `0.7.8` |
+| Current release | [v0.7.8](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8) |
 | Previous release | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
@@ -281,7 +281,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-Version 0.7.7 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. Referenced dependencies now default to `best_effort`: a safe dependency that is temporarily unavailable or has an unsupported response is skipped with a host-only warning while primary artifacts are still published. Set `referencedAssetPolicy: "strict"` to retain all-or-nothing export. Unsafe URLs, HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, primary-artifact failures, path escapes, byte/file limits, and the independent 500-URL reference discovery budget remain blocked.
+Version 0.7.8 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. Referenced dependencies now default to `best_effort`: a safe dependency that is temporarily unavailable or has an unsupported response is skipped with a host-only warning while primary artifacts are still published. Set `referencedAssetPolicy: "strict"` to retain all-or-nothing export. Unsafe URLs, HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, primary-artifact failures, path escapes, byte/file limits, and the independent 500-URL reference discovery budget remain blocked.
 
 Unknown-write reconciliation may bind `target.project_id` and `target.expected_title`. When a complete `list_screens` read succeeds, its evidence binds the project ID, completeness flag and normalized title-hash inventory. Only when the Harness derives that the expected-title hash is absent may `get_screen` be recorded as `skipped` with reason `no_candidate_id`; an applied or discovered candidate still requires a successful `get_screen`. Attempt limits, timestamps, hashes, and duplicate-write protection remain enforced.
 
@@ -301,6 +301,8 @@ Run state machine: `DRAFT`, `PREFLIGHT_PASSED`, `STITCH_GENERATED`, `SOURCE_ACCE
 Accepting a Stitch source never authorizes ImageGen. The Harness pauses and asks the user to reply with exactly `enhance`, `keep_stitch`, or `cancel`; only the exact `enhance` response can enter the ImageGen path. Ambiguous confirmations are not mapped, and the CLI exposes no self-asserted `--source user` override.
 
 Specs may select strict `provider_generated` provenance or `imported_editable_html`. Imported HTML still requires an exact-canvas render artifact and full DOM/copy gates. Reported OCR drift fails closed, and enhanced delivery records a deterministic semantic-normalization receipt before Stitch upload/readback.
+
+Visual comparison uses coarse, canvas-relative edge geometry for layout scoring, while illustration texture, shadows, color, and component finish remain in the separate five-dimension quality review.
 
 ## Troubleshooting
 

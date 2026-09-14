@@ -71,6 +71,33 @@ class VisualGateTests(unittest.TestCase):
                 Path(directory),
             )
 
+    def test_layout_score_ignores_texture_but_detects_geometry_shift(self):
+        from PIL import Image, ImageDraw
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base = Image.new("RGB", (400, 300), "white")
+            base_draw = ImageDraw.Draw(base)
+            base_draw.rounded_rectangle((40, 40, 360, 120), radius=16, fill="#eef2ff", outline="#6366f1", width=2)
+            base_draw.rounded_rectangle((80, 150, 360, 270), radius=16, fill="#f8fafc", outline="#94a3b8", width=2)
+            textured = base.copy()
+            texture_draw = ImageDraw.Draw(textured)
+            for x in range(82, 358, 4):
+                texture_draw.line((x, 152, x, 268), fill="#cbd5e1", width=1)
+            shifted = Image.new("RGB", base.size, "white")
+            shifted_draw = ImageDraw.Draw(shifted)
+            shifted_draw.rounded_rectangle((40, 40, 360, 120), radius=16, fill="#eef2ff", outline="#6366f1", width=2)
+            shifted_draw.rounded_rectangle((80, 180, 360, 299), radius=16, fill="#f8fafc", outline="#94a3b8", width=2)
+            base.save(root / "base.png")
+            textured.save(root / "textured.png")
+            shifted.save(root / "shifted.png")
+
+            texture_result = compare_images(root / "base.png", root / "textured.png", root / "texture-review")
+            shift_result = compare_images(root / "base.png", root / "shifted.png", root / "shift-review")
+
+            self.assertGreaterEqual(texture_result.layout_score, 0.95)
+            self.assertGreater(texture_result.layout_score, shift_result.layout_score)
+
     def test_every_visual_dimension_must_reach_threshold(self):
         evidence = ExternalEvidence.from_dict(
             {

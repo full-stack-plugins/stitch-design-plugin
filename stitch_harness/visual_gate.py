@@ -19,7 +19,7 @@ class DimensionMismatch(ValueError):
 class ComparisonResult:
     review_files: tuple[Path, ...]
     layout_score: float
-    algorithm_version: str = "edge-mae-v1"
+    algorithm_version: str = "coarse-edge-mae-v2"
 
 
 @dataclass(frozen=True)
@@ -62,8 +62,9 @@ def compare_images(stitch_path: Path, art_path: Path, output_dir: Path, *, repla
         side_by_side.save(staged_files[0], format="PNG")
         overlay.save(staged_files[1], format="PNG")
         heatmap.save(staged_files[2], format="PNG")
-        first_edges = stitch.convert("L").filter(ImageFilter.FIND_EDGES)
-        second_edges = art.convert("L").filter(ImageFilter.FIND_EDGES)
+        blur_radius = max(1.0, min(stitch.size) / 220.0)
+        first_edges = stitch.convert("L").filter(ImageFilter.GaussianBlur(blur_radius)).filter(ImageFilter.FIND_EDGES)
+        second_edges = art.convert("L").filter(ImageFilter.GaussianBlur(blur_radius)).filter(ImageFilter.FIND_EDGES)
         edge_difference = ImageChops.difference(first_edges, second_edges)
         mean_absolute_error = ImageStat.Stat(edge_difference).mean[0] / 255.0
         backup: Path | None = None

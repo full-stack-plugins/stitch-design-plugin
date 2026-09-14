@@ -4,7 +4,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/release-0.7.7-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.7)
+[![版本](https://img.shields.io/badge/release-0.7.8-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -155,8 +155,8 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前候选版本 | `0.7.7` |
-| 当前版本 | [v0.7.7](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.7) |
+| 当前候选版本 | `0.7.8` |
+| 当前版本 | [v0.7.8](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8) |
 | 上一版本 | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
@@ -270,7 +270,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-0.7.7 继续要求 Stitch 主 HTML、截图和 DESIGN.md 来自 Google/Stitch 白名单，但允许 HTML 引用的依赖来自任意安全的公网 HTTPS 主机，例如 `cdn.tailwindcss.com`。引用依赖现在默认使用 `best_effort`：安全依赖临时不可用或返回不支持的响应时，跳过该依赖、返回仅含主机名的 warning，并继续原子发布主产物；设置 `referencedAssetPolicy: "strict"` 可恢复全有或全无。非安全 URL、HTTP、带账号密码的 URL、localhost、本地/内部域名、IP 字面量、重定向、主产物失败、路径逃逸、字节/文件上限和独立的500条引用URL发现预算仍会被阻止。
+0.7.8 继续要求 Stitch 主 HTML、截图和 DESIGN.md 来自 Google/Stitch 白名单，但允许 HTML 引用的依赖来自任意安全的公网 HTTPS 主机，例如 `cdn.tailwindcss.com`。引用依赖现在默认使用 `best_effort`：安全依赖临时不可用或返回不支持的响应时，跳过该依赖、返回仅含主机名的 warning，并继续原子发布主产物；设置 `referencedAssetPolicy: "strict"` 可恢复全有或全无。非安全 URL、HTTP、带账号密码的 URL、localhost、本地/内部域名、IP 字面量、重定向、主产物失败、路径逃逸、字节/文件上限和独立的500条引用URL发现预算仍会被阻止。
 
 未知写入证据可以绑定 `target.project_id` 与 `target.expected_title`。完整 `list_screens` 证据必须绑定项目ID、完整性标记和规范化标题哈希清单；只有Harness自行计算出预期标题哈希不在清单中时，才允许把 `get_screen` 记录为 `skipped/no_candidate_id`。一旦发现候选，仍必须成功调用 `get_screen` 才能判定已应用。三轮上限、时间戳、哈希和防重复写保护保持不变。
 
@@ -290,6 +290,8 @@ Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配�
 接受 Stitch 原稿不等于授权 ImageGen。Harness 必须暂停并要求用户严格回复 `enhance`、`keep_stitch` 或 `cancel`；只有原样的 `enhance` 回复才能进入二次图片生成路径。“确认”“继续”“做按”等模糊回复不得映射，CLI 也不再提供可自称用户来源的 `--source user` 参数。
 
 规格可选择严格的 `provider_generated` 来源或 `imported_editable_html`。导入 HTML 仍必须绑定与画布完全一致的真实渲染图并通过完整 DOM/文案门禁；OCR 一旦报告文字漂移即失败，增强交付在上传和读回 Stitch 前还会记录确定性语义规范化 receipt。
+
+视觉比较使用与画布相关的粗粒度边缘几何来计算布局分数；插画纹理、阴影、颜色和组件精度由独立的五维质量评审判断，不再把预期的美术增强误判为布局漂移。
 
 ## 故障排查
 
