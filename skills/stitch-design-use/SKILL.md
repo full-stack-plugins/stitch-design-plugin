@@ -68,7 +68,7 @@ description: Stitch Design 根路由；当用户要用 Stitch 完成从认证、
 
 **Q6：路由完成是否等于任务完成？** 不等于；必须以目标 Skill 的实际回执和验收证据为准。
 
-明确下载本地资产时使用 `stitch_local_download_assets`；若 `list_screens` 未返回屏幕列表，必须把已由 `get_screen`/生成结果验证且属于同一项目的资源名放入 `screenNames`。上传已审核 HTML/图片时使用 `stitch_local_upload_asset`。两者属于 0.6.0 起提供的本地能力，已随 0.7.0 发布；真实 Canary 证据见 [live-canary-acceptance.md](../../docs/live-canary-acceptance.md)。
+明确下载本地资产时使用 `stitch_local_download_assets`；若 `list_screens` 未返回屏幕列表，必须把已由 `get_screen`/生成结果验证且属于同一项目的资源名放入 `screenNames`。上传已审核 HTML/图片时使用 `stitch_local_upload_asset`。两者属于 0.6.0 起提供的本地能力，已随 0.7.1 发布；真实 Canary 证据见 [live-canary-acceptance.md](../../docs/live-canary-acceptance.md)。
 
 ## 按需参考
 

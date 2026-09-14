@@ -2,7 +2,7 @@
 
 > **文档目的**：定义 Stitch Design 已验证的架构、信任边界、生命周期、失败语义与演进约束。
 >
-> **适用版本**：0.7.0 · **状态**：已发布 · **事实核验日期**：2026-09-14
+> **适用版本**：0.7.1 · **状态**：已发布 · **事实核验日期**：2026-09-14
 
 [English](Stitch-Design-Architecture.md) | [技术方案](Stitch-Design-Technical-Solution.zh_CN.md) | [README 中文](../README.zh-CN.md)
 
@@ -162,8 +162,8 @@ sequenceDiagram
     participant M as Marketplace / 源码
     participant P as 插件
     U->>C: 添加市场并安装插件
-    C->>M: 为 0.7.0 候选解析 main
-    M-->>C: stitch-design 0.7.0 候选
+    C->>M: 为 0.7.1 候选解析 main
+    M-->>C: stitch-design 0.7.1 候选
     C->>P: 加载 manifest、Skills、MCP
     P-->>C: 注册能力
 ```
@@ -307,4 +307,4 @@ flowchart LR
 
 ---
 
-**文档版本**：2.7.0 · **状态**：已对齐 0.7.0 发布 · **最后更新**：2026-09-14
+**文档版本**：2.7.1 · **状态**：已对齐 0.7.1 发布 · **最后更新**：2026-09-14

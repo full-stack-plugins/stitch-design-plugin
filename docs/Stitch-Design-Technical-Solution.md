@@ -1,6 +1,6 @@
 # Stitch Design Technical Solution
 
-> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.0.
+> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.1.
 >
 > **Updated:** 2026-09-14
 
@@ -206,4 +206,4 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 2.7.0 · **Status:** Aligned with the 0.7.0 release
+**Document version:** 2.7.1 · **Status:** Aligned with the 0.7.1 release

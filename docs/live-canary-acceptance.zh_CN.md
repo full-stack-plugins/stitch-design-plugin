@@ -6,11 +6,11 @@
 >
 > Harness 验收：本机通过并归档
 >
-> GitHub Release/仓库 Marketplace：v0.7.0 已发布
+> GitHub Release/仓库 Marketplace：v0.7.1 已发布
 
 [English](live-canary-acceptance.md) | [Harness 控制器](live-harness-controller.zh_CN.md) | [架构文档](Stitch-Design-Architecture.zh_CN.md)
 
-下列 provider 契约未变，因此本 smoke 仍是 0.7.0 适用的 provider 证据。但 0.7.0 的 Harness 契约**有变**：页面规格现在要求 `canvas.device`，新增的设备保真栅栏会让设备或几何与请求不符的屏幕失败关闭。这里记录的真实运行早于该栅栏，因此需在 0.7.0 上用声明了 `canvas.device` 的规格重跑本地 Harness 控制器。0.6.x 证据中那些平板屏幕从提供方返回的就是 DESKTOP，按新栅栏会被设计性地拒绝。
+下列 provider 契约未变，因此本 smoke 仍是适用的 provider 证据。Harness 契约在 0.7.0 有变、在 0.7.1 未变：页面规格要求 `canvas.device`，设备保真栅栏会让设备或几何与请求不符的屏幕失败关闭。这里记录的真实运行早于该栅栏，因此需在 0.7.1 上用声明了 `canvas.device` 的规格重跑本地 Harness 控制器。0.6.x 证据中那些平板屏幕从提供方返回的就是 DESKTOP，按新栅栏会被设计性地拒绝。0.7.1 本身只放宽了下载白名单并补充其边界测试。
 
 本台账把两个外部门禁明确分开。手动 GitHub workflow 是有界 Google Stitch provider + 本地资产 smoke；它不是 Harness 验收，也不会伪造自动用户批准。完整 Delivery Harness 必须走本地交互式控制器路径。
 
@@ -41,7 +41,7 @@ Opaque ID 仅保存在 runner 私有文件且不上传。POSIX 显式使用 `060
 
 ## 独立 Harness 门禁
 
-provider smoke 通过后，从已安装的 0.7.0 候选执行[本地 Harness 控制器](live-harness-controller.zh_CN.md)。该路径必须取得真实 Stitch、ImageGen、OCR/业务、roundtrip、editability、comparison、明确人工批准及 archive receipts。手动触发 workflow 或 provider smoke 通过都不等于用户明确批准 Harness 资产。
+provider smoke 通过后，从已安装的 0.7.1 候选执行[本地 Harness 控制器](live-harness-controller.zh_CN.md)。该路径必须取得真实 Stitch、ImageGen、OCR/业务、roundtrip、editability、comparison、明确人工批准及 archive receipts。手动触发 workflow 或 provider smoke 通过都不等于用户明确批准 Harness 资产。
 
 ## 验收台账
 
@@ -54,9 +54,9 @@ provider smoke 通过后，从已安装的 0.7.0 候选执行[本地 Harness 控
 | 本地上传/下载 | 本机通过 | 上传 1；下载 2；已记录清单哈希 |
 | 删除并证明不存在 | 本机通过 | `delete_requested` 与 `project_absent` 均为 true |
 | 完整 Delivery Harness | 本机通过 | 真实 receipts + 明确人工批准 + 已验证归档 |
-| 0.7.0 标签/Release/仓库 Marketplace/安装 | 已发布 | 精确源码/远端/标签/Release/安装源等价性 |
+| 0.7.1 标签/Release/仓库 Marketplace/安装 | 已发布 | 精确源码/远端/标签/Release/安装源等价性 |
 
-0.7.0 是当前 GitHub/仓库 Marketplace 正式版本。Universal 公共 Plugins Directory 仍是独立的 OpenAI 提交门禁。
+0.7.1 是当前 GitHub/仓库 Marketplace 正式版本。Universal 公共 Plugins Directory 仍是独立的 OpenAI 提交门禁。
 
 ## 0.7.0 发布后验证（2026-09-14）
 

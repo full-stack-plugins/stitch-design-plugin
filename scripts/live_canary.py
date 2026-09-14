@@ -21,7 +21,7 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 if str(PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT))
 
-RELEASE_CANDIDATE = "0.7.0"
+RELEASE_CANDIDATE = "0.7.1"
 
 from stitch_harness.assets import local_tool_definitions  # noqa: E402
 from stitch_harness.mcp_proxy import McpHttpSession, PROTOCOL_VERSION, ProxyError, UnknownWriteResult  # noqa: E402
