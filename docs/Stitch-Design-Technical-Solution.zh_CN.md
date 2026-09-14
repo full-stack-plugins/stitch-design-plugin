@@ -18,7 +18,19 @@
 | 凭据保存 | 跨平台当前用户 JSON，使用受限权限 | 行为可预测且非交互 |
 | 验证 | unittest、分发校验、ShellCheck | 可复现离线门禁 |
 
-## 2. 工程映射
+## 2. 技术决策记录
+
+| 决策 | 理由 | 反转条件 |
+|:---|:---|:---|
+| 以兼容包形态发布，并配本地 stdio 代理 | 让密钥不进入已提交配置，并让单一组件负责凭据刷新 | 若宿主提供一等凭据提供器 |
+| 发布 43 个聚焦 Skill，而不是一个全能 Skill | 渐进式披露让加载的上下文更小、路由更精确 | 无 |
+| 在 15 个上游工具旁注入 2 个本地资产工具 | 上游不提供本地文件导入导出，因此本地这一对是显式声明而非暗示 | 若上游提供等价工具 |
+| 把交付 Harness 保持为本地交互式控制器 | 长交付流程需要显式人工门禁，而不是自主批准 | 若宿主提供带批准能力的持久任务编排 |
+| 未知写入结果后拒绝重新提交 | 重复写入会制造重复的远端状态与重复花费 | 若远端 API 提供幂等键 |
+| 保持 portable 与 public 迁移未激活 | 公开路径需要走独立验收流程的远端 HTTPS MCP 审查 | 当该审查可用且被明确请求时 |
+| 要求 `PATH` 上的 Python 3.11 或更新 | 代理与 Harness 使用较新的标准库特性 | 若宿主要求的最低解释器版本变化 |
+
+## 3. 工程映射
 
 | 路径 | 合同 |
 |:---|:---|
@@ -36,7 +48,7 @@
 
 运行时保持纯 Python 架构。所有支持宿主的 PATH 的 `python` 必须解析为 Python 3.11 或更高版本；`.mcp.json`、设置说明与 CI 均使用这一精确命令。
 
-## 3. 首次设置主链
+## 4. 首次设置主链
 
 ```mermaid
 sequenceDiagram
@@ -67,7 +79,7 @@ sequenceDiagram
 
 服务关闭请求日志，不返回提交值；页面不使用 Cookie、浏览器存储、远程资产和埋点。
 
-## 4. 配置与轮换
+## 5. 配置与轮换
 
 ```mermaid
 flowchart TD
@@ -110,7 +122,7 @@ sequenceDiagram
     end
 ```
 
-## 5. MCP、Harness 与 Skill 责任
+## 6. MCP、Harness 与 Skill 责任
 
 本地 stdio 代理负责 MCP 初始化、会话 Header、JSON/SSE、秘密脱敏，以及仅对 HTTP 401 的一次刷新和重试。HTTP 403 表示权限不足，不刷新也不重放。交付 Harness 负责页面契约、有限状态、机器门禁、receipt 哈希链、恢复、明确批准和归档。Agent Skills 调用真实 Stitch、ImageGen、OCR和视觉工具并回填规范化 evidence；仅有供应商成功文本不能通过。
 
@@ -136,7 +148,7 @@ flowchart LR
     F -->|否| U["报告未知，不重发"]
 ```
 
-## 6. 安全控制
+## 7. 安全控制
 
 | 风险 | 控制 | 证据 |
 |:---|:---|:---|
@@ -149,7 +161,7 @@ flowchart LR
 | 重复远程写 | 先读后重试 | Skill 合同 |
 | 身份混用 | 每用户独立 Key | 隐私与设置文档 |
 
-## 7. 验证与发布
+## 8. 验证与发布
 
 ```mermaid
 flowchart LR
@@ -186,9 +198,9 @@ git diff --check
 
 真实 workflow 有意不配置 push 与 pull request 触发，只执行 provider + asset smoke，不是 Harness 验收。认证只映射 `STITCH_API_KEY` Repository Secret；opaque ID 仅保存在 runner 私有状态：POSIX 使用 `0600`，Windows 使用当前用户 runner temp/profile ACL 且不调用 POSIX mode API。缺失资源名时，清理只能通过有界的精确标题读取恢复，先落盘身份再单次删除；所有删除结果之后都执行有界不存在性读取。完整 Harness 验收走[本地 Harness 控制器](live-harness-controller.zh_CN.md)。
 
-0.4.0 证据：提交/标签/远端 SHA 均为 `6cf533ee884157a5a265c6200bbff6842b62c0f5`；16 项测试、40 个 Skills、公开 Marketplace 安装、安装产物对比，以及 390×884、768×1024、1280×1024 视觉检查通过。
+0.4.0 证据：提交/标签/远端 SHA 均为 `6cf533ee884157a5a265c6200bbff6842b62c0f5`；16 项测试、40 个 Skills、公开 Marketplace 安装、安装产物与源码对比（除本地 `.DS_Store`），以及 390×884、768×1024、1280×1024 视觉检查通过。
 
-## 8. 限制与演进
+## 9. 限制与演进
 
 | 项目 | 当前状态 | 退出条件 |
 |:---|:---|:---|
@@ -201,3 +213,15 @@ git diff --check
 ---
 
 **文档版本**：2.7.3 · **状态**：与 0.7.3 发布候选对齐
+
+## 10. 证据映射
+
+| 断言 | 证据 |
+|:---|:---|
+| MCP 工具面与代理行为 | `stitch_harness/mcp_proxy.py`、`stitch_harness/tool_catalog.py` |
+| 本地资产工具 | `stitch_harness/assets.py` |
+| 凭据处理与存储 | `stitch_harness/secrets.py`、`scripts/stitch_setup.py` |
+| Skill 目录 | `skills/`、`scripts/validate_skills.py` |
+| Harness 门禁与运行状态 | `stitch_harness/orchestrator.py`、`stitch_harness/state.py` |
+| 下载白名单 | `scripts/validate_distribution.py` 与边界测试 |
+| 验证记录 | `docs/live-canary-acceptance.md`、`docs/live-harness-controller.md` |

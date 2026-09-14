@@ -18,7 +18,19 @@
 | Credential persistence | Cross-platform current-user JSON with restricted permissions | Predictable non-interactive behavior |
 | Validation | Python unittest + distribution validator + ShellCheck | Reproducible offline gates |
 
-## 2. Repository mapping
+## 2. Decision records
+
+| Decision | Rationale | Reversal condition |
+|:---|:---|:---|
+| Ship a compatibility package with a local stdio proxy | Keeps the key out of committed configuration and lets one component own credential refresh | If the host offers a first-class credential provider |
+| Publish 43 focused Skills instead of one omnibus Skill | Progressive disclosure keeps the loaded context small and the routing precise | None |
+| Inject two local asset tools beside the 15 upstream tools | Upstream exposes no local file import or export, so the local pair is declared rather than implied | If upstream adds equivalent tools |
+| Keep the delivery Harness as an interactive local controller | Long delivery flows need explicit human gates, not autonomous approval | If the host provides durable job orchestration with approvals |
+| Refuse to resubmit after an unknown write result | A duplicate write can create duplicate remote state and duplicate spend | If the remote API exposes an idempotency key |
+| Keep the portable and public migration inactive | The public path requires a remote HTTPS MCP review that has its own acceptance process | When that review is available and explicitly requested |
+| Require Python 3.11 or newer on `PATH` | The proxy and Harness use modern standard-library features | If the minimum supported host interpreter changes |
+
+## 3. Repository mapping
 
 | Path | Contract |
 |:---|:---|
@@ -29,14 +41,14 @@
 | `skills/` | Workflow and conversion contracts |
 | `scripts/stitch_setup.py` | Setup, check, run, CLI, desktop, UI server |
 | `scripts/live_canary.py` | Bounded provider/asset smoke, strict MCP parsing, sanitized evidence and cleanup reconciliation |
-| `docs/live-harness-controller.md` | Separate interactive real-Harness acceptance path |
+| `docs/live-harness-controller.md`, `docs/live-harness-controller.zh_CN.md` | Separate interactive real-Harness acceptance path, in English and Chinese |
 | `assets/setup/` | Single-card onboarding page |
 | `scripts/validate_distribution.py` | Package contract and secret-like pattern scan |
 | `tests/` | Distribution, credential, HTTP security, and UI structure tests |
 
 The runtime remains Python-only. On every supported host, PATH `python` must resolve to Python 3.11 or newer; `.mcp.json`, setup instructions, and CI all use that exact command.
 
-## 3. First-use implementation
+## 4. First-use implementation
 
 ```mermaid
 sequenceDiagram
@@ -69,7 +81,7 @@ HTTP routes:
 
 The server overrides request logging and never returns submitted values. The UI does not use cookies, localStorage, sessionStorage, remote assets, or telemetry.
 
-## 4. Credential configuration
+## 5. Credential configuration
 
 ```mermaid
 flowchart TD
@@ -112,7 +124,7 @@ sequenceDiagram
     end
 ```
 
-## 5. MCP, Harness, and Skill behavior
+## 6. MCP, Harness, and Skill behavior
 
 The local stdio proxy owns MCP initialization, session headers, JSON/SSE responses, secret redaction, and a single refresh/retry only for HTTP 401. HTTP 403 is permission denied and is never refreshed or replayed. The Delivery Harness owns page contracts, finite states, deterministic gates, receipt hashes, recovery, explicit approval, and archive publication. Agent Skills invoke the real Stitch, ImageGen, OCR, and visual tools and import normalized evidence; provider success text alone is never accepted.
 
@@ -140,7 +152,7 @@ flowchart LR
     F -->|No| U["Report unknown; do not resubmit"]
 ```
 
-## 6. Security controls
+## 7. Security controls
 
 | Threat | Control | Evidence |
 |:---|:---|:---|
@@ -153,7 +165,7 @@ flowchart LR
 | Duplicate remote writes | Read-before-retry workflow | Skill contracts |
 | Shared identity | User-provided key only | Privacy and setup docs |
 
-## 7. Verification and release
+## 8. Verification and release
 
 ```mermaid
 flowchart LR
@@ -199,7 +211,7 @@ Release proof for 0.4.0:
 - installed artifact matched source except local `.DS_Store`;
 - onboarding rendered at 390×884, 768×1024, and 1280×1024.
 
-## 8. Limitations and roadmap
+## 9. Limitations and roadmap
 
 | Item | Current status | Exit condition |
 |:---|:---|:---|
@@ -212,3 +224,15 @@ Release proof for 0.4.0:
 ---
 
 **Document version:** 2.7.3 · **Status:** Aligned with the 0.7.3 release candidate
+
+## 10. Evidence map
+
+| Claim | Evidence |
+|:---|:---|
+| MCP surface and proxy behaviour | `stitch_harness/mcp_proxy.py`, `stitch_harness/tool_catalog.py` |
+| Local asset tools | `stitch_harness/assets.py` |
+| Credential handling and storage | `stitch_harness/secrets.py`, `scripts/stitch_setup.py` |
+| Skill catalogue | `skills/`, `scripts/validate_skills.py` |
+| Harness gates and run state | `stitch_harness/orchestrator.py`, `stitch_harness/state.py` |
+| Download allowlist | `scripts/validate_distribution.py` and the boundary tests |
+| Verification records | `docs/live-canary-acceptance.md`, `docs/live-harness-controller.md` |

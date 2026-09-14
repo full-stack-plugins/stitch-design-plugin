@@ -34,7 +34,22 @@ flowchart LR
 
 Non-goals: hosting Google Stitch, providing a shared author key, implementing OAuth, persisting Stitch project data, or claiming ChatGPT web support before end-to-end authentication succeeds.
 
-## 3. Context and trust boundary
+## 3. Current state, target state, and gaps
+
+| Capability | Current | Target | Gap |
+|:---|:---|:---|:---|
+| Skill catalogue | 43 Skills shipped and validated | Unchanged | None |
+| MCP tool surface | 17 tools: 15 from the Google Stitch server plus 2 local asset tools | Unchanged | None |
+| Credential handling | Local three-step wizard writing to a restricted current-user config | Unchanged | None |
+| Harness delivery | An interactive local controller path with evidence-driven gates | Unchanged | None |
+| Portable Agent Plugins root manifest | Not migrated | Migrated | The migration gate is open by choice |
+| Universal public Plugins Directory | Not published | Published | Requires a separate submission and a remote HTTPS MCP review |
+| Provider and asset live smoke | Passed locally | Unchanged | Not run remotely, and not Harness acceptance |
+| ChatGPT web path | Experimental | Unchanged | Connection stalls have been observed; local Codex is the supported surface |
+
+No row overstates its evidence. The two publication rows are outside this repository's control and are recorded as gaps rather than as plans with dates.
+
+## 4. Context and trust boundary
 
 ### 3.1 System context
 
@@ -105,7 +120,7 @@ flowchart LR
 
 The API key is stored in a restricted current-user configuration file. The local stdio proxy reads it once per process and sends it only to the exact Google Stitch HTTPS origin. Only HTTP 401 refreshes and retries once; HTTP 403 is permission denied and is not refreshed or replayed. Plugin authors do not receive MCP traffic.
 
-## 4. Components and dependency direction
+## 5. Components and dependency direction
 
 ### 4.1 Logical containers
 
@@ -153,7 +168,7 @@ flowchart LR
     Tests -. "verify inward" .-> Setup
 ```
 
-## 5. Runtime flows
+## 6. Runtime flows
 
 ### 5.1 Installation and discovery
 
@@ -219,7 +234,7 @@ sequenceDiagram
     end
 ```
 
-## 6. Data and configuration
+## 7. Data and configuration
 
 | Data | Authority | Location | Lifecycle |
 |:---|:---|:---|:---|
@@ -232,7 +247,7 @@ sequenceDiagram
 
 Configuration precedence: explicit process `STITCH_API_KEY` → restricted user configuration → setup required.
 
-## 7. Security and privacy
+## 8. Security and privacy
 
 - No real credentials in manifests, source, examples, URLs, logs, or release notes.
 - The wizard uses a password input and clears it after each response.
@@ -241,7 +256,7 @@ Configuration precedence: explicit process `STITCH_API_KEY` → restricted user 
 - The user configuration is permission-restricted but is not an encrypted system secret vault.
 - Remote write operations require the user's requested scope and normal host approval behavior.
 
-## 8. Reliability and operations
+## 9. Reliability and operations
 
 | Failure | Detection | Response |
 |:---|:---|:---|
@@ -254,7 +269,7 @@ Configuration precedence: explicit process `STITCH_API_KEY` → restricted user 
 
 The plugin has no long-running production service, database, queue, metrics backend, or backup responsibility. Operational evidence consists of host status, local validation, test results, remote release state, and read-only Stitch probes.
 
-## 9. Compatibility, deployment, and evolution
+## 10. Compatibility, deployment, and evolution
 
 ### 9.1 Deployment topology
 
@@ -306,7 +321,18 @@ ADR summary:
 | 003 | Use Python stdlib loopback wizard | Host provides secure first-use secret UI |
 | 004 | Keep ChatGPT web experimental | `list_projects` passes end to end |
 
-## 10. Verification evidence
+## 11. Resource and operational budgets
+
+| Budget | Value | Rationale |
+|:---|:---|:---|
+| Setup trigger cooldown | 600 seconds | A missing credential must not produce a popup loop |
+| Credential refresh | Exactly one 401 refresh | A second failure surfaces instead of retrying |
+| Tool surface | 17 tools | 15 upstream plus 2 local, and the local pair is never presented as upstream |
+| Download allowlist | Stitch's own web domain plus reviewed hosts | Lookalike hosts and unsafe URLs are rejected |
+| Run approval | Explicit human approval only | A gate cannot be passed by a model decision |
+| Offline suite | 243 tests, no network | The suite must run in the same environment that runs the plugin |
+
+## 12. Verification evidence
 
 Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 automated tests, validation of 40 Skills, Skill structure validation, ShellCheck, secret-pattern scanning, and visual checks at 390×884, 768×1024, and 1280×1024. These gates prove package and setup behavior; they do not prove continuous Google Stitch availability.
 
