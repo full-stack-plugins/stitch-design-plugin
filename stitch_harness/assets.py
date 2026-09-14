@@ -6,6 +6,7 @@ import base64
 import hashlib
 import html
 import http.client
+import ipaddress
 import json
 import os
 import re
@@ -143,6 +144,24 @@ def _download_url_allowed(url: str) -> bool:
     return parsed.scheme == "https" and not parsed.username and not parsed.password and any(
         host == suffix or host.endswith("." + suffix) for suffix in ALLOWED_DOWNLOAD_HOSTS
     )
+
+
+def _referenced_url_allowed(url: str) -> bool:
+    """Allow public HTTPS HTML dependencies without a finite CDN allowlist."""
+
+    parsed = urlsplit(url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if parsed.scheme != "https" or parsed.username or parsed.password or not host:
+        return False
+    if parsed.port not in {None, 443}:
+        return False
+    if host == "localhost" or host.endswith((".localhost", ".local", ".internal")):
+        return False
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return "." in host
+    return False
 
 
 def _rejected_url_reason(url: str) -> str:
@@ -393,11 +412,11 @@ class LocalAssetManager:
                                 if len(records) + len(referenced_urls) > MAX_EXPORT_FILES:
                                     raise AssetError(f"asset export supports at most {MAX_EXPORT_FILES} files")
             for index, url in enumerate(referenced_urls):
-                if not _download_url_allowed(url):
+                if not _referenced_url_allowed(url):
                     raise AssetError(
-                    "referenced asset URL must use HTTPS on an allowlisted Google host; "
-                    f"rejected {_rejected_url_reason(url)}"
-                )
+                        "referenced asset URL must use safe public HTTPS; "
+                        f"rejected {_rejected_url_reason(url)}"
+                    )
                 request = urllib.request.Request(url, headers={"Accept": "*/*"}, method="GET")
                 try:
                     with self.transport(request, timeout=120) as response:

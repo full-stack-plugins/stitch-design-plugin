@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/candidate-0.7.2-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin)
+[![Version](https://img.shields.io/badge/candidate-0.7.3-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -155,7 +155,7 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.7.2` |
+| Current candidate | `0.7.3` |
 | Current release | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
 | Previous release | [v0.7.0](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.0) |
 | Marketplace | `partme-ai-stitch` |
@@ -281,7 +281,7 @@ python -m compileall -q scripts stitch_harness skills
 git diff --check
 ```
 
-Version 0.7.1 accepts `withgoogle.com` in the download allowlist, so artwork served from Stitch's own web domain can be downloaded; the boundary tests reject lookalike hosts and unsafe URLs. 0.7.0 fails closed when the Stitch provider ignores the requested device, so a desktop fallback can no longer be delivered as a tablet screen. Page specs require `canvas.device`, and the typed evidence writer requires the generated screen metadata, so existing spec files must add the field before they load. The 0.6.0 feature set is unchanged: 43 Skills, two namespaced local asset tools, typed Harness evidence writers, isolated comparison, explicit reconciliation/recovery, and recoverable archive publication.
+Version 0.7.3 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, oversized files, and unsupported MIME types remain blocked. Version 0.7.2 added automatic local Token setup for missing or rejected credentials. Version 0.7.1 added `withgoogle.com` to the primary download allowlist.
 
 Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md).
 

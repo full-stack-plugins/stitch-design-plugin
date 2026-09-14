@@ -192,6 +192,77 @@ class LocalAssetTests(unittest.TestCase):
         self.assertEqual(result["count"], 2)
         self.assertTrue(any("referenced" in item["path"] for item in result["files"]))
 
+    def test_html_export_accepts_https_assets_from_non_google_public_cdn(self):
+        output = self.root / "export-with-public-cdn"
+        html = b'<script src="https://cdn.tailwindcss.com"></script>'
+        responses = {
+            "https://lh3.googleusercontent.com/html": Response(html, "text/html"),
+            "https://cdn.tailwindcss.com": Response(b"window.tailwind = {};", "application/javascript"),
+        }
+        manager = LocalAssetManager(
+            secret_provider=lambda: "secret",
+            transport=lambda request, **_: responses[request.full_url],
+        )
+        screens = [{
+            "name": "projects/123/screens/" + "c" * 32,
+            "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+        }]
+
+        result = manager.download_assets("123", output, screens=screens)
+
+        self.assertEqual(result["count"], 2)
+        self.assertTrue(any(item["mime"] == "application/javascript" for item in result["files"]))
+
+    def test_html_export_rejects_unsafe_non_google_references(self):
+        unsafe_references = (
+            "https://user:password@cdn.example.com/app.js",
+            "https://localhost/app.js",
+            "https://127.0.0.1/app.js",
+            "https://[::1]/app.js",
+        )
+        for index, reference in enumerate(unsafe_references):
+            with self.subTest(reference=reference):
+                html = f'<script src="{reference}"></script>'.encode()
+                responses = {
+                    "https://lh3.googleusercontent.com/html": Response(html, "text/html"),
+                }
+                manager = LocalAssetManager(
+                    secret_provider=lambda: "secret",
+                    transport=lambda request, **_: responses[request.full_url],
+                )
+                screens = [{
+                    "name": "projects/123/screens/" + "d" * 32,
+                    "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+                }]
+                with self.assertRaisesRegex(AssetError, "safe public HTTPS"):
+                    manager.download_assets(
+                        "123",
+                        self.root / f"unsafe-reference-{index}",
+                        screens=screens,
+                    )
+
+    def test_html_export_ignores_non_https_references(self):
+        html = b'<script src="http://cdn.example.com/app.js"></script>'
+        calls = []
+        responses = {
+            "https://lh3.googleusercontent.com/html": Response(html, "text/html"),
+        }
+
+        def transport(request, **_):
+            calls.append(request.full_url)
+            return responses[request.full_url]
+
+        manager = LocalAssetManager(secret_provider=lambda: "secret", transport=transport)
+        screens = [{
+            "name": "projects/123/screens/" + "e" * 32,
+            "htmlCode": {"downloadUrl": "https://lh3.googleusercontent.com/html"},
+        }]
+
+        result = manager.download_assets("123", self.root / "ignore-http", screens=screens)
+
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(calls, ["https://lh3.googleusercontent.com/html"])
+
     def test_download_rejects_bad_image_magic_and_excessive_screen_count(self):
         screen = {
             "name": "projects/123/screens/" + "a" * 32,

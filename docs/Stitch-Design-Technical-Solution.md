@@ -1,6 +1,6 @@
 # Stitch Design Technical Solution
 
-> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.2.
+> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.3.
 >
 > **Updated:** 2026-09-14
 
@@ -149,6 +149,7 @@ flowchart LR
 | Oversized/malformed request | JSON content type and 8192-byte limit | Handler/tests |
 | Browser persistence | No storage APIs; clear input | `app.js` |
 | External content execution | Self-only CSP and bundled assets | Response headers |
+| Exported HTML dependencies | Any public HTTPS hostname; reject credentials, local/internal names, IP literals, redirects, size and MIME violations | Local asset downloader |
 | Duplicate remote writes | Read-before-retry workflow | Skill contracts |
 | Shared identity | User-provided key only | Privacy and setup docs |
 
@@ -210,4 +211,4 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 2.7.2 · **Status:** Aligned with the 0.7.2 release candidate
+**Document version:** 2.7.3 · **Status:** Aligned with the 0.7.3 release candidate
