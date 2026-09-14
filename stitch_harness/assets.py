@@ -142,6 +142,19 @@ def _download_url_allowed(url: str) -> bool:
     )
 
 
+def _rejected_url_reason(url: str) -> str:
+    """Describe a rejected URL by host only.
+
+    Download URLs carry signatures and must never be echoed, but a bare
+    "not allowlisted" message leaves the operator unable to tell which host was
+    refused. The hostname is what the allowlist decision turns on, so report it.
+    """
+
+    parsed = urlsplit(url)
+    host = (parsed.hostname or "").lower() or "unparseable"
+    return f"host {host!r} (scheme {parsed.scheme or 'none'!r})"
+
+
 def _read_regular_file(path: Path, limit: int) -> bytes:
     """Read one absolute non-symlink file through the descriptor that was checked."""
 
@@ -337,7 +350,10 @@ class LocalAssetManager:
                     if url is None:
                         continue
                     if not isinstance(url, str) or not _download_url_allowed(url):
-                        raise AssetError("download URL must use HTTPS on an allowlisted Google host")
+                        raise AssetError(
+                            "download URL must use HTTPS on an allowlisted Google host; "
+                            f"rejected {_rejected_url_reason(url)}"
+                        )
                     request = urllib.request.Request(url, headers={"Accept": "*/*"}, method="GET")
                     try:
                         with self.transport(request, timeout=120) as response:
@@ -375,7 +391,10 @@ class LocalAssetManager:
                                     raise AssetError(f"asset export supports at most {MAX_EXPORT_FILES} files")
             for index, url in enumerate(referenced_urls):
                 if not _download_url_allowed(url):
-                    raise AssetError("referenced asset URL must use HTTPS on an allowlisted Google host")
+                    raise AssetError(
+                    "referenced asset URL must use HTTPS on an allowlisted Google host; "
+                    f"rejected {_rejected_url_reason(url)}"
+                )
                 request = urllib.request.Request(url, headers={"Accept": "*/*"}, method="GET")
                 try:
                     with self.transport(request, timeout=120) as response:

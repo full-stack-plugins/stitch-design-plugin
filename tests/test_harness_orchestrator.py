@@ -233,7 +233,7 @@ class HarnessTests(unittest.TestCase):
                         {"path": "artifacts/source.html", "sha256": hashlib.sha256(html.read_bytes()).hexdigest(), "mime": "text/html"},
                         {"path": "artifacts/source.png", "sha256": hashlib.sha256(image.read_bytes()).hexdigest(), "mime": "image/png", "width": 1350, "height": 768},
                     ],
-                    "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}},
+                    "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}, "screen": {"deviceType": "DESKTOP", "width": 1350, "height": 768}},
                 }
             ),
             encoding="utf-8",
@@ -394,7 +394,7 @@ class HarnessTests(unittest.TestCase):
                         {"path": "artifacts/roundtrip.html", "sha256": hashlib.sha256(html.read_bytes()).hexdigest(), "mime": "text/html"},
                         {"path": "artifacts/roundtrip.png", "sha256": hashlib.sha256(image.read_bytes()).hexdigest(), "mime": "image/png", "width": 1350, "height": 768},
                     ],
-                    "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}},
+                    "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}, "screen": {"deviceType": "DESKTOP", "width": 1350, "height": 768}},
                 }
             ),
             encoding="utf-8",

@@ -133,6 +133,7 @@ class Harness060Tests(unittest.TestCase):
         path = writer.stitch_generation(
             artifact_paths=[artifact],
             render_metadata={"width": 1350, "height": 768, "scale": 1},
+            screen={"deviceType": "DESKTOP", "width": 1350, "height": 768},
             provider_resource_ids=["projects/123/screens/" + "a" * 32],
         )
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -298,7 +299,7 @@ class Harness060Tests(unittest.TestCase):
                 {"path": "artifacts/source.html", "sha256": hashlib.sha256(html.read_bytes()).hexdigest(), "mime": "text/html"},
                 {"path": "artifacts/source.png", "sha256": hashlib.sha256(image.read_bytes()).hexdigest(), "mime": "image/png"},
             ],
-            "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}},
+            "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}, "screen": {"deviceType": "DESKTOP", "width": 1350, "height": 768}},
             "reconciliation": {
                 "outcome": "applied", "reason": "read probes found the unique generated screen",
                 "read_probes": self.reconciliation_probes(run, outcome="applied"),
@@ -421,7 +422,7 @@ class Harness060Tests(unittest.TestCase):
                 {"path": "artifacts/source.html", "sha256": hashlib.sha256(html.read_bytes()).hexdigest(), "mime": "text/html"},
                 {"path": "artifacts/source.png", "sha256": hashlib.sha256(image.read_bytes()).hexdigest(), "mime": "image/png"},
             ],
-            "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}},
+            "result": {"render_metadata": {"width": 1350, "height": 768, "scale": 1}, "screen": {"deviceType": "DESKTOP", "width": 1350, "height": 768}},
             "reconciliation": {"outcome": "applied", "reason": "read probes found one screen", "read_probes": self.reconciliation_probes(run, outcome="applied")},
         }), encoding="utf-8")
         original_append = harness.store.append_receipt

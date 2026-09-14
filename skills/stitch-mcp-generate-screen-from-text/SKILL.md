@@ -41,6 +41,7 @@ license: Apache-2.0
 3. 调用一次 generate_screen_from_text，记录返回session/outputComponents及成功或未知状态。
 4. 通过 `list_screens` 的纯 `projectId` 获取真实 screen ID，再用 `get_screen` 的 `name: projects/{project}/screens/{screen}` 读取结果，并用 `get_project` 核对归属。
 5. 验证截图和HTML；中断不重发同一写调用，先 get_project/list_screens/get_screen 对账；无候选记明 get_screen 未执行原因。
+6. 用 `get_screen` 顶层 `deviceType`、`width`、`height` 核对设备保真：提供方可能忽略请求的设备（2026-09-14 实测：三条写路径请求 `TABLET` 均返回 `DESKTOP 2560×2048`）。设备不一致时停止并如实报告，不要改用 `edit_screens` 或 `generate_variants` 重试。提供方尺寸是设备像素，`390×884` 返回 `780×1768`（2×），不要按 1px 误差处理。
 
 按依赖排序：来源核对 → 本地产物 → 已授权外部操作 → 验证交接。多任务先做当前主路径；缺信息先输出假设草案，再精确列明缺少什么以及用途，不使用“请提供更多背景”的空泛提示。
 

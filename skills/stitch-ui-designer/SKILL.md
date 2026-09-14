@@ -52,6 +52,14 @@ license: Apache-2.0
 - MOBILE/DESKTOP/TABLET 与请求一致。
 - get_project/list_screens/get_screen 对账，无候选记录原因。
 
+### 设备保真必须按实测值判定
+
+判定依据是 `get_screen` 的**顶层** `deviceType`、`width`、`height`；`screenInstance` 不保证带这些字段。生成后先读这三个值再判定，不能只看"调用成功"。
+
+- 提供方不保证遵守请求的设备。2026-09-14 实测：三条写路径（`generate_screen_from_text`、`edit_screens`、`generate_variants`）请求 `TABLET` 全部返回 `DESKTOP 2560×2048`；另有一次 `MOBILE` 请求同样回退为 `DESKTOP`。命中回退时**停止**并如实报告，不要改试另外两条路径——它们会以同样方式回退，只会多产生无用产物。
+- 提供方尺寸是设备像素：`390×884` 的视口返回 `780×1768`（2×）。这是缩放而不是误差，不要追网页画布上显示的 1px 差值。
+- 判定规则：设备与请求一致（请求 `AGNOSTIC` 时跳过该条），且宽高是画布的整数倍、横纵倍数相同。Harness 的 `validate_screen_device` 据此**失败关闭**；未通过就不得标记完成，也不得作为该设备的交付物上报。
+
 可定制：设备、框架contract、生成/编辑/变体模式、数量和资产目录。增值检查：意图路由；系统token分流；中断写对账。
 
 ## FAQ

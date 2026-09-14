@@ -11,6 +11,7 @@ from typing import Callable
 
 from .contracts import PageSpec
 from .evidence import EvidenceArtifact, EvidenceError, ExternalEvidence, reject_sensitive_content
+from .device_gate import validate_screen_device
 from .html_gate import validate_html
 from .ocr_gate import validate_ocr
 from .preflight import default_preflight
@@ -141,6 +142,9 @@ class Harness:
             render_metadata = evidence.result.get("render_metadata")
             if len(html_artifacts) != 1 or not isinstance(render_metadata, dict):
                 return ("Stitch source evidence requires one HTML artifact and render metadata",)
+            device = validate_screen_device(spec, evidence)
+            if not device.passed:
+                return device.failures
             gate = validate_html(spec, run.path / html_artifacts[0].path, render_metadata)
             return gate.failures
         if state == RunState.SOURCE_ACCEPTED:

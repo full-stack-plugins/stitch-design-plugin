@@ -11,6 +11,7 @@ from typing import Any
 
 PAGE_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SUPPORTED_ASSERTIONS = {"dom-style"}
+CANVAS_DEVICES = ("MOBILE", "DESKTOP", "TABLET", "AGNOSTIC")
 
 
 class ContractError(ValueError):
@@ -35,6 +36,7 @@ class Canvas:
     width: int
     height: int
     scale: int
+    device: str
 
 
 @dataclass(frozen=True)
@@ -94,13 +96,16 @@ class PageSpec:
             raise ContractError("title cannot be empty")
 
         canvas_data = _required(payload, "canvas", dict)
-        _reject_extra_keys(canvas_data, {"width", "height", "scale"}, "canvas")
+        _reject_extra_keys(canvas_data, {"width", "height", "scale", "device"}, "canvas")
         width = _required(canvas_data, "width", int)
         height = _required(canvas_data, "height", int)
         scale = _required(canvas_data, "scale", int)
         if width < 1 or height < 1 or scale != 1:
             raise ContractError("canvas requires positive dimensions and scale 1")
-        canvas = Canvas(width, height, scale)
+        device = _required(canvas_data, "device", str)
+        if device not in CANVAS_DEVICES:
+            raise ContractError(f"canvas device must be one of {', '.join(CANVAS_DEVICES)}")
+        canvas = Canvas(width, height, scale, device)
 
         theme = _required(payload, "theme", str).strip()
         if not theme:

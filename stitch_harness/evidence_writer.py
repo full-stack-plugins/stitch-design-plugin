@@ -7,7 +7,7 @@ import os
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from .evidence import reject_sensitive_content
 from .storage import sha256_file
@@ -77,8 +77,13 @@ class EvidenceWriter:
             Path(temporary_name).unlink(missing_ok=True)
         return destination
 
-    def stitch_generation(self, *, artifact_paths: Iterable[Path], render_metadata: dict[str, Any], provider_resource_ids: Iterable[str] = ()) -> Path:
-        return self._write("stitch.generate", "generate_screen_from_text", artifact_paths, {"render_metadata": render_metadata, "provider_resource_ids": list(provider_resource_ids)}, provider="google-stitch", model="server")
+    def stitch_generation(self, *, artifact_paths: Iterable[Path], render_metadata: dict[str, Any], screen: Mapping[str, Any], provider_resource_ids: Iterable[str] = ()) -> Path:
+        result = {
+            "render_metadata": render_metadata,
+            "provider_resource_ids": list(provider_resource_ids),
+            "screen": dict(screen),
+        }
+        return self._write("stitch.generate", "generate_screen_from_text", artifact_paths, result, provider="google-stitch", model="server")
 
     def imagegen(self, *, artifact_paths: Iterable[Path], width: int, height: int, metadata: dict[str, Any] | None = None) -> Path:
         if width < 1 or height < 1:
