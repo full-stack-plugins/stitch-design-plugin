@@ -2,7 +2,7 @@
 
 > **文档目的**：定义 Stitch Design 已验证的架构、信任边界、生命周期、失败语义与演进约束。
 >
-> **适用版本**：0.6.0 · **状态**：本地发布候选 · **事实核验日期**：2026-09-14
+> **适用版本**：0.6.1 · **状态**：已发布 · **事实核验日期**：2026-09-14
 
 [English](Stitch-Design-Architecture.md) | [技术方案](Stitch-Design-Technical-Solution.zh_CN.md) | [README 中文](../README.zh-CN.md)
 
@@ -162,8 +162,8 @@ sequenceDiagram
     participant M as Marketplace / 源码
     participant P as 插件
     U->>C: 添加市场并安装插件
-    C->>M: 为 0.6.0 候选解析 main
-    M-->>C: stitch-design 0.6.0 本地候选
+    C->>M: 为 0.6.1 候选解析 main
+    M-->>C: stitch-design 0.6.1 候选
     C->>P: 加载 manifest、Skills、MCP
     P-->>C: 注册能力
 ```
@@ -301,10 +301,10 @@ flowchart LR
 
 `v0.4.0` 对应提交 `6cf533ee884157a5a265c6200bbff6842b62c0f5`：16 项自动化测试、40 个 Skills 分发校验、Skill 结构校验、ShellCheck、秘密模式扫描，以及 390×884、768×1024、1280×1024 三档视觉检查均通过。这些证据证明包和设置流程，不代表 Google Stitch 持续可用。
 
-### 10.1 受控 0.6.0 provider + asset smoke 边界
+### 10.1 受控 provider + asset smoke 边界
 
 手动 live-canary workflow 验证 MCP 生命周期/目录以及 provider、本地资产操作，并分离公开证据与清理私有状态：POSIX 使用 `0600`，Windows 依赖当前用户 runner temp/profile ACL。创建响应在身份落盘前中断时，清理使用私有唯一标题做有界只读对账，只有一个精确匹配才执行一次删除；删除结果不明后仍做有界不存在性探针。变体门禁要求同项目内唯一且不同于源屏幕的身份。该 workflow 不是 Delivery Harness 验收，也不生成用户批准 receipt；真实 Harness 走独立的[交互式控制器](live-harness-controller.zh_CN.md)。
 
 ---
 
-**文档版本**：2.6.0 · **状态**：已对齐 0.6.0 本地候选与 Canary 仓库准备 · **最后更新**：2026-09-14
+**文档版本**：2.6.1 · **状态**：已对齐 0.6.1 发布 · **最后更新**：2026-09-14

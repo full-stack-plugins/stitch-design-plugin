@@ -21,6 +21,8 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 if str(PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT))
 
+RELEASE_CANDIDATE = "0.6.1"
+
 from stitch_harness.assets import local_tool_definitions  # noqa: E402
 from stitch_harness.mcp_proxy import McpHttpSession, PROTOCOL_VERSION, ProxyError, UnknownWriteResult  # noqa: E402
 from stitch_harness.secrets import platform_secret_provider  # noqa: E402
@@ -120,7 +122,7 @@ def _atomic_private_json(
 def _public_template(started_at: str) -> dict[str, Any]:
     return {
         "schema_version": 1,
-        "release_candidate": "0.6.0",
+        "release_candidate": RELEASE_CANDIDATE,
         "smoke_scope": "provider-and-assets",
         "started_at": started_at,
         "finished_at": None,
@@ -140,7 +142,7 @@ def _validate_evidence_schema(payload: dict[str, Any]) -> None:
         not isinstance(payload, dict)
         or set(payload) != expected
         or payload.get("schema_version") != 1
-        or payload.get("release_candidate") != "0.6.0"
+        or payload.get("release_candidate") != RELEASE_CANDIDATE
         or payload.get("smoke_scope") != "provider-and-assets"
     ):
         raise ValueError("sanitized evidence has an invalid top-level contract")
@@ -286,7 +288,7 @@ class StitchBackend:
             {
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": {},
-                "clientInfo": {"name": "stitch-design-live-smoke", "version": "0.6.0"},
+                "clientInfo": {"name": "stitch-design-live-smoke", "version": RELEASE_CANDIDATE},
             },
         )
         capabilities = initialized.get("capabilities")

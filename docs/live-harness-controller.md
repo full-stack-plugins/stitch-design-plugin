@@ -1,10 +1,10 @@
-# Local 0.6.0 Harness Acceptance Controller
+# Local Harness Acceptance Controller
 
 This is the separate, interactive controller path for real Delivery Harness acceptance. It is not part of the GitHub provider + asset smoke because a workflow dispatch cannot substitute for explicit human approval of exact artifacts.
 
 ## Preconditions
 
-- Use a freshly installed 0.6.0 candidate in a new Codex task and prove the plugin's 15 provider tools plus two namespaced local tools are exposed.
+- Use a freshly installed 0.6.1 candidate in a new Codex task and prove the plugin's 15 provider tools plus two namespaced local tools are exposed.
 - Use the already approved temporary Stitch project scope or create one unique project with a cleanup plan.
 - Install/check the isolated Harness runtime without putting credentials in argv:
 

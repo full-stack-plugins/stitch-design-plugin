@@ -1,14 +1,16 @@
-# Stitch Design 0.6.0 真实 Smoke 验收
+# Stitch Design 真实 Smoke 验收
 
 > 仓库准备：已完成
 >
-> Provider + asset 真实 smoke：2026-09-14 本机通过
+> Provider + asset 真实 smoke：2026-09-14 本机通过（0.6.0 候选）
 >
 > Harness 验收：本机通过并归档
 >
-> GitHub Release/仓库 Marketplace：v0.6.0 已发布
+> GitHub Release/仓库 Marketplace：v0.6.1 已发布
 
 [English](live-canary-acceptance.md) | [Harness 控制器](live-harness-controller.zh_CN.md) | [架构文档](Stitch-Design-Architecture.zh_CN.md)
+
+下列 provider 与 Harness 运行时在 0.6.1 中未变。0.6.1 把 workflow action 固定到不可变 commit SHA、让本地设置 Skill 与 `check` 命令契约对齐，并更新发布校验器与本 smoke 记录的版本常量。provider、Harness 与门禁行为均未改变，因此这里记录的真实证据仍是 0.6.1 适用的验收结论。
 
 本台账把两个外部门禁明确分开。手动 GitHub workflow 是有界 Google Stitch provider + 本地资产 smoke；它不是 Harness 验收，也不会伪造自动用户批准。完整 Delivery Harness 必须走本地交互式控制器路径。
 
@@ -39,7 +41,7 @@ Opaque ID 仅保存在 runner 私有文件且不上传。POSIX 显式使用 `060
 
 ## 独立 Harness 门禁
 
-provider smoke 通过后，从已安装的 0.6.0 候选执行[本地 Harness 控制器](live-harness-controller.zh_CN.md)。该路径必须取得真实 Stitch、ImageGen、OCR/业务、roundtrip、editability、comparison、明确人工批准及 archive receipts。手动触发 workflow 或 provider smoke 通过都不等于用户明确批准 Harness 资产。
+provider smoke 通过后，从已安装的 0.6.1 候选执行[本地 Harness 控制器](live-harness-controller.zh_CN.md)。该路径必须取得真实 Stitch、ImageGen、OCR/业务、roundtrip、editability、comparison、明确人工批准及 archive receipts。手动触发 workflow 或 provider smoke 通过都不等于用户明确批准 Harness 资产。
 
 ## 验收台账
 
@@ -52,6 +54,6 @@ provider smoke 通过后，从已安装的 0.6.0 候选执行[本地 Harness 控
 | 本地上传/下载 | 本机通过 | 上传 1；下载 2；已记录清单哈希 |
 | 删除并证明不存在 | 本机通过 | `delete_requested` 与 `project_absent` 均为 true |
 | 完整 Delivery Harness | 本机通过 | 真实 receipts + 明确人工批准 + 已验证归档 |
-| 0.6.0 标签/Release/仓库 Marketplace/安装 | 已发布 | 精确源码/远端/标签/Release/安装源等价性 |
+| 0.6.1 标签/Release/仓库 Marketplace/安装 | 已发布 | 精确源码/远端/标签/Release/安装源等价性 |
 
-0.6.0 是当前 GitHub/仓库 Marketplace 正式版本。Universal 公共 Plugins Directory 仍是独立的 OpenAI 提交门禁。
+0.6.1 是当前 GitHub/仓库 Marketplace 正式版本。Universal 公共 Plugins Directory 仍是独立的 OpenAI 提交门禁。

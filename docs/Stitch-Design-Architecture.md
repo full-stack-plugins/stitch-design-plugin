@@ -2,7 +2,7 @@
 
 > **Purpose:** Define the verified architecture, trust boundaries, lifecycle, failure semantics, and evolution constraints of Stitch Design.
 >
-> **Version:** 0.6.0 · **Status:** Local release candidate · **Evidence date:** 2026-09-14
+> **Version:** 0.6.1 · **Status:** Released · **Evidence date:** 2026-09-14
 
 [简体中文](Stitch-Design-Architecture.zh_CN.md) | [Technical solution](Stitch-Design-Technical-Solution.md) | [README](../README.md)
 
@@ -164,8 +164,8 @@ sequenceDiagram
     participant M as Marketplace / source
     participant P as Plugin
     U->>C: add marketplace and plugin
-    C->>M: resolve main for 0.6.0 candidate
-    M-->>C: stitch-design 0.6.0 local candidate
+    C->>M: resolve main for 0.6.1 candidate
+    M-->>C: stitch-design 0.6.1 candidate
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -308,10 +308,10 @@ ADR summary:
 
 Release `v0.4.0` at commit `6cf533ee884157a5a265c6200bbff6842b62c0f5` passed 16 automated tests, validation of 40 Skills, Skill structure validation, ShellCheck, secret-pattern scanning, and visual checks at 390×884, 768×1024, and 1280×1024. These gates prove package and setup behavior; they do not prove continuous Google Stitch availability.
 
-### 10.1 Controlled 0.6.0 provider + asset smoke boundary
+### 10.1 Controlled provider + asset smoke boundary
 
 The manual live-canary workflow validates MCP lifecycle/catalog behavior plus provider and local-asset operations. It separates public evidence from private cleanup state: POSIX uses `0600`, while Windows relies on the current-user runner temp/profile ACL. If a create response was interrupted before identity checkpointing, cleanup uses the private unique title for bounded read-only reconciliation; only one exact match may proceed to one delete. Bounded absence probes run even after an unknown delete. The variant gate requires one same-project identity different from the source. This workflow is not Delivery Harness acceptance and creates no user-approval receipt; the real Harness uses the separate [interactive controller](live-harness-controller.md).
 
 ---
 
-**Document version:** 2.6.0 · **Status:** Aligned with local 0.6.0 candidate and Canary repository preparation · **Updated:** 2026-09-14
+**Document version:** 2.6.1 · **Status:** Aligned with the 0.6.1 release · **Updated:** 2026-09-14

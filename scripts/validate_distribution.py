@@ -12,6 +12,7 @@ from scan_secrets import scan
 
 
 EXPECTED_REPOSITORY = "https://github.com/partme-ai/codex-stitch-plugin"
+EXPECTED_VERSION = "0.6.1"
 EXPECTED_SKILLS = 43
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -35,8 +36,8 @@ def validate(root: Path) -> list[str]:
 
     if manifest.get("name") != "stitch-design":
         errors.append("manifest name must be stitch-design")
-    if manifest.get("version") != "0.6.0":
-        errors.append("manifest version must be 0.6.0")
+    if manifest.get("version") != EXPECTED_VERSION:
+        errors.append(f"manifest version must be {EXPECTED_VERSION}")
     if manifest.get("repository") != EXPECTED_REPOSITORY:
         errors.append("manifest repository mismatch")
     interface = manifest.get("interface", {})
@@ -102,7 +103,7 @@ def main() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution 0.6.0")
+    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution {EXPECTED_VERSION}")
     return 0
 
 
