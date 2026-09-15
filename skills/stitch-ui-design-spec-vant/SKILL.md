@@ -1,5 +1,6 @@
 ---
 name: stitch-ui-design-spec-vant
+license: Apache-2.0
 description: Vant 4 design spec for Stitch. Outputs hard-constraints prefix or selector JSON and assembled prompt.
 ---
 

@@ -327,6 +327,6 @@ Open functional issues at <https://github.com/partme-ai/codex-stitch-plugin/issu
 
 ## Source and license
 
-The 39 upstream Skill snapshots are based on `full-stack-skills/stitch-skills` commit `62ef81825ad6ddc85bb6b8426e65b1a9d07d109b`; `stitch-local-setup`, `stitch-delivery-harness`, `stitch-delete-project`, and `stitch-design-use` are plugin-specific. Official adapted material traces to `google-labs-code/stitch-skills` commit `0337446dadde6f8c94210444e2aa9d546126480f`.
+All 43 Skill bodies are vendored verbatim from [full-stack-skills/stitch-skills](https://github.com/full-stack-skills/stitch-skills), the single source of truth, and pinned by `skills.lock.json` (source repo, ref, commit, and per-skill digests). Refresh them with `python3 scripts/vendor/skill_vendor.py update`; never edit `skills/` directly. Official adapted material traces to `google-labs-code/stitch-skills` commit `0337446dadde6f8c94210444e2aa9d546126480f`.
 
 See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

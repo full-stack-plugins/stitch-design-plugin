@@ -1,5 +1,6 @@
 ---
 name: stitch-vue-bootstrap-components
+license: Apache-2.0
 description: Convert Stitch designs into modular Vite/Vue 3 and BootstrapVue or BootstrapVueNext components. Uses [BootstrapVue Vue 3] support; Stitch MCP get_screen for retrieval; high-reliability fetch via scripts; enforces Vue SFC structure and Bootstrap component contracts b-container b-row b-button etc..
 ---
 

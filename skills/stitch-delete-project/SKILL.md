@@ -1,5 +1,6 @@
 ---
 name: stitch-delete-project
+license: Apache-2.0
 description: 安全删除一个明确指定的 Stitch 项目；仅在用户明确要求删除远程项目时使用，先预览完整资源名并再次取得批准，删除后只读对账。
 ---
 

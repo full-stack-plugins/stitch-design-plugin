@@ -1,5 +1,6 @@
 ---
 name: stitch-mcp-get-project
+license: Apache-2.0
 description: Retrieves the detailed metadata of a specific Stitch project.
 ---
 

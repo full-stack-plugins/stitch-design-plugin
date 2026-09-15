@@ -4,6 +4,10 @@ description: 润色模糊 UI 需求或将已有 Design Spec/框架契约转为 S
 license: Apache-2.0
 ---
 
+> **来源声明**：本技能包含源自 [google-labs-code/stitch-skills](https://github.com/google-labs-code/stitch-skills)
+> （Apache License 2.0，完整文本见同目录 `LICENSE.txt`；上游为非 Google 官方支持产品）的内容。
+> 本项目对其进行了改编与整合，原内容版权归 Google LLC 及其贡献者所有。
+
 # Stitch 提示词设计
 
 ## 快速开始

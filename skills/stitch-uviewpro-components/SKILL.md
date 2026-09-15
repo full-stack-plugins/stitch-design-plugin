@@ -1,5 +1,6 @@
 ---
 name: stitch-uviewpro-components
+license: Apache-2.0
 description: Convert Stitch designs into uni-app and Vue 3 and uView Pro pages and components. Uses Stitch MCP get_screen for retrieval; high-reliability fetch via scripts; enforces uni-app page structure and uView Pro u-* component contracts, rpx, script setup.
 ---
 

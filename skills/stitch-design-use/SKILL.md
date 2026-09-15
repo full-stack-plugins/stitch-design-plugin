@@ -1,5 +1,6 @@
 ---
 name: stitch-design-use
+license: Apache-2.0
 description: Stitch Design 根路由；当用户要用 Stitch 完成从认证、读取、生成、设计系统、资产处理到完整交付的任务时，选择最窄的下游 Skill，不直接扩大远程写入授权。
 ---
 
