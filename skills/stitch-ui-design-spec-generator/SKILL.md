@@ -1,5 +1,6 @@
 ---
 name: stitch-ui-design-spec-generator
+license: Apache-2.0
 description: 将 Stitch 页面需求或 PRD 转为可审阅的本地 UI 设计规格；只产出设计决策，不调用远程写工具，也不冻结 MCP 模型、设备、字体或颜色变体枚举。
 ---
 

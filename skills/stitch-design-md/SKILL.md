@@ -4,6 +4,10 @@ description: 从 Stitch 屏幕或用户提供的 HTML/截图整理并验证语�
 license: Apache-2.0
 ---
 
+> **来源声明**：本技能包含源自 [google-labs-code/stitch-skills](https://github.com/google-labs-code/stitch-skills)
+> （Apache License 2.0，完整文本见同目录 `LICENSE.txt`；上游为非 Google 官方支持产品）的内容。
+> 本项目对其进行了改编与整合，原内容版权归 Google LLC 及其贡献者所有。
+
 # Stitch 语义设计系统文档
 
 ## 快速开始

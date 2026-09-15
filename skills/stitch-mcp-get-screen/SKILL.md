@@ -1,5 +1,6 @@
 ---
 name: stitch-mcp-get-screen
+license: Apache-2.0
 description: Retrieves the full details of a specific screen, including HTML code.
 ---
 

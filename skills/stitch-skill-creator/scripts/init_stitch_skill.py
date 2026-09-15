@@ -22,7 +22,7 @@ import shutil
 STITCH_SKILL_TEMPLATE = """---
 name: {skill_name}
 description: Specialized prompt architect for {scenario_title} screens.
-license: Complete terms in LICENSE.txt
+license: Apache-2.0
 ---
 
 # {scenario_title} Screen Designer

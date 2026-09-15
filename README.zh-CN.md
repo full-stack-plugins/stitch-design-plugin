@@ -316,6 +316,6 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ## 来源与许可
 
-39 个上游 Skill 快照基于 `full-stack-skills/stitch-skills` 提交 `62ef81825ad6ddc85bb6b8426e65b1a9d07d109b`；`stitch-local-setup`、`stitch-delivery-harness`、`stitch-delete-project` 和 `stitch-design-use` 为插件本地 Skill。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
+全部 43 个 Skill 本体从 [full-stack-skills/stitch-skills](https://github.com/full-stack-skills/stitch-skills)（单一事实源）逐字 vendor，由 `skills.lock.json` 钉住来源仓库、ref、commit 与逐技能摘要。刷新请运行 `python3 scripts/vendor/skill_vendor.py update`；切勿直接编辑 `skills/`。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
 
 详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

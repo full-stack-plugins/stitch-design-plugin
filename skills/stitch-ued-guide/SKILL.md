@@ -1,5 +1,6 @@
 ---
 name: stitch-ued-guide
+license: Apache-2.0
 description: UED guidelines, visual vocabulary, and prompt structure for Stitch. Use when the user asks about layout/style terms, device constraints, or when structuring/improving Stitch prompts; combine with stitch-ui-prompt-architect for vague→concrete prompts.
 ---
 
