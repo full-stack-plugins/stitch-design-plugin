@@ -1,0 +1,42 @@
+{
+  "name": "stitch",
+  "version": "0.7.8",
+  "description": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
+  "author": {
+    "name": "Full Stack Skills / PartMe.AI"
+  },
+  "homepage": "https://github.com/partme-ai/codex-stitch-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "stitch",
+    "design",
+    "design-to-code"
+  ],
+  "interface": {
+    "displayName": "Stitch",
+    "shortDescription": "Design and build with Google Stitch",
+    "longDescription": "Operate Google Stitch from your coding agent: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
+    "developerName": "Full Stack Skills / PartMe.AI",
+    "websiteURL": "https://github.com/partme-ai/codex-stitch-plugin"
+  },
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "mcpServers": {
+    "stitch": {
+      "command": "python3",
+      "args": ["./scripts/stitch_mcp_proxy.py"]
+    }
+  },
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "command": "python3 ./hooks/env_check.py",
+      "timeout": 30
+    },
+    {
+      "event": "UserPromptSubmit",
+      "command": "python3 ./hooks/check_stitch_intent.py",
+      "timeout": 15
+    }
+  ]
+}
