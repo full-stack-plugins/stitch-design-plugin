@@ -11,7 +11,7 @@ from pathlib import Path
 from scan_secrets import scan
 
 
-EXPECTED_REPOSITORY = "https://github.com/partme-ai/codex-stitch-plugin"
+EXPECTED_REPOSITORY = "https://github.com/partme-ai/partme-stitch-plugin"
 EXPECTED_VERSION = "0.7.8"
 EXPECTED_SKILLS = 43
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")

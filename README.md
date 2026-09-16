@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.7.8-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8)
+[![Version](https://img.shields.io/badge/release-0.7.8-1A73E8)](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.8)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -38,7 +38,7 @@ The installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP 
 Recommended: track the repository's `main` branch explicitly.
 
 ```bash
-codex plugin marketplace add partme-ai/codex-stitch-plugin --ref main
+codex plugin marketplace add partme-ai/partme-stitch-plugin --ref main
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -49,21 +49,21 @@ Restart Codex or the ChatGPT desktop app, open a new task, and ask Stitch Design
 GitHub shorthand using the repository's default branch:
 
 ```bash
-codex plugin marketplace add partme-ai/codex-stitch-plugin
+codex plugin marketplace add partme-ai/partme-stitch-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
 Full Git URL pinned to `main`:
 
 ```bash
-codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git --ref main
+codex plugin marketplace add https://github.com/partme-ai/partme-stitch-plugin.git --ref main
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
 Sparse Git checkout when only Marketplace metadata is needed:
 
 ```bash
-codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git \
+codex plugin marketplace add https://github.com/partme-ai/partme-stitch-plugin.git \
   --ref main \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
@@ -72,8 +72,8 @@ codex plugin add stitch-design@partme-ai-stitch
 Local checkout for development:
 
 ```bash
-git clone https://github.com/partme-ai/codex-stitch-plugin.git
-codex plugin marketplace add ./codex-stitch-plugin
+git clone https://github.com/partme-ai/partme-stitch-plugin.git
+codex plugin marketplace add ./partme-stitch-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -156,8 +156,8 @@ This repository intentionally remains a Codex compatibility package while the po
 |:---|:---|
 | Plugin ID | `stitch-design` |
 | Current candidate | `0.7.8` |
-| Current release | [v0.7.8](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8) |
-| Previous release | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
+| Current release | [v0.7.8](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.8) |
+| Previous release | [v0.7.1](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
 | License | Apache-2.0 |
@@ -323,7 +323,7 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ## Contributing and support
 
-Open functional issues at <https://github.com/partme-ai/codex-stitch-plugin/issues>. Before proposing a change, state the Stitch API surface you verified against, whether it alters the tool catalogue or the write-result rules, and include the affected validators.
+Open functional issues at <https://github.com/partme-ai/partme-stitch-plugin/issues>. Before proposing a change, state the Stitch API surface you verified against, whether it alters the tool catalogue or the write-result rules, and include the affected validators.
 
 ## Source and license
 

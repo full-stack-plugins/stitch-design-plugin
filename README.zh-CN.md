@@ -4,7 +4,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/release-0.7.8-1A73E8)](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8)
+[![版本](https://img.shields.io/badge/release-0.7.8-1A73E8)](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.8)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -38,7 +38,7 @@
 推荐显式跟踪本仓库 `main` 分支：
 
 ```bash
-codex plugin marketplace add partme-ai/codex-stitch-plugin --ref main
+codex plugin marketplace add partme-ai/partme-stitch-plugin --ref main
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -49,21 +49,21 @@ codex plugin add stitch-design@partme-ai-stitch
 使用 GitHub shorthand 和仓库默认分支：
 
 ```bash
-codex plugin marketplace add partme-ai/codex-stitch-plugin
+codex plugin marketplace add partme-ai/partme-stitch-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
 使用完整 Git URL 并固定 `main`：
 
 ```bash
-codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git --ref main
+codex plugin marketplace add https://github.com/partme-ai/partme-stitch-plugin.git --ref main
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
 仅稀疏检出 Marketplace 元数据：
 
 ```bash
-codex plugin marketplace add https://github.com/partme-ai/codex-stitch-plugin.git \
+codex plugin marketplace add https://github.com/partme-ai/partme-stitch-plugin.git \
   --ref main \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
@@ -72,8 +72,8 @@ codex plugin add stitch-design@partme-ai-stitch
 本地克隆，适用于开发与调试：
 
 ```bash
-git clone https://github.com/partme-ai/codex-stitch-plugin.git
-codex plugin marketplace add ./codex-stitch-plugin
+git clone https://github.com/partme-ai/partme-stitch-plugin.git
+codex plugin marketplace add ./partme-stitch-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -156,8 +156,8 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 |:---|:---|
 | 插件 ID | `stitch-design` |
 | 当前候选版本 | `0.7.8` |
-| 当前版本 | [v0.7.8](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.8) |
-| 上一版本 | [v0.7.1](https://github.com/partme-ai/codex-stitch-plugin/releases/tag/v0.7.1) |
+| 当前版本 | [v0.7.8](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.8) |
+| 上一版本 | [v0.7.1](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.1) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |
@@ -312,7 +312,7 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ## 贡献与支持
 
-功能问题请提交到 <https://github.com/partme-ai/codex-stitch-plugin/issues>。提交变更前，请说明你验证所用的 Stitch 接口范围、是否改动工具清单或写入结果规则，并附上受影响的校验器。
+功能问题请提交到 <https://github.com/partme-ai/partme-stitch-plugin/issues>。提交变更前，请说明你验证所用的 Stitch 接口范围、是否改动工具清单或写入结果规则，并附上受影响的校验器。
 
 ## 来源与许可
 
