@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Callable, IO, Iterable
 from urllib.parse import urlsplit
 
+from .auth import AuthResolver, StitchCredential
 from .secrets import SecretProvider, SecretStoreError, platform_secret_provider
 from .setup_trigger import launch_setup_ui_once
 from .tool_catalog import ToolCatalog
@@ -89,7 +90,10 @@ class McpHttpSession:
         default=launch_setup_ui_once,
         repr=False,
     )
-    _cached_secret: str | None = field(default=None, init=False, repr=False)
+    enable_adc: bool = False
+    auth_resolver: AuthResolver | None = field(default=None, repr=False)
+    fixed_credential: StitchCredential | None = field(default=None, repr=False)
+    _cached_credential: StitchCredential | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         parsed = urlsplit(self.endpoint)
@@ -110,6 +114,11 @@ class McpHttpSession:
         self.timeout = float(self.timeout)
         if self.opener is None:
             self.opener = _default_opener()
+        if self.auth_resolver is None:
+            self.auth_resolver = AuthResolver(
+                self.provider,
+                adc=True if self.enable_adc else False,
+            )
 
     def _is_write(self, message: dict) -> bool:
         if message.get("method") != "tools/call":
@@ -178,6 +187,17 @@ class McpHttpSession:
             screens.append(screen)
         return screens
 
+    def _asset_auth_headers(self) -> dict[str, str]:
+        credential = self.fixed_credential or self._cached_credential
+        if credential is None:
+            try:
+                credential = self.auth_resolver.get()
+            except SecretStoreError as error:
+                raise SecretStoreError("Stitch credential could not be read") from error
+        if credential is None:
+            raise SecretStoreError("Stitch credential is not configured")
+        return credential.headers()
+
     def _local_tool_call(self, message: dict) -> list[dict] | None:
         if message.get("method") != "tools/call" or not isinstance(message.get("params"), dict):
             return None
@@ -200,6 +220,7 @@ class McpHttpSession:
         transport = self.asset_transport
         manager = LocalAssetManager(
             secret_provider=lambda: self.provider.get(),
+            auth_headers_provider=self._asset_auth_headers,
             **({"transport": transport} if transport is not None else {}),
         )
         try:
@@ -238,17 +259,32 @@ class McpHttpSession:
             "result": {"content": [{"type": "text", "text": json.dumps(result, separators=(",", ":"))}], "structuredContent": result},
         }]
 
-    def _request(self, message: dict, secret: str):
+    def _request(self, message: dict, credential: StitchCredential):
         headers = {
             "Accept": "application/json, text/event-stream",
             "Content-Type": "application/json",
             "MCP-Protocol-Version": PROTOCOL_VERSION,
-            "X-Goog-Api-Key": secret,
+            **credential.headers(),
         }
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
         body = json.dumps(message, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         return urllib.request.Request(self.endpoint, data=body, headers=headers, method="POST")
+
+    def _resolve_credential(self, auth_attempt: int) -> StitchCredential | None:
+        """Credential for this attempt; fixed credentials never refresh."""
+
+        if self.fixed_credential is not None:
+            return self.fixed_credential
+        if self._cached_credential is None or auth_attempt > 0:
+            try:
+                if auth_attempt > 0:
+                    self._cached_credential = self.auth_resolver.refresh()
+                else:
+                    self._cached_credential = self.auth_resolver.get()
+            except SecretStoreError as error:
+                raise ProxyError("Stitch credential could not be read") from error
+        return self._cached_credential
 
     def send(self, message: dict) -> list[dict]:
         """Send one MCP message, refreshing authentication at most once."""
@@ -259,23 +295,19 @@ class McpHttpSession:
         if local is not None:
             return local
         for auth_attempt in range(2):
-            if self._cached_secret is None or auth_attempt > 0:
-                try:
-                    self._cached_secret = self.provider.get()
-                except SecretStoreError as error:
-                    raise ProxyError("Stitch credential could not be read") from error
-            secret = self._cached_secret
-            if not secret:
+            credential = self._resolve_credential(auth_attempt)
+            if not credential:
                 try:
                     self.missing_credential_handler()
                 except Exception:
                     pass
                 raise ProxyError(
-                    "Stitch credential is not configured; run the "
-                    "stitch-local-setup skill (Stitch Settings -> API key -> "
-                    "local configurator), or set STITCH_API_KEY"
+                    "Stitch credential is not configured; authorize with Google "
+                    "Cloud ADC (gcloud auth application-default login) or run the "
+                    "stitch-local-setup skill (Stitch Settings -> API key), or "
+                    "set STITCH_API_KEY"
                 )
-            request = self._request(message, secret)
+            request = self._request(message, credential)
             try:
                 with self.opener.open(request, timeout=self.timeout) as response:
                     status = getattr(response, "status", 200)
@@ -290,7 +322,7 @@ class McpHttpSession:
                         return self._repair_tool_list(message, _sse_messages(payload))
                     return self._repair_tool_list(message, _json_messages(payload))
             except urllib.error.HTTPError as error:
-                if error.code == 401 and auth_attempt == 0:
+                if error.code == 401 and auth_attempt == 0 and self.fixed_credential is None:
                     error.close()
                     continue
                 if error.code == 401:
@@ -355,7 +387,10 @@ def serve_stdio(
             _write_messages(output_stream, [_error(identifier, -32600, "Invalid Request")])
             continue
         if active_session is None:
-            active_session = McpHttpSession(provider=platform_secret_provider())
+            active_session = McpHttpSession(
+                provider=platform_secret_provider(),
+                enable_adc=True,
+            )
         try:
             responses = active_session.send(message)
         except UnknownWriteResult as error:

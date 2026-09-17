@@ -27,6 +27,10 @@ async function validateComponent(filePath) {
     console.error("Usage: node validate.js <path-to-component>");
     process.exit(1);
   }
+  if (String(filePath).split(/[\\/]/).includes("..")) {
+    console.error("\u274c ERROR: path must not contain '..'");
+    process.exit(1);
+  }
   try {
     const code = fs.readFileSync(filePath, 'utf-8');
     const filename = path.basename(filePath);

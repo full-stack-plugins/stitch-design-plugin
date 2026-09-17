@@ -1378,7 +1378,12 @@ export async function snapshot(opts: Opts): Promise<void> {
     );
 
     // Write output
+    const outputRoot = path.resolve(process.cwd());
     const outputPath = path.resolve(opts.output!);
+    if (outputPath !== outputRoot && !outputPath.startsWith(outputRoot + path.sep)) {
+      console.error(`ERROR: output path must stay inside the working directory: ${outputPath}`);
+      process.exit(1);
+    }
     const outputDir = path.dirname(outputPath);
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(outputPath, html, 'utf-8');

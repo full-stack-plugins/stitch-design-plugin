@@ -20,12 +20,14 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 if str(PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT))
 
+from stitch_harness.gcloud_auth import GcloudAdcAuth, GcloudAuthError  # noqa: E402
 from stitch_harness.secrets import (  # noqa: E402
     SecretProvider,
     SecretStoreError,
     default_config_path,
     platform_secret_provider,
 )
+from stitch_harness.setup_trigger import _launch_detached  # noqa: E402
 
 
 SETUP_ASSETS = PLUGIN_ROOT / "assets" / "setup"
@@ -64,7 +66,63 @@ def setup(secret_provider: SecretProvider | None = None) -> int:
     return 0
 
 
-def check(secret_provider: SecretProvider | None = None) -> int:
+def gcloud_login(arguments: list[str], auth: GcloudAdcAuth | None = None) -> int:
+    """Run the browser consent flow; fall back to the API key path on failure."""
+
+    log_path = ""
+    index = 0
+    while index < len(arguments):
+        if arguments[index] == "--log" and index + 1 < len(arguments):
+            log_path = arguments[index + 1]
+            index += 2
+            continue
+        index += 1
+    if log_path:
+        log_file = open(log_path, "ab")
+        sys.stdout = log_file
+        sys.stderr = log_file
+
+    auth = auth or GcloudAdcAuth()
+    print("Opening the browser for Google authorization (gcloud application-default).")
+    print("Complete the consent in the browser; the URL is printed below if it does not open.")
+    try:
+        code = auth.login()
+    except GcloudAuthError as error:
+        print(f"Google authorization failed: {error}", file=sys.stderr)
+        return 1
+    if code != 0:
+        print(
+            "Google Cloud authorization did not complete. Fall back to the API "
+            "key method: python scripts/stitch_setup.py setup",
+            file=sys.stderr,
+        )
+        return code if code else 1
+    print("Google Cloud ADC authorization succeeded; gcloud refreshes the token automatically.")
+    project = auth.quota_project()
+    if project:
+        print(f"Quota project (X-Goog-User-Project): {project}")
+    else:
+        print(
+            "No default Google Cloud project detected; set GOOGLE_CLOUD_PROJECT "
+            "or run: gcloud config set project <PROJECT_ID>"
+        )
+    return 0
+
+
+def check(secret_provider: SecretProvider | None = None, adc: GcloudAdcAuth | None = None) -> int:
+    auth = adc if adc is not None else GcloudAdcAuth()
+    try:
+        adc_ready = auth.has_credentials()
+    except GcloudAuthError as error:
+        print(f"Google Cloud ADC check failed: {error}", file=sys.stderr)
+        adc_ready = False
+    if adc_ready:
+        print("Google Cloud ADC credential is available")
+        if (PLUGIN_ROOT / ".mcp.json").is_file():
+            print("Stitch MCP configuration is present")
+            return 0
+        print("Stitch MCP configuration is missing")
+        return 1
     try:
         available = load_key(secret_provider)
     except SecretStoreError as error:
@@ -214,6 +272,43 @@ def create_setup_server(
                 state.completed = True
                 self.send_content(200, b'{"ok":true}', "application/json")
                 return
+            if self.path == "/api/glaunch":
+                probe = GcloudAdcAuth()
+                if probe.find_executable() is None:
+                    payload = {
+                        "ok": False,
+                        "reason": "gcloud-missing",
+                        "message": "本机未检测到 gcloud（Google Cloud SDK）。请先安装后重试，或使用下方粘贴 Token 方式。",
+                    }
+                    self.send_content(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json")
+                    return
+                log_path = default_config_path().parent / "gcloud-auth.log"
+                _launch_detached(
+                    [
+                        sys.executable,
+                        str(PLUGIN_ROOT / "scripts" / "stitch_setup.py"),
+                        "gcloud",
+                        "--log",
+                        str(log_path),
+                    ]
+                )
+                payload = {"ok": True, "message": "Authorization window requested", "log": str(log_path)}
+                self.send_content(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json")
+                return
+            if self.path == "/api/gverify":
+                auth = GcloudAdcAuth()
+                found = auth.find_executable() is not None
+                try:
+                    ready = bool(found and auth.has_credentials())
+                except GcloudAuthError:
+                    ready = False
+                payload = {
+                    "ok": ready,
+                    "gcloudFound": found,
+                    "quotaProjectSet": bool(ready and auth.quota_project()),
+                }
+                self.send_content(200, json.dumps(payload).encode(), "application/json")
+                return
             if self.path == "/api/launch":
                 code = launch_command(["codex"], wait=False)
                 self.send_content(200 if code == 0 else 500, json.dumps({"ok": code == 0}).encode(), "application/json")
@@ -242,9 +337,58 @@ def run_ui() -> int:
     return 0
 
 
+def codex_oauth(arguments: list[str]) -> int:
+    """Print the Codex config.toml block for the host-native OAuth flow."""
+
+    port = 21434
+    client_id = ""
+    index = 0
+    while index < len(arguments):
+        value = arguments[index]
+        if value == "--port" and index + 1 < len(arguments):
+            try:
+                port = int(arguments[index + 1])
+            except ValueError:
+                print("Invalid --port value.", file=sys.stderr)
+                return 2
+            index += 2
+            continue
+        if value == "--client-id" and index + 1 < len(arguments):
+            client_id = arguments[index + 1].strip()
+            index += 2
+            continue
+        index += 1
+    if not client_id:
+        client_id = os.environ.get("STITCH_OAUTH_CLIENT_ID", "").strip()
+    print("Start the local endpoint first:")
+    print("  python scripts/stitch_mcp_proxy.py --http --port " + str(port))
+    print()
+    print("Then add this to your Codex config.toml:")
+    print()
+    print("[mcp_servers.stitch]")
+    print(f'url = "http://127.0.0.1:{port}/mcp"')
+    print("scopes = [")
+    for scope in os.environ.get("STITCH_OAUTH_SCOPES", "https://www.googleapis.com/auth/cloud-platform openid email").split():
+        print(f'  "{scope}",')
+    print("]")
+    print("[mcp_servers.stitch.oauth]")
+    if client_id:
+        print(f'client_id = "{client_id}"')
+    else:
+        print('client_id = "<YOUR_GOOGLE_OAUTH_CLIENT_ID>"  # set STITCH_OAUTH_CLIENT_ID or pass --client-id')
+    print()
+    if os.environ.get("GOOGLE_CLOUD_PROJECT", "").strip():
+        print("GOOGLE_CLOUD_PROJECT is set; the local endpoint will send X-Goog-User-Project automatically.")
+    else:
+        print("Optional: set GOOGLE_CLOUD_PROJECT so the local endpoint sends X-Goog-User-Project for quota.")
+    print()
+    print("Then run: codex mcp login stitch")
+    return 0
+
+
 def usage() -> None:
     print(
-        "Usage: stitch_setup.py ui | setup | check | cli [args...] | "
+        "Usage: stitch_setup.py ui | setup | gcloud | check | codex-oauth | cli [args...] | "
         "run -- <command> [args...] | desktop",
         file=sys.stderr,
     )
@@ -257,6 +401,10 @@ def main(arguments: list[str]) -> int:
     command, *rest = arguments
     if command == "setup":
         return setup()
+    if command == "gcloud":
+        return gcloud_login(rest)
+    if command == "codex-oauth":
+        return codex_oauth(rest)
     if command == "check":
         return check()
     if command == "cli":

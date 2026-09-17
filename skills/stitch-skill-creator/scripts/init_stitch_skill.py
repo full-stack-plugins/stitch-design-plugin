@@ -145,6 +145,8 @@ def extract_scenario_title(skill_name):
     return " ".join(word.capitalize() for word in core.split("-"))
 
 def init_skill(input_name, path):
+    if ".." in Path(path).parts:
+        raise SystemExit("ERROR: path must not contain '..'")
     skill_name = normalize_skill_name(input_name)
     scenario_title = extract_scenario_title(skill_name)
     scenario_lower = scenario_title.lower()

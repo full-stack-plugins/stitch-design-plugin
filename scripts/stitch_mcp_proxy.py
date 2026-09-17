@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launch the Stitch Design local stdio MCP proxy."""
+"""Launch the Stitch Design local MCP proxy (stdio by default, HTTP via --http)."""
 
 from __future__ import annotations
 
@@ -24,8 +24,30 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 if str(PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(PLUGIN_ROOT))
 
-from stitch_harness.mcp_proxy import serve_stdio  # noqa: E402
+from stitch_harness.mcp_proxy import McpHttpSession, serve_stdio  # noqa: E402
+from stitch_harness.secrets import platform_secret_provider  # noqa: E402
+
+
+def run_http(arguments: list[str]) -> int:
+    from stitch_harness.http_endpoint import HttpEndpointConfig, serve_http
+
+    config = HttpEndpointConfig()
+    for index, value in enumerate(arguments):
+        if value == "--port" and index + 1 < len(arguments):
+            try:
+                config.port = int(arguments[index + 1])
+            except ValueError:
+                print("Invalid --port value.", file=sys.stderr)
+                return 2
+    session = McpHttpSession(provider=platform_secret_provider(), enable_adc=True)
+    return serve_http(session, config)
+
+
+def main(arguments: list[str]) -> int:
+    if arguments and arguments[0] == "--http":
+        return run_http(arguments[1:])
+    return serve_stdio()
 
 
 if __name__ == "__main__":
-    raise SystemExit(serve_stdio())
+    raise SystemExit(main(sys.argv[1:]))

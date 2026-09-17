@@ -279,9 +279,23 @@ def _validate_file_content(mime: str, body: bytes, *, upload: bool = False) -> N
 class LocalAssetManager:
     """Execute local virtual tools with injected transports for offline tests."""
 
-    def __init__(self, secret_provider: Callable[[], str], transport: Callable[..., Any] = _secure_transport):
+    def __init__(
+        self,
+        secret_provider: Callable[[], str],
+        transport: Callable[..., Any] = _secure_transport,
+        auth_headers_provider: Callable[[], dict[str, str]] | None = None,
+    ):
         self.secret_provider = secret_provider
         self.transport = transport
+        self.auth_headers_provider = auth_headers_provider
+
+    def _upload_headers(self) -> dict[str, str]:
+        if self.auth_headers_provider is not None:
+            return {"Content-Type": "application/json", **self.auth_headers_provider()}
+        secret = self.secret_provider()
+        if not secret:
+            raise AssetError("Stitch credential is not configured")
+        return {"Content-Type": "application/json", "X-Goog-Api-Key": secret}
 
     def upload_asset(self, project_id: str, file_path: Path, *, title: str | None = None, create_screen_instances: bool = False) -> dict[str, Any]:
         _validate_project(project_id)
@@ -297,9 +311,6 @@ class LocalAssetManager:
             raise AssetError("createScreenInstances must be boolean")
         raw = _read_regular_file(path, MAX_UPLOAD_BYTES)
         _validate_file_content(mime, raw, upload=True)
-        secret = self.secret_provider()
-        if not secret:
-            raise AssetError("Stitch credential is not configured")
         file_object = {"fileContentBase64": base64.b64encode(raw).decode("ascii"), "mimeType": mime}
         screen = {"screenType": "DOCUMENT" if mime == "text/html" else "IMAGE", "isCreatedByClient": True}
         screen["htmlCode" if mime == "text/html" else "screenshot"] = file_object
@@ -311,7 +322,7 @@ class LocalAssetManager:
         request = urllib.request.Request(
             f"{UPLOAD_ORIGIN}/v1/projects/{project_id}/screens:batchCreate",
             data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
-            headers={"Content-Type": "application/json", "X-Goog-Api-Key": secret}, method="POST",
+            headers=self._upload_headers(), method="POST",
         )
         try:
             with self.transport(request, timeout=120) as response:

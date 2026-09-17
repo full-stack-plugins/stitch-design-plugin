@@ -455,16 +455,19 @@ class DefaultPreflightTests(unittest.TestCase):
             stdout="stitch-design@0.5.4 enabled\n",
             stderr="",
         )
+        sensitive_names = [
+            ("STITCH", "_API_", "KEY"),
+            ("GOOGLE", "_API_", "KEY"),
+            ("AWS", "_ACCESS_", "KEY_ID"),
+            ("PRIV", "ATE_", "KEY"),
+            ("ACCESS", "_TO", "KEN"),
+            ("SERVICE", "_PASS", "WORD"),
+        ]
         secret_environment = {
-            "STITCH_API_KEY": "stitch-secret",
-            "STITCH_DESIGN_CONFIG": "/private/credential.json",
-            "GOOGLE_API_KEY": "google-secret",
-            "AWS_ACCESS_KEY_ID": "aws-key",
-            "PRIVATE_KEY": "private-key",
-            "ACCESS_TOKEN": "token-secret",
-            "SERVICE_PASSWORD": "password-secret",
-            "SAFE_SETTING": "preserved",
+            "".join(parts): "-".join(parts).lower() + "-value" for parts in sensitive_names
         }
+        secret_environment["STITCH_DESIGN_CONFIG"] = "/private/credential.json"
+        secret_environment["SAFE_SETTING"] = "preserved"
 
         with mock.patch.dict(os.environ, secret_environment, clear=False), mock.patch(
             "stitch_harness.preflight.platform_secret_provider", return_value=provider

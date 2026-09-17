@@ -352,7 +352,11 @@ class DistributionContractTests(unittest.TestCase):
         secret = "test-secret-must-not-appear"
         result = subprocess.run(
             [shell, str(script), "check"],
-            env={"PATH": os.environ.get("PATH", ""), "STITCH_API_KEY": secret},
+            env={
+                "PATH": os.environ.get("PATH", ""),
+                "STITCH_API_KEY": secret,
+                "STITCH_DISABLE_ADC": "1",
+            },
             capture_output=True,
             text=True,
             check=False,

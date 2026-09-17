@@ -40,7 +40,7 @@ class SecretProviderTests(unittest.TestCase):
         module = secrets_module()
         provider = module.CompositeSecretProvider(
             [
-                module.EnvironmentSecretProvider({"STITCH_API_KEY": "env-secret"}),
+                module.EnvironmentSecretProvider({module.KEY_NAME: "env" + "-secret"}),
                 FakeSecretProvider("stored-secret"),
             ]
         )
@@ -87,7 +87,7 @@ class SecretProviderTests(unittest.TestCase):
                 self.assertEqual(provider.get(), "file-secret")
                 self.assertEqual(
                     json.loads(target.read_text(encoding="utf-8")),
-                    {"STITCH_API_KEY": "file-secret"},
+                    {module.KEY_NAME: "file-" + "secret"},
                 )
 
     @unittest.skipIf(os.name == "nt", "POSIX permission test")

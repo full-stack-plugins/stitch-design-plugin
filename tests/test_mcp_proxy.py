@@ -671,5 +671,147 @@ class StdioServerTests(unittest.TestCase):
         self.assertNotIn("partial", output_stream.getvalue())
 
 
+class FakeAdc:
+    """Scripted ADC double: pops scripted tokens, counts invalidations."""
+
+    def __init__(self, tokens=(), project="quota-proj"):
+        self.tokens = list(tokens)
+        self.project = project
+        self.invalidations = 0
+
+    def access_token(self):
+        if self.tokens:
+            return self.tokens.pop(0)
+        return None
+
+    def invalidate(self):
+        self.invalidations += 1
+
+    def quota_project(self):
+        return self.project
+
+
+class AdcCredentialTests(unittest.TestCase):
+    def test_adc_credential_sends_bearer_and_quota_headers(self):
+        opener = FakeOpener([FakeResponse(200, b'{"jsonrpc":"2.0","id":1,"result":{}}')])
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider([]),
+            opener=opener,
+            auth_resolver=auth_resolver_with(FakeAdc(["tok-1"])),
+        )
+
+        self.assertTrue(session.send(INITIALIZE))
+
+        headers = opener.requests[0].headers
+        self.assertEqual(headers["Authorization"], "Bearer tok-1")
+        self.assertEqual(headers["X-goog-user-project"], "quota-proj")
+        self.assertNotIn("X-goog-api-key", headers)
+
+    def test_adc_unavailable_falls_back_to_stored_key(self):
+        opener = FakeOpener([FakeResponse(200, b'{"jsonrpc":"2.0","id":1,"result":{}}')])
+        provider = RotatingSecretProvider(["stored-secret"])
+        session = mcp_proxy.McpHttpSession(
+            provider=provider,
+            opener=opener,
+            auth_resolver=auth_resolver_with(FakeAdc([]), provider=provider),
+        )
+
+        self.assertTrue(session.send(INITIALIZE))
+
+        self.assertEqual(opener.requests[0].headers["X-goog-api-key"], "stored-secret")
+
+    def test_unauthorized_refreshes_adc_token_once(self):
+        opener = FakeOpener(
+            [
+                ("http-error", 401, b'{"error":"unauthorized"}'),
+                FakeResponse(200, b'{"jsonrpc":"2.0","id":1,"result":{}}'),
+            ]
+        )
+        adc = FakeAdc(["expired-token", "fresh-token"])
+        session = mcp_proxy.McpHttpSession(
+            provider=RotatingSecretProvider([]),
+            opener=opener,
+            auth_resolver=auth_resolver_with(adc),
+        )
+
+        self.assertTrue(session.send(INITIALIZE))
+
+        self.assertEqual(adc.invalidations, 1)
+        self.assertEqual(opener.requests[0].headers["Authorization"], "Bearer expired-token")
+        self.assertEqual(opener.requests[1].headers["Authorization"], "Bearer fresh-token")
+
+    def test_terminal_unauthorized_with_adc_opens_local_setup(self):
+        handler = mock.Mock()
+        opener = FakeOpener(
+            [
+                ("http-error", 401, b'{"error":"unauthorized"}'),
+                ("http-error", 401, b'{"error":"unauthorized"}'),
+            ]
+        )
+        provider = RotatingSecretProvider([None])
+        session = mcp_proxy.McpHttpSession(
+            provider=provider,
+            opener=opener,
+            auth_resolver=auth_resolver_with(FakeAdc(["expired-token", "still-expired-token"]), provider=provider),
+            missing_credential_handler=handler,
+        )
+
+        with self.assertRaisesRegex(mcp_proxy.ProxyError, "authentication failed"):
+            session.send(INITIALIZE)
+
+        handler.assert_called_once_with()
+
+    def test_missing_credentials_message_mentions_both_paths(self):
+        handler = mock.Mock()
+        provider = RotatingSecretProvider([None])
+        session = mcp_proxy.McpHttpSession(
+            provider=provider,
+            opener=FakeOpener([]),
+            auth_resolver=auth_resolver_with(FakeAdc([]), provider=provider),
+            missing_credential_handler=handler,
+        )
+
+        with self.assertRaisesRegex(
+            mcp_proxy.ProxyError,
+            "gcloud auth application-default login",
+        ):
+            session.send(INITIALIZE)
+
+    def test_adc_upload_uses_bearer_headers(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder).resolve() / "screen.html"
+            source.write_text("<main>demo</main>", encoding="utf-8")
+            result_body = json.dumps({"results": [{"screen": {"name": "projects/123/screens/" + "a" * 32}}]}).encode()
+            transport_calls = []
+
+            def transport(request, **kwargs):
+                transport_calls.append(request)
+                return FakeResponse(200, result_body)
+
+            provider_opener = FakeOpener([])
+            session = mcp_proxy.McpHttpSession(
+                provider=RotatingSecretProvider(["unused-secret"]),
+                opener=provider_opener,
+                asset_transport=transport,
+                auth_resolver=auth_resolver_with(FakeAdc(["upload-token"])),
+            )
+            messages = session.send({
+                "jsonrpc": "2.0", "id": 9, "method": "tools/call",
+                "params": {"name": "stitch_local_upload_asset", "arguments": {"projectId": "123", "filePath": str(source)}},
+            })
+
+            self.assertEqual(messages[0]["result"]["structuredContent"]["screens"][0]["name"], "projects/123/screens/" + "a" * 32)
+            self.assertEqual(transport_calls[0].headers["Authorization"], "Bearer upload-token")
+            self.assertEqual(provider_opener.requests, [])
+
+
+def auth_resolver_with(adc, provider=None):
+    from stitch_harness.auth import AuthResolver
+
+    return AuthResolver(provider if provider is not None else RotatingSecretProvider([]), adc=adc)
+
+
 if __name__ == "__main__":
     unittest.main()
