@@ -1,12 +1,12 @@
 {
-  "name": "stitch",
-  "displayName": "Stitch",
+  "name": "stitch-design",
+  "displayName": "Google Stitch Design",
   "displayName_i18n": {
-    "en": "Stitch",
+    "en": "Google Stitch Design",
     "zh-CN": "Stitch UI 设计"
   },
   "version": "0.7.8",
-  "description": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
+  "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
   "description_i18n": {
     "en": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
     "zh-CN": "由远程 Stitch MCP 驱动的 Google Stitch 设计与设计转代码工作流：生成/编辑界面、设计系统管理、前端组件产出。"
@@ -30,7 +30,9 @@
   "mcpServers": {
     "stitch": {
       "command": "python3",
-      "args": ["${ZCODE_PLUGIN_ROOT}/scripts/stitch_mcp_proxy.py"]
+      "args": [
+        "${ZCODE_PLUGIN_ROOT}/scripts/stitch_mcp_proxy.py"
+      ]
     }
   }
 }

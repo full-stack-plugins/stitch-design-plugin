@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "stitch": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["scripts/stitch_mcp_proxy.py"],
+      "cwd": "."
+    }
+  }
+}

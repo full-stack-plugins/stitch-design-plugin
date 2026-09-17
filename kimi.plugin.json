@@ -1,7 +1,7 @@
 {
-  "name": "stitch",
+  "name": "stitch-design",
   "version": "0.7.8",
-  "description": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
+  "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
   "author": {
     "name": "Full Stack Skills / PartMe.AI"
   },
@@ -13,7 +13,7 @@
     "design-to-code"
   ],
   "interface": {
-    "displayName": "Stitch",
+    "displayName": "Google Stitch Design",
     "shortDescription": "Design and build with Google Stitch",
     "longDescription": "Operate Google Stitch from your coding agent: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
     "developerName": "Full Stack Skills / PartMe.AI",
@@ -24,7 +24,9 @@
   "mcpServers": {
     "stitch": {
       "command": "python3",
-      "args": ["./scripts/stitch_mcp_proxy.py"]
+      "args": [
+        "./scripts/stitch_mcp_proxy.py"
+      ]
     }
   },
   "hooks": [

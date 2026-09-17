@@ -56,7 +56,7 @@ No row overstates its evidence. The two publication rows are outside this reposi
 ```mermaid
 flowchart LR
     User["User"] --> Codex["Codex host"]
-    Codex --> Plugin["Stitch Design"]
+    Codex --> Plugin["Google Stitch Design"]
     Plugin --> Skills["43 Skills"]
     Plugin --> Setup["Loopback setup UI"]
     Plugin --> MCP["Google Stitch MCP"]

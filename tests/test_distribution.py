@@ -261,7 +261,7 @@ class DistributionContractTests(unittest.TestCase):
 
         self.assertEqual(manifest["name"], "stitch-design")
         self.assertEqual(manifest["version"], "0.7.8")
-        self.assertEqual(manifest["interface"]["displayName"], "Stitch Design")
+        self.assertEqual(manifest["interface"]["displayName"], "Google Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
         self.assertFalse((ROOT / "plugin.json").exists())

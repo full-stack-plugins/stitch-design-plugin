@@ -56,7 +56,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     User["用户"] --> Codex["Codex 宿主"]
-    Codex --> Plugin["Stitch Design"]
+    Codex --> Plugin["Google Stitch Design"]
     Plugin --> Skills["43 个 Skills"]
     Plugin --> Setup["Loopback 设置页"]
     Plugin --> MCP["Google Stitch MCP"]
