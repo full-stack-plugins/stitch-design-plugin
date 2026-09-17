@@ -27,8 +27,10 @@ async function validateComponent(filePath) {
     console.error("Usage: node validate.js <path-to-component>");
     process.exit(1);
   }
-  if (String(filePath).split(/[\\/]/).includes("..")) {
-    console.error("\u274c ERROR: path must not contain '..'");
+  const target = path.resolve(String(filePath));
+  const blockedRoots = ["/etc", "/private/etc", "/System", "/usr", "/bin", "/sbin", "/var", "/boot"];
+  if (blockedRoots.some((r) => target === r || target.startsWith(r + path.sep))) {
+    console.error("\u274c ERROR: refusing to operate on a protected system path");
     process.exit(1);
   }
   try {

@@ -13,6 +13,7 @@ Examples:
     # Creates: skills/stitch-ui-blog-designer
 """
 
+import os
 import sys
 import re
 from pathlib import Path
@@ -145,13 +146,14 @@ def extract_scenario_title(skill_name):
     return " ".join(word.capitalize() for word in core.split("-"))
 
 def init_skill(input_name, path):
-    if ".." in Path(path).parts:
-        raise SystemExit("ERROR: path must not contain '..'")
+    root = Path(path).resolve()
     skill_name = normalize_skill_name(input_name)
     scenario_title = extract_scenario_title(skill_name)
     scenario_lower = scenario_title.lower()
     
-    skill_dir = Path(path).resolve() / skill_name
+    skill_dir = root / skill_name
+    if skill_dir != root and not str(skill_dir).startswith(str(root) + os.sep):
+        raise SystemExit("ERROR: skill path escapes the target directory")
 
     if skill_dir.exists():
         print(f"❌ Error: Skill directory already exists: {skill_dir}")
