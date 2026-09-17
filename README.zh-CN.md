@@ -87,6 +87,28 @@ codex plugin marketplace upgrade partme-ai-stitch
 
 Marketplace 名称是 `partme-ai-stitch`，插件安装选择器是 `stitch-design@partme-ai-stitch`。
 
+### 国内镜像（AtomGit）
+
+如果 GitHub 访问缓慢或不可达，可改用 AtomGit 镜像安装。命令完全一致，只把市场地址换成镜像——先添加镜像市场，再执行上面的 `codex plugin add stitch-design@partme-ai-stitch` 即可：
+
+```bash
+codex plugin marketplace add https://atomgit.com/partme-ai/partme-stitch-plugin.git --ref main
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+如需一步安装 partme-ai 全部插件目录，改为添加中央市场仓库：
+
+```bash
+codex plugin marketplace add https://atomgit.com/partme-ai/plugins.git
+codex plugin add stitch-design@partme-ai
+```
+
+注意事项：
+
+- AtomGit 源与 GitHub 源共用市场名，后添加的会覆盖先添加的。切回官方源执行
+  `codex plugin marketplace add https://github.com/partme-ai/plugins.git`。
+- ZCode 与 Kimi 用户可先将镜像仓库克隆到本地，再在各平台的 marketplace 配置中登记本地目录。
+
 ## 快速开始
 
 ### 第一次使用：一张本地 Token 页面

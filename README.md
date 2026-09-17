@@ -87,6 +87,33 @@ codex plugin marketplace upgrade partme-ai-stitch
 
 The Marketplace name is `partme-ai-stitch`; the install selector is `stitch-design@partme-ai-stitch`.
 
+### China mirror (AtomGit)
+
+If GitHub is slow or unreachable, install from the AtomGit mirror instead. The
+commands are identical apart from the marketplace URL — add the mirror first,
+then run the same `codex plugin add stitch-design@partme-ai-stitch` shown above:
+
+```bash
+codex plugin marketplace add https://atomgit.com/partme-ai/partme-stitch-plugin.git --ref main
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+To install the whole partme-ai plugin catalog from the mirror in one step, add
+the marketplace repository instead:
+
+```bash
+codex plugin marketplace add https://atomgit.com/partme-ai/plugins.git
+codex plugin add stitch-design@partme-ai
+```
+
+Notes:
+
+- The AtomGit source and the GitHub source share marketplace names, so adding
+  one replaces the other. Switch back with
+  `codex plugin marketplace add https://github.com/partme-ai/plugins.git`.
+- For ZCode or Kimi, clone the mirror repository and register the local
+  directory in the respective marketplace configuration.
+
 ## Quick start
 
 ### First run: one local Token screen
