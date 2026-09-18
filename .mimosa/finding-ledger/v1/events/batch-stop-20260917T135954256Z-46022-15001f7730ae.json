@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260917T135954256Z-46022-15001f7730ae",
+  "runId": "20260917T135954256Z-46022-15001f7730ae",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "diffHash": "476dd70413db71d5d86382aa2021321ac352c15e421e3c44743d9c5b568a97c6",
+  "rulesVersion": "unavailable",
+  "sessionHash": "e85b1a69203f301537209a3c7a615cf62cd9ab32170c39a058d88a4b6e9e0c64",
+  "reportRef": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T135954256Z-46022-15001f7730ae.json",
+  "events": [
+    {
+      "eventId": "hook-8c31c383ee78cbd4c6bc135f99f006cf",
+      "findingId": "mimosa-540c2b92a5c7558dd4647a04",
+      "type": "finding_blocked",
+      "at": "2026-09-17T13:54:48.726Z",
+      "identity": {
+        "projectRelativeFile": "skills/stitch-extract-static-html/scripts/extract_inline_html.ts",
+        "ruleId": "security",
+        "codeEvidenceHash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 907,
+      "endLine": 907,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58"
+      },
+      "sequence": 0
+    },
+    {
+      "eventId": "hook-399c708bdd98323e3d70714a99c71702",
+      "findingId": "mimosa-540c2b92a5c7558dd4647a04",
+      "type": "static_fix_verified",
+      "at": "2026-09-17T13:55:03.571Z",
+      "identity": {
+        "projectRelativeFile": "skills/stitch-extract-static-html/scripts/extract_inline_html.ts",
+        "ruleId": "security",
+        "codeEvidenceHash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 907,
+      "endLine": 907,
+      "reasonCode": "static_rescan_passed",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "evidenceHash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58"
+      },
+      "sequence": 1
+    }
+  ],
+  "observedFindingIds": [
+    "mimosa-f6167d4449b774d75b178ffe",
+    "mimosa-2f2e110043f72ca00f146fba"
+  ],
+  "verifiedFiles": [
+    {
+      "file": "skills/stitch-extract-static-html/scripts/extract_inline_html.ts",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "skills/stitch-extract-static-html/scripts/snapshot.ts",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "skills/stitch-skill-creator/scripts/init_stitch_skill.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "skills/stitch-react-native/scripts/validate.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "skills/stitch-react-components/scripts/validate.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-09-17T13:59:54.468Z"
+}

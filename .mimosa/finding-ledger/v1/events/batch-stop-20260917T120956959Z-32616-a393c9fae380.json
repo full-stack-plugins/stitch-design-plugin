@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260917T120956959Z-32616-a393c9fae380",
+  "runId": "20260917T120956959Z-32616-a393c9fae380",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "baseline_partial",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline_partial: baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "diffHash": "17993984f0bf236bcd92e83e0db235bee723cdbacf2d0e6ee3953e7be0213ec3",
+  "rulesVersion": "unavailable",
+  "sessionHash": "e85b1a69203f301537209a3c7a615cf62cd9ab32170c39a058d88a4b6e9e0c64",
+  "reportRef": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T120956959Z-32616-a393c9fae380.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "tests/test_stitch_setup.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/test_http_endpoint.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-09-17T12:09:57.178Z"
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260917T134419134Z-26712-309b1ec929c2",
+  "runId": "20260917T134419134Z-26712-309b1ec929c2",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_preflight.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_distribution.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_preflight.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_distribution.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "diffHash": "7fe20151ffd5ae7d4a20fb4be5bc2f1c042bf2d3acbae894bc50a5b4d1b5efad",
+  "rulesVersion": "unavailable",
+  "sessionHash": "e85b1a69203f301537209a3c7a615cf62cd9ab32170c39a058d88a4b6e9e0c64",
+  "reportRef": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T134419134Z-26712-309b1ec929c2.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [],
+  "recordedAt": "2026-09-17T13:44:19.357Z"
+}

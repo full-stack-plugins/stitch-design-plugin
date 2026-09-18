@@ -1,0 +1,257 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20260917T135954256Z-46022-15001f7730ae",
+  "run_status": "completed",
+  "errors": [],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "complete",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 106,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 5
+    },
+    "change_tracking": {
+      "touched_observed": 2,
+      "touched_retained": 2,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 5,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 5,
+      "selected_files": 5,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 5,
+      "scanned_files": 5,
+      "skipped_files": 0,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {},
+    "reasons": [],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-09-17T13:59:54.256Z",
+  "session_id": "sess_51a1f5c0-d3d7-40de-98d7-393d046b6910",
+  "target": ".",
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "rules_version": "unavailable",
+  "diff_hash": "476dd70413db71d5d86382aa2021321ac352c15e421e3c44743d9c5b568a97c6",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 5,
+    "changed_files": [
+      {
+        "file": "skills/stitch-extract-static-html/scripts/extract_inline_html.ts",
+        "ranges": [
+          {
+            "start": 901,
+            "end": 901
+          },
+          {
+            "start": 905,
+            "end": 908
+          }
+        ],
+        "before_hash": "98f3f08c6849dd9eeb7afb6c9cf392f5c6fd057e7b4c4c19f678d174c6897955",
+        "after_hash": "116b5f74e3e2b8a875954d8e2a2ea280a0a925150925d859e55d0ba36f8c3198"
+      },
+      {
+        "file": "skills/stitch-extract-static-html/scripts/snapshot.ts",
+        "ranges": [
+          {
+            "start": 1381,
+            "end": 1381
+          },
+          {
+            "start": 1383,
+            "end": 1386
+          }
+        ],
+        "before_hash": "909bc80ea8fece88e2269d40a1638927ac79fe3be738e631fb04413e07b00321",
+        "after_hash": "b16b16554fc0623877470246cef5eae9e442d049db7eb1da5febfe5664e0e201"
+      },
+      {
+        "file": "skills/stitch-react-components/scripts/validate.js",
+        "ranges": [
+          {
+            "start": 28,
+            "end": 33
+          }
+        ],
+        "before_hash": "64e73219b05b0ccc049830be0cb890adf9388137177269665fd4bce52870d3a1",
+        "after_hash": "ac96cb5161ce8e6cebecfd0751153ff74e2948eb2c5b124e21930388b3de8c72"
+      },
+      {
+        "file": "skills/stitch-react-native/scripts/validate.js",
+        "ranges": [
+          {
+            "start": 30,
+            "end": 35
+          }
+        ],
+        "before_hash": "3cf129ef7b57dca3a4e6c41750dea7be25aa8140e44952bad585cd524aa821e9",
+        "after_hash": "4e811e28bad689690e8e762d6eae8b225ce02dc29dccd30268ce59df4a494ad6"
+      },
+      {
+        "file": "skills/stitch-skill-creator/scripts/init_stitch_skill.py",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          },
+          {
+            "start": 149,
+            "end": 149
+          },
+          {
+            "start": 154,
+            "end": 156
+          }
+        ],
+        "before_hash": "e40b56c5f3390605dcf9b4b6fd6076d0f82afaa7b39d079df79b8ee49e8dc0ce",
+        "after_hash": "e6cbef7500782c167f80ec0efd00050ea59b23dae1e65d3be617053e4b671c5b"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-09-17T13:59:53.532Z",
+    "completed_at": "2026-09-17T13:59:54.256Z",
+    "duration_ms": 724,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "complete",
+    "latencyMs": 724,
+    "peakMemoryBytes": 226328576,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 5,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [
+    {
+      "finding_id": "mimosa-540c2b92a5c7558dd4647a04",
+      "file": "skills/stitch-extract-static-html/scripts/extract_inline_html.ts",
+      "line": 907,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "路径穿越",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T13:54:48.726Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-540c2b92a5c7558dd4647a04",
+      "file": "skills/stitch-extract-static-html/scripts/extract_inline_html.ts",
+      "line": 907,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "路径穿越",
+      "status": "fixed_candidate",
+      "decision": "repair_observed",
+      "at": "2026-09-17T13:55:03.571Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58",
+        "candidate_before_evidence_hash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58",
+        "post_change_evidence_hash_at_previous_location": "5c5e0e1994a482eaed4d0a745dbb056c98e58449774f9ce235a52eac9b8fca1b",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    },
+    {
+      "finding_id": "mimosa-540c2b92a5c7558dd4647a04",
+      "file": "skills/stitch-extract-static-html/scripts/extract_inline_html.ts",
+      "line": 907,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "路径穿越",
+      "status": "static_verified",
+      "decision": "static_rescan_passed",
+      "at": "2026-09-17T13:55:03.571Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58",
+        "candidate_before_evidence_hash": "8d9d71d21f2a71437ad96a70ba06ddc9c66038a99ea27ca721ee916304b11c58",
+        "post_change_evidence_hash_at_previous_location": "5c5e0e1994a482eaed4d0a745dbb056c98e58449774f9ce235a52eac9b8fca1b",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    }
+  ],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T135954256Z-46022-15001f7730ae.json",
+    "latest_report": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910.json",
+    "history_summary": ".mimosa/history/run-20260917T135954256Z-46022-15001f7730ae.json"
+  }
+}

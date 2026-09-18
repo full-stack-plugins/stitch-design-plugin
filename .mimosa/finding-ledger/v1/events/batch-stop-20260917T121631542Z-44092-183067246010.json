@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260917T121631542Z-44092-183067246010",
+  "runId": "20260917T121631542Z-44092-183067246010",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "diffHash": "9d17bd70354eb37b47b2912101c8587fefd56ffc349d309d4dd178daaff59f49",
+  "rulesVersion": "unavailable",
+  "sessionHash": "e85b1a69203f301537209a3c7a615cf62cd9ab32170c39a058d88a4b6e9e0c64",
+  "reportRef": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T121631542Z-44092-183067246010.json",
+  "events": [
+    {
+      "eventId": "hook-c083e65e1bdc83745dfbe69177e500c4",
+      "findingId": "mimosa-6b179fdc430029c24c2fbad3",
+      "type": "finding_blocked",
+      "at": "2026-09-17T12:11:26.442Z",
+      "identity": {
+        "projectRelativeFile": "scripts/stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "6a1eadbc1185e1295ae52f0a87dbbc83cae4792f53298dcee454bcfe381b8f79",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 274,
+      "endLine": 274,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "6a1eadbc1185e1295ae52f0a87dbbc83cae4792f53298dcee454bcfe381b8f79"
+      },
+      "sequence": 0
+    }
+  ],
+  "observedFindingIds": [
+    "mimosa-7803345c44927435f8c357df",
+    "mimosa-0285c36bde972cb6a03d20bd",
+    "mimosa-6b179fdc430029c24c2fbad3"
+  ],
+  "verifiedFiles": [
+    {
+      "file": "scripts/stitch_setup.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "assets/setup/app.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "tests/test_stitch_setup.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-09-17T12:16:31.774Z"
+}

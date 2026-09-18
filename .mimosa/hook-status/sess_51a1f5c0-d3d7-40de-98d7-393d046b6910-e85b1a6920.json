@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-09-17T15:31:42.731Z",
+  "sessionId": "sess_51a1f5c0-d3d7-40de-98d7-393d046b6910",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "/Users/wandl/workspaces/workspace-partme-ai/sync-atomgit.sh",
+  "outcome": "inconclusive",
+  "coverage": "partial",
+  "findingCount": 0,
+  "durationMs": 3,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

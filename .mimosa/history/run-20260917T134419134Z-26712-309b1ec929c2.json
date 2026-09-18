@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20260917T134419134Z-26712-309b1ec929c2",
+  "runStatus": "inconclusive",
+  "errors": [
+    "scan:tests/test_preflight.py: scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+    "scan:tests/test_distribution.py: scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+  ],
+  "target": ".",
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "diffHash": "7fe20151ffd5ae7d4a20fb4be5bc2f1c042bf2d3acbae894bc50a5b4d1b5efad",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-09-17T13:44:19.134Z",
+  "timing": {
+    "startedAt": "2026-09-17T13:44:16.893Z",
+    "completedAt": "2026-09-17T13:44:19.134Z",
+    "durationMs": 2241
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "scanner_failed": 2,
+      "project_check_failed": 2
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T134419134Z-26712-309b1ec929c2.json"
+}

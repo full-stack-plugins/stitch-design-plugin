@@ -1,0 +1,491 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260917T113713921Z-79157-e37a43aa69b5",
+  "runId": "20260917T113713921Z-79157-e37a43aa69b5",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "baseline_partial",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/gcloud_auth.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/auth.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/mcp_proxy.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/assets.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "scripts/stitch_setup.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "assets/setup/app.js",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_gcloud_auth.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_mcp_proxy.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_stitch_setup.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_http_endpoint.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline_partial: baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/gcloud_auth.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/auth.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/mcp_proxy.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/assets.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "scripts/stitch_setup.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "assets/setup/app.js",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_gcloud_auth.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_mcp_proxy.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_stitch_setup.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_http_endpoint.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "diffHash": "08e866ebf28dad6df44607bb445402ce5acb46e2e549fdb70e6b876ef7f1710e",
+  "rulesVersion": "unavailable",
+  "sessionHash": "e85b1a69203f301537209a3c7a615cf62cd9ab32170c39a058d88a4b6e9e0c64",
+  "reportRef": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T113713921Z-79157-e37a43aa69b5.json",
+  "events": [
+    {
+      "eventId": "hook-381421557decce5744312666f1ec7bc8",
+      "findingId": "mimosa-a1e87c5d0bdb89387df1e8eb",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:38:42.491Z",
+      "identity": {
+        "projectRelativeFile": "stitch_harness/auth.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 26,
+      "endLine": 26,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5"
+      },
+      "sequence": 0
+    },
+    {
+      "eventId": "hook-079e7b97052314e2bd95ff52b59aa78d",
+      "findingId": "mimosa-a1e87c5d0bdb89387df1e8eb",
+      "type": "static_fix_verified",
+      "at": "2026-09-17T10:39:38.875Z",
+      "identity": {
+        "projectRelativeFile": "stitch_harness/auth.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 26,
+      "endLine": 26,
+      "reasonCode": "static_rescan_passed",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "evidenceHash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5"
+      },
+      "sequence": 1
+    },
+    {
+      "eventId": "hook-8a6e16ab56793dbed9eb5863d147c810",
+      "findingId": "mimosa-6b179fdc430029c24c2fbad3",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:45:46.156Z",
+      "identity": {
+        "projectRelativeFile": "scripts/stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "6a1eadbc1185e1295ae52f0a87dbbc83cae4792f53298dcee454bcfe381b8f79",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 218,
+      "endLine": 218,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "6a1eadbc1185e1295ae52f0a87dbbc83cae4792f53298dcee454bcfe381b8f79"
+      },
+      "sequence": 2
+    },
+    {
+      "eventId": "hook-adc723a3c4e2f692cba406ded33cd9de",
+      "findingId": "mimosa-db36d4073c7e555dd0232bc4",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:56:44.487Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "64ea7a607848268c41f1ae77620f074a8cae66f043fac029014ab9cfd867bf1e",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 49,
+      "endLine": 49,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "64ea7a607848268c41f1ae77620f074a8cae66f043fac029014ab9cfd867bf1e"
+      },
+      "sequence": 3
+    },
+    {
+      "eventId": "hook-fde579c2d3b2c6545c01e73f8ad3184e",
+      "findingId": "mimosa-5f4a59e664fe23e49e2e26d9",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:57:56.579Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "c9f8e026e79b8e70814ed3525ef08dff572369589407c238638d9b10fd8dfca7",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 142,
+      "endLine": 142,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "c9f8e026e79b8e70814ed3525ef08dff572369589407c238638d9b10fd8dfca7"
+      },
+      "sequence": 4
+    },
+    {
+      "eventId": "hook-92fefdf0eada16d6d5a33bd19ccb4967",
+      "findingId": "mimosa-c58709ade49d6e23b3343dbf",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:57:56.580Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 153,
+      "endLine": 153,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c"
+      },
+      "sequence": 5
+    },
+    {
+      "eventId": "hook-08715d527dfb601431d7fedf44648bb0",
+      "findingId": "mimosa-57373603fb7634a7207bb617",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:57:56.580Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 163,
+      "endLine": 163,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9"
+      },
+      "sequence": 6
+    },
+    {
+      "eventId": "hook-e75ec9ee40f7b401a43bc30147ed260f",
+      "findingId": "mimosa-57373603fb7634a7207bb617",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:57:56.580Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 171,
+      "endLine": 171,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9"
+      },
+      "sequence": 7
+    },
+    {
+      "eventId": "hook-dd3f7d1c5799c0c87040d58db30dcd17",
+      "findingId": "mimosa-c58709ade49d6e23b3343dbf",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:58:33.059Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 118,
+      "endLine": 118,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c"
+      },
+      "sequence": 8
+    },
+    {
+      "eventId": "hook-2bcd0b58b44df607148a377bf51c096e",
+      "findingId": "mimosa-57373603fb7634a7207bb617",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:58:33.059Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 128,
+      "endLine": 128,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9"
+      },
+      "sequence": 9
+    },
+    {
+      "eventId": "hook-54fd71287ce4b9aa3101f1b0dc286b50",
+      "findingId": "mimosa-57373603fb7634a7207bb617",
+      "type": "finding_blocked",
+      "at": "2026-09-17T10:58:33.059Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 136,
+      "endLine": 136,
+      "reasonCode": "deny",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9"
+      },
+      "sequence": 10
+    },
+    {
+      "eventId": "hook-23ed4ac17e1638469d0943135701c092",
+      "findingId": "mimosa-c58709ade49d6e23b3343dbf",
+      "type": "static_fix_verified",
+      "at": "2026-09-17T10:58:59.835Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 118,
+      "endLine": 118,
+      "reasonCode": "static_rescan_passed",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "evidenceHash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c"
+      },
+      "sequence": 11
+    },
+    {
+      "eventId": "hook-514cd568a2e676f75e1990e9899910ab",
+      "findingId": "mimosa-57373603fb7634a7207bb617",
+      "type": "static_fix_verified",
+      "at": "2026-09-17T10:58:59.835Z",
+      "identity": {
+        "projectRelativeFile": "tests/test_stitch_setup.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 136,
+      "endLine": 136,
+      "reasonCode": "static_rescan_passed",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "evidenceHash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9"
+      },
+      "sequence": 12
+    }
+  ],
+  "observedFindingIds": [],
+  "verifiedFiles": [],
+  "recordedAt": "2026-09-17T11:37:14.142Z"
+}

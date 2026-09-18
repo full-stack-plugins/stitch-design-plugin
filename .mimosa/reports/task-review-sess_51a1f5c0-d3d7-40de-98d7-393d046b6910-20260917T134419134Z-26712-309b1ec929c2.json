@@ -1,0 +1,187 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20260917T134419134Z-26712-309b1ec929c2",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "scan",
+      "target": "tests/test_preflight.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/test_distribution.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 106,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 2
+    },
+    "change_tracking": {
+      "touched_observed": 2,
+      "touched_retained": 2,
+      "truncated": false,
+      "bash_mutation": false,
+      "bash_discovered": 0,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 2,
+      "selected_files": 2,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 2,
+      "scanned_files": 0,
+      "skipped_files": 0,
+      "failed_files": 2,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "scanner_failed": 2,
+      "project_check_failed": 2
+    },
+    "reasons": [
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_preflight.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_distribution.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_preflight.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_distribution.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-09-17T13:44:19.134Z",
+  "session_id": "sess_51a1f5c0-d3d7-40de-98d7-393d046b6910",
+  "target": ".",
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "rules_version": "unavailable",
+  "diff_hash": "7fe20151ffd5ae7d4a20fb4be5bc2f1c042bf2d3acbae894bc50a5b4d1b5efad",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 2,
+    "changed_files": [
+      {
+        "file": "tests/test_distribution.py",
+        "ranges": [
+          {
+            "start": 355,
+            "end": 359
+          }
+        ],
+        "before_hash": "adceb643eb0f20e9ab8dfd5ea2b060f7eccdcd8406cdfa568929830273c272f2",
+        "after_hash": "564e30165e2ccff2e045ad55e69dfc7b4929263282c3811d5e4c8a5603dec0dd"
+      },
+      {
+        "file": "tests/test_preflight.py",
+        "ranges": [
+          {
+            "start": 458,
+            "end": 465
+          },
+          {
+            "start": 467,
+            "end": 467
+          },
+          {
+            "start": 469,
+            "end": 470
+          }
+        ],
+        "before_hash": "3378daf1f0675fad6bfc10c9f84924bcd9a5c4288c36fd93b0b50c852ca7817f",
+        "after_hash": "24c76db39ff223ab44af73920659fd683970a27b17bc92af2d11e79edf17adfa"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-09-17T13:44:16.893Z",
+    "completed_at": "2026-09-17T13:44:19.134Z",
+    "duration_ms": 2241,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 2241,
+    "peakMemoryBytes": 114999296,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 0,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T134419134Z-26712-309b1ec929c2.json",
+    "latest_report": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910.json",
+    "history_summary": ".mimosa/history/run-20260917T134419134Z-26712-309b1ec929c2.json"
+  }
+}

@@ -1,0 +1,882 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20260917T113713921Z-79157-e37a43aa69b5",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "baseline",
+      "target": ".",
+      "reason": "baseline_partial: baseline capture had enumeration or snapshot errors"
+    },
+    {
+      "stage": "scan",
+      "target": "stitch_harness/gcloud_auth.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "stitch_harness/auth.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "stitch_harness/mcp_proxy.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "stitch_harness/assets.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "scripts/stitch_setup.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "assets/setup/app.js",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/test_gcloud_auth.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/test_mcp_proxy.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/test_stitch_setup.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": "tests/test_http_endpoint.py",
+      "reason": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": false,
+      "captured_files": 10,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 10
+    },
+    "change_tracking": {
+      "touched_observed": 10,
+      "touched_retained": 10,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 10,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": false
+    },
+    "candidates": {
+      "eligible_files": 10,
+      "selected_files": 10,
+      "limit": 20,
+      "truncated": false
+    },
+    "scanning": {
+      "required_files": 10,
+      "scanned_files": 0,
+      "skipped_files": 0,
+      "failed_files": 10,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "baseline_partial": 1,
+      "scanner_failed": 10,
+      "project_check_failed": 11
+    },
+    "reasons": [
+      {
+        "code": "baseline_partial",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline capture had enumeration or snapshot errors",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/gcloud_auth.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/auth.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/mcp_proxy.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "stitch_harness/assets.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "scripts/stitch_setup.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "assets/setup/app.js",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_gcloud_auth.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_mcp_proxy.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_stitch_setup.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": "tests/test_http_endpoint.py",
+        "detail": "spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline_partial: baseline capture had enumeration or snapshot errors",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/gcloud_auth.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/auth.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/mcp_proxy.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "stitch_harness/assets.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "scripts/stitch_setup.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "assets/setup/app.js",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_gcloud_auth.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_mcp_proxy.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_stitch_setup.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "tests/test_http_endpoint.py",
+        "detail": "scanner_failed: spawnSync /Users/wandl/.nvm/versions/node/v24.18.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-09-17T11:37:13.921Z",
+  "session_id": "sess_51a1f5c0-d3d7-40de-98d7-393d046b6910",
+  "target": ".",
+  "revision": "485d03b2902eee7215e4cd0736ef44068ebdaa8e",
+  "rules_version": "unavailable",
+  "diff_hash": "08e866ebf28dad6df44607bb445402ce5acb46e2e549fdb70e6b876ef7f1710e",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 10,
+    "changed_files": [
+      {
+        "file": "assets/setup/app.js",
+        "ranges": [
+          {
+            "start": 30,
+            "end": 67
+          }
+        ],
+        "before_hash": "6400a62c781fcd62dc2186df39ba69f06ee6e7c3191ffbebf0654a4212230852",
+        "after_hash": "daee9fe9f43a37e4c337e173817075ffa38913386f7fa5fcba470ec4adc5cd54"
+      },
+      {
+        "file": "scripts/stitch_setup.py",
+        "ranges": [
+          {
+            "start": 23,
+            "end": 23
+          },
+          {
+            "start": 30,
+            "end": 30
+          },
+          {
+            "start": 69,
+            "end": 112
+          },
+          {
+            "start": 262,
+            "end": 276
+          },
+          {
+            "start": 305,
+            "end": 353
+          },
+          {
+            "start": 356,
+            "end": 356
+          },
+          {
+            "start": 369,
+            "end": 372
+          }
+        ],
+        "before_hash": "3efaec52db70fc7d1f17f994d42d9d2f3c12a97996712c1457c28beb9776e066",
+        "after_hash": "229e0402b2bf894f4bce4fedc98896c23ce7dea297c2805ad5f7c9078ec31612"
+      },
+      {
+        "file": "stitch_harness/assets.py",
+        "ranges": [
+          {
+            "start": 282,
+            "end": 287
+          },
+          {
+            "start": 290,
+            "end": 298
+          },
+          {
+            "start": 325,
+            "end": 325
+          }
+        ],
+        "before_hash": "68ba145ada693cf40cd092fa2ae0f534607325a859c346f6129735d05f10c3a4",
+        "after_hash": "300450680db9138fe9abdfce051abb7eb6a3b65872f5a71ebd48515b17b7081d"
+      },
+      {
+        "file": "stitch_harness/auth.py",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 115
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "1a8bc28d2bb827a7b4b8190877de17ff4e6fa0b6e4196404118ca89f6b4b10db"
+      },
+      {
+        "file": "stitch_harness/gcloud_auth.py",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 230
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "8b1f73e4d9afc70bacdecc654b65052c4eda4fa2b49cfc46bd43bcb5511bbff6"
+      },
+      {
+        "file": "stitch_harness/mcp_proxy.py",
+        "ranges": [
+          {
+            "start": 16,
+            "end": 16
+          },
+          {
+            "start": 93,
+            "end": 96
+          },
+          {
+            "start": 117,
+            "end": 121
+          },
+          {
+            "start": 190,
+            "end": 200
+          },
+          {
+            "start": 223,
+            "end": 223
+          },
+          {
+            "start": 262,
+            "end": 262
+          },
+          {
+            "start": 267,
+            "end": 267
+          },
+          {
+            "start": 274,
+            "end": 288
+          },
+          {
+            "start": 298,
+            "end": 299
+          },
+          {
+            "start": 305,
+            "end": 308
+          },
+          {
+            "start": 310,
+            "end": 310
+          },
+          {
+            "start": 325,
+            "end": 325
+          },
+          {
+            "start": 390,
+            "end": 393
+          }
+        ],
+        "before_hash": "fcda8f01f98da6ea899060690f6d4a704e74c15024431b2fb0b469ecda529d71",
+        "after_hash": "fe284542b04d84a9d7c7c3e58376a7927ef9a987eaa8264d8c16594f2fb4336c"
+      },
+      {
+        "file": "tests/test_gcloud_auth.py",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 205
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "90980f236e130699d21a72eb1ab714c8a310387971a190a0a4ace92d7e4a1805"
+      },
+      {
+        "file": "tests/test_http_endpoint.py",
+        "ranges": [
+          {
+            "start": 49,
+            "end": 51
+          }
+        ],
+        "before_hash": "1485aa83477071183dcf520c7924b952ac9614f1954787080e41cb73b587d463",
+        "after_hash": "f1abafca3071352a3fd874c295eb6910e054e4605f63a6c957c76b84dc9a1ff7"
+      },
+      {
+        "file": "tests/test_mcp_proxy.py",
+        "ranges": [
+          {
+            "start": 674,
+            "end": 815
+          }
+        ],
+        "before_hash": "4bc92730a01f9e293ba6d01f3e8e6ee13435ff27da00dcd63e6f7f7a2a88e241",
+        "after_hash": "172f56bfe5c590085a33b8a2ced469e6b843691ee80808fb7813838ea0292995"
+      },
+      {
+        "file": "tests/test_stitch_setup.py",
+        "ranges": [
+          {
+            "start": 2,
+            "end": 2
+          },
+          {
+            "start": 32,
+            "end": 48
+          },
+          {
+            "start": 57,
+            "end": 57
+          },
+          {
+            "start": 63,
+            "end": 126
+          },
+          {
+            "start": 189,
+            "end": 228
+          }
+        ],
+        "before_hash": "dac5d213fb7edb04e2f2df0bdba83bf87757534792927b6ec7f7f39cd26d60fe",
+        "after_hash": "e2a19380ca0c848d23a662badad114723beecd51942ae7d6231ea0db053d5747"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-09-17T11:37:11.692Z",
+    "completed_at": "2026-09-17T11:37:13.921Z",
+    "duration_ms": 2229,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 2229,
+    "peakMemoryBytes": 117899264,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 0,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [
+    {
+      "finding_id": "mimosa-a1e87c5d0bdb89387df1e8eb",
+      "file": "stitch_harness/auth.py",
+      "line": 26,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "硬编码凭据",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:38:42.491Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-a1e87c5d0bdb89387df1e8eb",
+      "file": "stitch_harness/auth.py",
+      "line": 26,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "硬编码凭据",
+      "status": "fixed_candidate",
+      "decision": "repair_observed",
+      "at": "2026-09-17T10:39:38.875Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5",
+        "candidate_before_evidence_hash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5",
+        "post_change_evidence_hash_at_previous_location": "aea3aa51d23e8b9ac0c84df5480f10ffd39fff179b818f714458abe9c70789ea",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    },
+    {
+      "finding_id": "mimosa-a1e87c5d0bdb89387df1e8eb",
+      "file": "stitch_harness/auth.py",
+      "line": 26,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "硬编码凭据",
+      "status": "static_verified",
+      "decision": "static_rescan_passed",
+      "at": "2026-09-17T10:39:38.875Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5",
+        "candidate_before_evidence_hash": "2714b3845540d16cd6d7965e6afed46ffbdcb8412a55574e7da6494c6dab4cf5",
+        "post_change_evidence_hash_at_previous_location": "aea3aa51d23e8b9ac0c84df5480f10ffd39fff179b818f714458abe9c70789ea",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    },
+    {
+      "finding_id": "mimosa-6b179fdc430029c24c2fbad3",
+      "file": "scripts/stitch_setup.py",
+      "line": 218,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "命令注入",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:45:46.156Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "6a1eadbc1185e1295ae52f0a87dbbc83cae4792f53298dcee454bcfe381b8f79",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-db36d4073c7e555dd0232bc4",
+      "file": "tests/test_stitch_setup.py",
+      "line": 49,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "硬编码凭据",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:56:44.487Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "64ea7a607848268c41f1ae77620f074a8cae66f043fac029014ab9cfd867bf1e",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-5f4a59e664fe23e49e2e26d9",
+      "file": "tests/test_stitch_setup.py",
+      "line": 142,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:57:56.579Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "c9f8e026e79b8e70814ed3525ef08dff572369589407c238638d9b10fd8dfca7",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-c58709ade49d6e23b3343dbf",
+      "file": "tests/test_stitch_setup.py",
+      "line": 153,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:57:56.580Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-57373603fb7634a7207bb617",
+      "file": "tests/test_stitch_setup.py",
+      "line": 163,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:57:56.580Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-57373603fb7634a7207bb617",
+      "file": "tests/test_stitch_setup.py",
+      "line": 171,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:57:56.580Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-c58709ade49d6e23b3343dbf",
+      "file": "tests/test_stitch_setup.py",
+      "line": 118,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:58:33.059Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-57373603fb7634a7207bb617",
+      "file": "tests/test_stitch_setup.py",
+      "line": 128,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:58:33.059Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-57373603fb7634a7207bb617",
+      "file": "tests/test_stitch_setup.py",
+      "line": 136,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "blocked",
+      "decision": "deny",
+      "at": "2026-09-17T10:58:33.059Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-c58709ade49d6e23b3343dbf",
+      "file": "tests/test_stitch_setup.py",
+      "line": 118,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "fixed_candidate",
+      "decision": "repair_observed",
+      "at": "2026-09-17T10:58:59.835Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "candidate_before_evidence_hash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "post_change_evidence_hash_at_previous_location": "2d9b48e15ecbe52feb3b3529dd53e0cb020632e3965399276ba070d82fb95bd8",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    },
+    {
+      "finding_id": "mimosa-c58709ade49d6e23b3343dbf",
+      "file": "tests/test_stitch_setup.py",
+      "line": 118,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "static_verified",
+      "decision": "static_rescan_passed",
+      "at": "2026-09-17T10:58:59.835Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "candidate_before_evidence_hash": "05a2ffe908916171eb932c2661a23dce51054973f9ae30c0fb4563ab8f2bdc4c",
+        "post_change_evidence_hash_at_previous_location": "2d9b48e15ecbe52feb3b3529dd53e0cb020632e3965399276ba070d82fb95bd8",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    },
+    {
+      "finding_id": "mimosa-57373603fb7634a7207bb617",
+      "file": "tests/test_stitch_setup.py",
+      "line": 136,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "fixed_candidate",
+      "decision": "repair_observed",
+      "at": "2026-09-17T10:58:59.835Z",
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "candidate_before_evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "post_change_evidence_hash_at_previous_location": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    },
+    {
+      "finding_id": "mimosa-57373603fb7634a7207bb617",
+      "file": "tests/test_stitch_setup.py",
+      "line": 136,
+      "rule_id": "security",
+      "severity": "high",
+      "category": "SSRF 服务端请求伪造",
+      "status": "static_verified",
+      "decision": "static_rescan_passed",
+      "at": "2026-09-17T10:58:59.835Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "observed",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "candidate_before_evidence_hash": "80288c708a337b70f67c93b27818da71104a5c774e58ac8f3b0c336a14323de9",
+        "post_change_evidence_hash_at_previous_location": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "runtime_oracle": false,
+        "verification": {
+          "method": "mimosa-posttool-static-rescan",
+          "finding_absent": true,
+          "runtime_oracle": false
+        }
+      }
+    }
+  ],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910-20260917T113713921Z-79157-e37a43aa69b5.json",
+    "latest_report": ".mimosa/reports/task-review-sess_51a1f5c0-d3d7-40de-98d7-393d046b6910.json",
+    "history_summary": ".mimosa/history/run-20260917T113713921Z-79157-e37a43aa69b5.json"
+  }
+}
