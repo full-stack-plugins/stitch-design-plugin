@@ -210,7 +210,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_USE")
 
-    def test_plugin_uses_python_only_secret_safe_stdio_proxy(self) -> None:
+    def test_plugin_uses_python3_secret_safe_stdio_proxy(self) -> None:
         config = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
         server = config["mcpServers"]["stitch"]
 
@@ -218,7 +218,7 @@ class DistributionContractTests(unittest.TestCase):
             server,
             {
                 "type": "stdio",
-                "command": "python",
+                "command": "python3",
                 "args": ["scripts/stitch_mcp_proxy.py"],
                 "cwd": ".",
             },

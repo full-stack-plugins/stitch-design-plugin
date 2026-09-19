@@ -55,7 +55,7 @@ def validate(root: Path) -> list[str]:
     server = mcp.get("mcpServers", {}).get("stitch", {})
     expected_server = {
         "type": "stdio",
-        "command": "python",
+        "command": "python3",
         "args": ["scripts/stitch_mcp_proxy.py"],
         "cwd": ".",
     }
