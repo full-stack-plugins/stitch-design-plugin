@@ -5,7 +5,7 @@
   "author": {
     "name": "Full Stack Skills / PartMe.AI"
   },
-  "homepage": "https://github.com/partme-ai/partme-stitch-plugin",
+  "homepage": "https://github.com/full-stack-plugins/stitch-design-plugin",
   "license": "Apache-2.0",
   "keywords": [
     "stitch",
@@ -17,7 +17,7 @@
     "shortDescription": "Design and build with Google Stitch",
     "longDescription": "Operate Google Stitch from your coding agent: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
     "developerName": "Full Stack Skills / PartMe.AI",
-    "websiteURL": "https://github.com/partme-ai/partme-stitch-plugin"
+    "websiteURL": "https://github.com/full-stack-plugins/stitch-design-plugin"
   },
   "skills": "./skills/",
   "commands": "./commands/",

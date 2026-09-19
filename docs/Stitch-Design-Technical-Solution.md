@@ -1,6 +1,6 @@
 # Stitch Design Technical Solution
 
-> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.10.
+> **Scope:** Implementation decisions, interfaces, security controls, tests, release, and migration for Stitch Design 0.7.11.
 >
 > **Updated:** 2026-09-14
 
@@ -223,7 +223,7 @@ Release proof for 0.4.0:
 
 ---
 
-**Document version:** 2.7.10 · **Status:** Aligned with the 0.7.10 release candidate
+**Document version:** 2.7.10 · **Status:** Aligned with the 0.7.11 release candidate
 
 ## 10. Evidence map
 

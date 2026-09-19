@@ -13,10 +13,10 @@
   },
   "author": {
     "name": "Full Stack Skills / PartMe.AI",
-    "url": "https://github.com/partme-ai/partme-stitch-plugin"
+    "url": "https://github.com/full-stack-plugins/stitch-design-plugin"
   },
-  "homepage": "https://github.com/partme-ai/partme-stitch-plugin",
-  "repository": "https://github.com/partme-ai/partme-stitch-plugin",
+  "homepage": "https://github.com/full-stack-plugins/stitch-design-plugin",
+  "repository": "https://github.com/full-stack-plugins/stitch-design-plugin",
   "license": "Apache-2.0",
   "keywords": [
     "stitch",

@@ -11,7 +11,7 @@ from pathlib import Path
 from scan_secrets import scan
 
 
-EXPECTED_REPOSITORY = "https://github.com/partme-ai/partme-stitch-plugin"
+EXPECTED_REPOSITORY = "https://github.com/full-stack-plugins/stitch-design-plugin"
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
@@ -70,7 +70,7 @@ def validate(root: Path) -> list[str]:
         expected_source = {
             "source": "url",
             "url": EXPECTED_REPOSITORY + ".git",
-            "ref": "main",
+            "ref": f"v{manifest['version'].split('+', 1)[0]}",
         }
         if entry.get("source") != expected_source:
             errors.append("repository marketplace source mismatch")

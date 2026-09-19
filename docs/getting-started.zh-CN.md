@@ -24,7 +24,7 @@ Stitch SDK 不会消除凭据要求。官方教程所说的“不需要 MCP 配�
 1. 添加市场并安装插件：
 
    ```bash
-   codex plugin marketplace add partme-ai/partme-stitch-plugin --ref main
+   codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.11
    codex plugin add stitch-design@partme-ai-stitch
    ```
 

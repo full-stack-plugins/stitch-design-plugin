@@ -1,7 +1,7 @@
 # cross-host-plugin-identity Specification
 
 ## Purpose
-TBD - created by archiving change remove-codex-brand-prefixes. Update Purpose after archive.
+Keep the plugin's public identity host-neutral while preserving explicit Codex-only contracts and historical evidence.
 ## Requirements
 ### Requirement: Current public identities SHALL be host-neutral
 
@@ -20,4 +20,3 @@ The repository SHALL retain exact historical repository names and Codex-specific
 
 - **WHEN** the source repository was actually published with a Codex-prefixed name
 - **THEN** the historical statement keeps that exact name and labels it as historical
-

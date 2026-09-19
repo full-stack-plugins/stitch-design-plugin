@@ -204,9 +204,9 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(entry["source"]["source"], "url")
         self.assertEqual(
             entry["source"]["url"],
-            "https://github.com/partme-ai/partme-stitch-plugin.git",
+            "https://github.com/full-stack-plugins/stitch-design-plugin.git",
         )
-        self.assertEqual(entry["source"]["ref"], "main")
+        self.assertEqual(entry["source"]["ref"], "v0.7.11")
         self.assertEqual(entry["policy"]["installation"], "AVAILABLE")
         self.assertEqual(entry["policy"]["authentication"], "ON_USE")
 
@@ -310,8 +310,8 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
         required = (
-            "codex plugin marketplace add partme-ai/partme-stitch-plugin --ref main",
-            "codex plugin marketplace add https://github.com/partme-ai/partme-stitch-plugin.git --ref main",
+            "codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.11",
+            "codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.7.11",
             "--sparse .agents/plugins",
             "codex plugin marketplace add ./partme-stitch-plugin",
             "codex plugin add stitch-design@partme-ai-stitch",
