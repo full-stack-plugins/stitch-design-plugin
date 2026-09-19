@@ -23,7 +23,7 @@ Follow these steps to convert your existing code.
 #### 1. Extract Self-Contained HTML
 
 Delegate to the `stitch-extract-static-html` skill to generate a standalone HTML file.
-Read [skills/stitch-extract-static-html/SKILL.md](../../stitch-extract-static-html/SKILL.md) for detailed instructions and script usage.
+Install it when absent: `npx skills add full-stack-skills/stitch-skills --skill stitch-extract-static-html`.
 
 Expected output: A single file like `/path/to/extracted/standalone.html`.
 
@@ -34,9 +34,8 @@ Check asset closure, route title and privacy before uploading. Offer a visual pr
 #### 3. Extract Design System (File)
 
 Delegate to the `stitch-extract-design-md` skill to analyze the project's source files
-(components, stylesheets, theme configs) and produce a design system. Read
-[skills/stitch-extract-design-md/SKILL.md](../../stitch-extract-design-md/SKILL.md) for the
-full analysis workflow.
+(components, stylesheets, theme configs) and produce a design system. Install it
+when absent: `npx skills add full-stack-skills/stitch-skills --skill stitch-extract-design-md`.
 
 Write `.stitch/DESIGN.md` following the `stitch-extract-design-md` skill's output
 structure.
@@ -44,16 +43,16 @@ structure.
 #### 4. Upload DESIGN.md and Create Design System in Stitch
 
 Delegate to the `stitch-manage-design-system` skill to upload the `DESIGN.md` and
-create the design system in Stitch. Read
-[skills/stitch-manage-design-system/SKILL.md](../../stitch-manage-design-system/SKILL.md) for
-the full workflow (upload script usage, `create_design_system_from_design_md`
-call, and required schemas). Pass
+create the design system in Stitch. Install it when absent:
+`npx skills add full-stack-skills/stitch-skills --skill stitch-manage-design-system`.
+Follow that skill's upload script, `create_design_system_from_design_md` call,
+and schema requirements. Pass
 `--generated-by 'stitch-code-to-design'` when uploading.
 
 #### 5. Upload HTML to Stitch
 
 Use the same `stitch-upload-to-stitch` skill's script to upload the extracted HTML file.
-Read [skills/stitch-upload-to-stitch/SKILL.md](../../stitch-upload-to-stitch/SKILL.md) for detailed instructions and script usage.
+Install it when absent: `npx skills add full-stack-skills/stitch-skills --skill stitch-upload-to-stitch`.
 
 You will need:
 - The path to the standalone HTML file generated in Step 1.
