@@ -1,6 +1,6 @@
 # Terms of Use
 
-Stitch Design for Codex is provided under the Apache License 2.0 in [LICENSE](LICENSE), with additional third-party notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Stitch Design is provided under the Apache License 2.0 in [LICENSE](LICENSE), with additional third-party notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 The plugin is an independent community integration maintained by Full Stack Skills / PartMe.AI. It is not an official Google or OpenAI plugin and does not grant access to either service.
 

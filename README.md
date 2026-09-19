@@ -1,21 +1,21 @@
-# Stitch Design for Codex
+# Stitch Design
 
-![Codex × Google Stitch — Turn ideas into editable interfaces](assets/stitch-hero.png)
+![Google Stitch Design — Turn ideas into editable interfaces](assets/stitch-hero.png)
 
-> Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
+> Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.7.11-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.11)
+[![Version](https://img.shields.io/badge/release-0.7.12-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [Install](#installation) · [Quick start](#quick-start) · [Examples](#example-requests) · [Architecture](docs/Stitch-Design-Architecture.md) · [Troubleshooting](#troubleshooting)
 
-## Stitch Design in Codex
+## Codex host example
 
 ![Stitch Design plugin details in Codex, including starter prompts, MCP server, and 43 Skills](assets/readme/stitch-design-plugin-overview.png)
 
-The installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP server, 43 workflow Skills, and a secure local Token setup directly in Codex.
+In Codex, the installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP server, 43 workflow Skills, and a secure local Token setup. ZCode and Kimi load the same public plugin identity through their host manifests.
 
 ## Positioning
 
@@ -38,7 +38,7 @@ The installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP 
 Recommended: track the repository's `main` branch explicitly.
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.11
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.12
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -46,17 +46,17 @@ Restart Codex or the ChatGPT desktop app, open a new task, and ask Stitch Design
 
 ### Other supported Marketplace sources
 
-GitHub shorthand pinned by the repository-local marketplace to `v0.7.11`:
+GitHub shorthand pinned by the repository-local marketplace to `v0.7.12`:
 
 ```bash
 codex plugin marketplace add full-stack-plugins/stitch-design-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
-Full Git URL pinned to immutable `v0.7.11`:
+Full Git URL pinned to immutable `v0.7.12`:
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.7.11
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.7.12
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -64,7 +64,7 @@ Sparse Git checkout when only Marketplace metadata is needed:
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.7.11 \
+  --ref v0.7.12 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -182,8 +182,8 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.7.11` |
-| Current release | [v0.7.11](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.11) |
+| Current candidate | `0.7.12` |
+| Current release | [v0.7.12](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12) |
 | Previous release | [v0.7.8](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.8) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |

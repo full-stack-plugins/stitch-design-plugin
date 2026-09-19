@@ -1,21 +1,21 @@
-# Stitch Design for Codex
+# Stitch Design
 
-![Codex × Google Stitch — 把想法转化为可编辑界面](assets/stitch-hero.png)
+![Google Stitch Design——把想法转化为可编辑界面](assets/stitch-hero.png)
 
-> 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在 Codex 中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
+> 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在受支持的编码智能体中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/release-0.7.11-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.11)
+[![版本](https://img.shields.io/badge/release-0.7.12-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
 [English](README.md) | [简体中文](README.zh-CN.md) · [安装](#安装) · [快速开始](#快速开始) · [使用示例](#使用示例) · [架构文档](docs/Stitch-Design-Architecture.zh_CN.md) · [故障排查](#故障排查)
 
-## Codex 中的 Stitch Design
+## Codex 宿主示例
 
 ![Codex 中的 Stitch Design 插件详情，包含快捷提示、MCP 服务器和 43 个 Skills](assets/readme/stitch-design-plugin-overview.png)
 
-安装后，Codex 会直接展示三个可运行提示、一个内置 Stitch MCP 服务器、43 个工作流 Skills 和安全的本地 Token 设置。
+在 Codex 中，安装后的插件会展示三个可运行提示、一个内置 Stitch MCP 服务器、43 个工作流 Skills 和安全的本地 Token 设置。ZCode 与 Kimi 通过各自宿主清单加载同一公开插件身份。
 
 ## 项目定位
 
@@ -38,7 +38,7 @@
 推荐显式跟踪本仓库 `main` 分支：
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.11
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.12
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -56,7 +56,7 @@ codex plugin add stitch-design@partme-ai-stitch
 使用完整 Git URL 并固定 `main`：
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.7.11
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.7.12
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -64,7 +64,7 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.7.11 \
+  --ref v0.7.12 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -177,8 +177,8 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前候选版本 | `0.7.11` |
-| 当前版本 | [v0.7.11](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.11) |
+| 当前候选版本 | `0.7.12` |
+| 当前版本 | [v0.7.12](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12) |
 | 上一版本 | [v0.7.8](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.8) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
