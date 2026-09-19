@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from Codex through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.7.8-1A73E8)](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.8)
+[![Version](https://img.shields.io/badge/release-0.7.10-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.10)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -182,9 +182,9 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.7.8` |
-| Current release | [v0.7.8](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.8) |
-| Previous release | [v0.7.1](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.1) |
+| Current candidate | `0.7.10` |
+| Current release | [v0.7.10](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.10) |
+| Previous release | [v0.7.8](https://github.com/partme-ai/partme-stitch-plugin/releases/tag/v0.7.8) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
 | License | Apache-2.0 |

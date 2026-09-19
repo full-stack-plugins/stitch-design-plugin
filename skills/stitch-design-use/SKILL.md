@@ -14,14 +14,6 @@ description: Stitch Design 根路由；当用户要用 Stitch 完成从认证、
 
 面向设计师、产品、前端开发者和交付负责人。该入口只负责判断路径、输入和授权，不以路由成功代替下游执行证据。
 
-## 第 0 步：凭据预检（任何 MCP 调用之前必做）
-
-在调用任何 `stitch` MCP 工具之前，先确认本机已配置凭据，**不要先调 MCP 再处理 401**：
-
-1. 运行只读检查：`python3 scripts/stitch_setup.py check`（只输出状态行，不打印 key）。
-2. 若检查报告凭据缺失或不可读：**立即停止当前任务，转入 `stitch-local-setup`**，引导用户完成一次性配置（Stitch Settings 获取 key → 本地配置器隐藏输入 → 重启 Codex）。配置完成后再从路由表继续。
-3. 若 MCP 调用仍返回 `Stitch credential is not configured`：同样按上面第 2 条处理——该错误文本即为本预检未执行或被绕过的信号。
-
 ## 路由表
 
 | 意图 | 选择 |

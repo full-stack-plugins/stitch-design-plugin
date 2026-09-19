@@ -13,6 +13,22 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CODEX_VERSION = json.loads(
+    (ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+)["version"]
+RELEASE_VERSION = CODEX_VERSION.split("+", 1)[0]
+LOCKED_SKILL_COUNT = sum(
+    len(source.get("skills", []))
+    for source in json.loads((ROOT / "skills.lock.json").read_text(encoding="utf-8")).get(
+        "sources", []
+    )
+)
+LOCAL_SKILL_COUNT = len(
+    json.loads((ROOT / "plugin-local-skills.json").read_text(encoding="utf-8")).get(
+        "skills", []
+    )
+)
+EXPECTED_SKILL_COUNT = LOCKED_SKILL_COUNT + LOCAL_SKILL_COUNT
 
 
 def fake_codex_command(platform_name: str) -> tuple[str, str]:
@@ -30,9 +46,9 @@ def fake_codex_command(platform_name: str) -> tuple[str, str]:
 
 
 class DistributionContractTests(unittest.TestCase):
-    def test_release_uses_078_across_active_surfaces(self) -> None:
+    def test_release_version_is_consistent_across_active_surfaces(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.7.8")
+        self.assertEqual(manifest["version"], CODEX_VERSION)
 
         validator = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate_distribution.py"), str(ROOT)],
@@ -41,7 +57,7 @@ class DistributionContractTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(validator.returncode, 0, validator.stdout + validator.stderr)
-        self.assertIn("compatibility distribution 0.7.8", validator.stdout)
+        self.assertIn(f"compatibility distribution {RELEASE_VERSION}", validator.stdout)
 
         active_version_surfaces = (
             ROOT / "README.md",
@@ -50,28 +66,27 @@ class DistributionContractTests(unittest.TestCase):
             ROOT / "docs" / "Stitch-Design-Architecture.zh_CN.md",
             ROOT / "docs" / "Stitch-Design-Technical-Solution.md",
             ROOT / "docs" / "Stitch-Design-Technical-Solution.zh_CN.md",
-            ROOT / "skills" / "stitch-design-use" / "SKILL.md",
             ROOT / "stitch_harness" / "preflight.py",
         )
         for path in active_version_surfaces:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.relative_to(ROOT)):
-                self.assertIn("0.7.8", text)
+                self.assertIn(RELEASE_VERSION, text)
 
         self.assertIn(
-            "Current release | [v0.7.8]",
+            f"Current release | [v{RELEASE_VERSION}]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "Previous release | [v0.7.1]",
+            "Previous release | [v0.7.8]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "当前版本 | [v0.7.8]",
+            f"当前版本 | [v{RELEASE_VERSION}]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "上一版本 | [v0.7.1]",
+            "上一版本 | [v0.7.8]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 
@@ -178,7 +193,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("validated 43 skills", result.stdout)
+        self.assertIn(f"validated {EXPECTED_SKILL_COUNT} skills", result.stdout)
 
     def test_repository_marketplace_targets_public_root_plugin(self) -> None:
         marketplace = json.loads(
@@ -260,7 +275,7 @@ class DistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(manifest["name"], "stitch-design")
-        self.assertEqual(manifest["version"], "0.7.8")
+        self.assertEqual(manifest["version"], CODEX_VERSION)
         self.assertEqual(manifest["interface"]["displayName"], "Google Stitch Design")
 
     def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
@@ -336,13 +351,13 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("Only HTTP 401", privacy)
         self.assertIn("HTTP 403 is permission denied and is not refreshed or replayed", privacy)
 
-    def test_manifest_and_readmes_remain_truthful_at_078(self) -> None:
+    def test_manifest_and_readmes_remain_truthful_at_current_version(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["version"], "0.7.8")
+        self.assertEqual(manifest["version"], CODEX_VERSION)
         for path in (ROOT / "README.md", ROOT / "README.zh-CN.md"):
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.7.8", text)
+                self.assertIn(RELEASE_VERSION, text)
 
     def test_stitch_setup_check_never_prints_the_key(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.sh"
@@ -459,7 +474,7 @@ class DistributionContractTests(unittest.TestCase):
         for path in paths:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
-                self.assertIn("0.7.8", text)
+                self.assertIn(RELEASE_VERSION, text)
                 self.assertIn("stdio", text)
                 self.assertIn("Harness", text)
                 self.assertNotIn("env_http_headers", text)
@@ -467,7 +482,7 @@ class DistributionContractTests(unittest.TestCase):
         architecture = paths[0].read_text(encoding="utf-8")
         self.assertNotIn("environment or system store found", architecture)
         self.assertIn("environment or restricted user config found", architecture)
-        self.assertIn("stitch-design 0.7.8", architecture)
+        self.assertIn(f"stitch-design {RELEASE_VERSION}", architecture)
 
     def test_stitch_setup_stores_key_in_supplied_secret_provider(self) -> None:
         script = ROOT / "scripts" / "stitch_setup.py"

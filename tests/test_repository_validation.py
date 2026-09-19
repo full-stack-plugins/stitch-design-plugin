@@ -1,6 +1,7 @@
 import contextlib
 import importlib.util
 import io
+import json
 import subprocess
 import sys
 import tempfile
@@ -62,7 +63,11 @@ class RepositoryValidatorTests(unittest.TestCase):
     def test_repo_local_skill_validator_accepts_all_skills(self) -> None:
         result = self.run_validator("validate_skills.py", ROOT / "skills")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("validated 43 skills", result.stdout)
+        lock = json.loads((ROOT / "skills.lock.json").read_text(encoding="utf-8"))
+        local = json.loads((ROOT / "plugin-local-skills.json").read_text(encoding="utf-8"))
+        expected = sum(len(source.get("skills", [])) for source in lock.get("sources", []))
+        expected += len(local.get("skills", []))
+        self.assertIn(f"validated {expected} skills", result.stdout)
 
     def test_skill_validator_rejects_invalid_frontmatter(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

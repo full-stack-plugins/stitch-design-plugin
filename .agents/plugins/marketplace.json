@@ -16,7 +16,7 @@
         "authentication": "ON_USE"
       },
       "category": "Creativity",
-      "version": "0.7.9",
+      "version": "0.7.10",
       "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
       "icon": "https://raw.githubusercontent.com/partme-ai/partme-stitch-plugin/main/assets/official-logo.png",
       "interface": {

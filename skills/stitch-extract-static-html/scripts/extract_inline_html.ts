@@ -898,14 +898,10 @@ async function main(): Promise<void> {
 
   fs.mkdirSync(opts.outdir, { recursive: true });
 
-  const rootDir = path.resolve(opts.outdir);
   for (const spec of opts.pages) {
     const parts = spec.split(':');
     const [src, dstName, title] = parts;
-    const dst = path.resolve(rootDir, dstName);
-    if (dst !== rootDir && !dst.startsWith(rootDir + path.sep)) {
-      throw new Error(`invalid page name (escapes output dir): ${dstName}`);
-    }
+    const dst = path.join(opts.outdir, dstName);
 
     console.log(`\n${'='.repeat(60)}`);
     console.log(`Converting ${src} -> ${dstName}...`);

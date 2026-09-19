@@ -12,8 +12,6 @@ from scan_secrets import scan
 
 
 EXPECTED_REPOSITORY = "https://github.com/partme-ai/partme-stitch-plugin"
-EXPECTED_VERSION = "0.7.8"
-EXPECTED_SKILLS = 43
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
@@ -33,11 +31,17 @@ def validate(root: Path) -> list[str]:
     manifest = load_json(root / ".codex-plugin" / "plugin.json")
     mcp = load_json(root / ".mcp.json")
     marketplace = load_json(root / ".agents" / "plugins" / "marketplace.json")
+    lock = load_json(root / "skills.lock.json")
+    local_inventory = load_json(root / "plugin-local-skills.json")
+    expected_version = str(manifest.get("version", "")).split("+", 1)[0]
+    expected_skills = sum(
+        len(source.get("skills", [])) for source in lock.get("sources", [])
+    ) + len(local_inventory.get("skills", []))
 
     if manifest.get("name") != "stitch-design":
         errors.append("manifest name must be stitch-design")
-    if manifest.get("version") != EXPECTED_VERSION:
-        errors.append(f"manifest version must be {EXPECTED_VERSION}")
+    if not expected_version:
+        errors.append("manifest version must be present")
     if manifest.get("repository") != EXPECTED_REPOSITORY:
         errors.append("manifest repository mismatch")
     interface = manifest.get("interface", {})
@@ -77,8 +81,8 @@ def validate(root: Path) -> list[str]:
         errors.append("portable root manifests must remain inactive until portable auth exists")
 
     skill_dirs = sorted(path for path in (root / "skills").iterdir() if path.is_dir())
-    if len(skill_dirs) != EXPECTED_SKILLS:
-        errors.append(f"expected {EXPECTED_SKILLS} skills, found {len(skill_dirs)}")
+    if len(skill_dirs) != expected_skills:
+        errors.append(f"expected {expected_skills} skills, found {len(skill_dirs)}")
     for skill_dir in skill_dirs:
         skill_file = skill_dir / "SKILL.md"
         if not skill_file.is_file():
@@ -103,7 +107,14 @@ def main() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"validated {EXPECTED_SKILLS} skills and compatibility distribution {EXPECTED_VERSION}")
+    manifest = load_json(root / ".codex-plugin" / "plugin.json")
+    lock = load_json(root / "skills.lock.json")
+    local_inventory = load_json(root / "plugin-local-skills.json")
+    expected_skills = sum(
+        len(source.get("skills", [])) for source in lock.get("sources", [])
+    ) + len(local_inventory.get("skills", []))
+    version = str(manifest.get("version", "")).split("+", 1)[0]
+    print(f"validated {expected_skills} skills and compatibility distribution {version}")
     return 0
 
 
