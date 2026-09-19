@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- The reusable implementation belongs to `codex-stitch-design-plugin`; WeKefu stores only project contracts, run evidence, candidate artifacts, and approved artifacts.
+- The reusable implementation belongs to `stitch-design-plugin`; WeKefu stores only project contracts, run evidence, candidate artifacts, and approved artifacts.
 - Never expose an API key in config, argv, stdout, stderr, receipts, reports, or Git.
 - The only accepted Stitch endpoint is `https://stitch.googleapis.com/mcp`; credentials must never follow redirects to another origin.
 - A remote write with an unknown result is reconciled by read operations before any retry.
