@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 from .evidence import reject_sensitive_content
 from .storage import sha256_file
@@ -142,5 +143,40 @@ class EvidenceWriter:
             provider="google-stitch", model="server",
         )
 
-    def visual_review(self, *, artifact_paths: Iterable[Path], source_artifact_paths: Iterable[Path], layout_score: float, scores: dict[str, Any]) -> Path:
-        return self._write("visual-judge", "compare", artifact_paths, {"layout_score": layout_score, "scores": scores}, sources=source_artifact_paths)
+    def visual_review(
+        self,
+        *,
+        artifact_paths: Iterable[Path],
+        source_artifact_paths: Iterable[Path],
+        layout_score: float,
+        scores: dict[str, Any],
+        provider: str = "local-harness",
+        model: str = "deterministic",
+        tool: str = "compare",
+        algorithm_version: str | None = None,
+    ) -> Path:
+        """Write a visual-judge evidence file.
+
+        ``provider``/``model``/``tool`` default to the deterministic harness
+        (``local-harness``/``deterministic``/``compare``) so existing callers
+        keep working; callers driving a real judge must pass the producer
+        identity so the receipt no longer claims the score came from a
+        deterministic local tool.
+
+        ``algorithm_version`` labels the deterministic layout score inside
+        ``result`` so consumers can distinguish it from the judge scores in
+        ``scores``. It is optional so legacy callers (and historical evidence
+        files) remain valid.
+        """
+        result: dict[str, Any] = {"layout_score": layout_score, "scores": scores}
+        if algorithm_version is not None:
+            result["layout_algorithm"] = algorithm_version
+        return self._write(
+            "visual-judge",
+            tool,
+            artifact_paths,
+            result,
+            sources=source_artifact_paths,
+            provider=provider,
+            model=model,
+        )

@@ -1,0 +1,22 @@
+{
+  "scores": {
+    "hierarchy": 4,
+    "density": 4,
+    "color": 5,
+    "component_quality": 4,
+    "completion": 5
+  },
+  "gaps": [
+    {
+      "id": "hero-lighting",
+      "description": "The hero image renders with flat shading where the target shows a diagonal light falloff from the upper left.",
+      "repair": "Add a linear-gradient overlay at roughly 30 degrees across the hero image, from rgba(255,255,255,0.25) to transparent."
+    },
+    {
+      "id": "form-label-density",
+      "description": "The form labels sit closer to their inputs than in the target, and the label font weight is lighter.",
+      "repair": "Increase label-to-input spacing to match the target rhythm and use the same font weight as the target's labels."
+    }
+  ],
+  "total": 22
+}

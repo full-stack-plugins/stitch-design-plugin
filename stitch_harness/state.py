@@ -44,7 +44,15 @@ _TRANSITIONS = {
     },
     RunState.ART_ENHANCEMENT_APPROVED: {RunState.ART_GENERATED, RunState.RECONCILING, RunState.BLOCKED},
     RunState.STITCH_ONLY_SELECTED: {RunState.AWAITING_USER_APPROVAL, RunState.BLOCKED},
-    RunState.ART_GENERATED: {RunState.ART_ACCEPTED, RunState.RECONCILING, RunState.BLOCKED},
+    RunState.ART_GENERATED: {
+        RunState.ART_ACCEPTED,
+        # Return edge for the convergence loop: the user rejects the candidate at
+        # AWAITING_USER_APPROVAL, the orchestrator walks the run back to
+        # ART_GENERATED, and the next decide_art("enhance") moves it forward again.
+        RunState.ART_ENHANCEMENT_APPROVED,
+        RunState.RECONCILING,
+        RunState.BLOCKED,
+    },
     RunState.ART_ACCEPTED: {RunState.SEMANTIC_NORMALIZED, RunState.RECONCILING, RunState.BLOCKED},
     RunState.SEMANTIC_NORMALIZED: {RunState.ROUNDTRIPPED, RunState.RECONCILING, RunState.BLOCKED},
     RunState.ROUNDTRIPPED: {RunState.EDITABILITY_VERIFIED, RunState.RECONCILING, RunState.BLOCKED},

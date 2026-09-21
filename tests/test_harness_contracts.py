@@ -1,12 +1,10 @@
 import json
-import tempfile
 import unittest
 from pathlib import Path
 
 import jsonschema
 
 from stitch_harness.contracts import ContractError, PageSpec
-
 
 FIXTURE = Path(__file__).parent / "fixtures" / "page-spec.json"
 
@@ -52,6 +50,26 @@ class PageSpecTests(unittest.TestCase):
         blank_theme = json.loads(json.dumps(base)); blank_theme["theme"] = "   "; cases.append(blank_theme)
         for payload in cases:
             with self.subTest(payload=payload):
+                self.assertFalse(jsonschema.Draft202012Validator(schema).is_valid(payload))
+                with self.assertRaises(ContractError):
+                    PageSpec.from_dict(payload)
+
+    def test_max_rounds_defaults_to_three_when_omitted(self):
+        spec = PageSpec.from_dict(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        self.assertEqual(spec.comparison.max_rounds, 3)
+
+    def test_max_rounds_is_loaded_when_declared(self):
+        payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        payload["comparison"]["max_rounds"] = 5
+        self.assertEqual(PageSpec.from_dict(payload).comparison.max_rounds, 5)
+
+    def test_max_rounds_must_be_a_positive_integer(self):
+        schema = json.loads((Path(__file__).parents[1] / "stitch_harness/spec.schema.json").read_text(encoding="utf-8"))
+        base = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        for bad in (0, -1, 1.5, True, "3"):
+            payload = json.loads(json.dumps(base))
+            payload["comparison"]["max_rounds"] = bad
+            with self.subTest(value=bad):
                 self.assertFalse(jsonschema.Draft202012Validator(schema).is_valid(payload))
                 with self.assertRaises(ContractError):
                     PageSpec.from_dict(payload)

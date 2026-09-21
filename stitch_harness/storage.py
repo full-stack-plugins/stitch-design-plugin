@@ -7,14 +7,14 @@ import json
 import os
 import re
 import tempfile
-from dataclasses import dataclass, field, replace
+from collections.abc import Iterable
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .contracts import PageSpec
 from .state import RunState, transition
-
 
 RECEIPT_STEP_SLUGS = {
     "preflight": "preflight",
@@ -137,7 +137,7 @@ class ArtifactRecord:
         *,
         width: int | None = None,
         height: int | None = None,
-    ) -> "ArtifactRecord":
+    ) -> ArtifactRecord:
         if not path.is_file():
             raise FileNotFoundError(path)
         return cls(_contained_relative(run_root, path), sha256_file(path), mime, width, height)
@@ -182,7 +182,7 @@ class Receipt:
         outputs: Iterable[ArtifactRecord] = (),
         checks: Iterable[dict[str, Any]] = (),
         attempt: int = 1,
-    ) -> "Receipt":
+    ) -> Receipt:
         timestamp = datetime.now(UTC).isoformat()
         return cls(
             run_id,
@@ -442,6 +442,50 @@ class RunStore:
         for receipt_path in (run.path / "receipts").glob("*.json"):
             payload = json.loads(receipt_path.read_text(encoding="utf-8"))
             if payload.get("step") == step and payload.get("result") == "passed":
+                return True
+        return False
+
+    def has_accepted_receipt_for_artifacts(
+        self,
+        run: Run,
+        step: str,
+        expected_sources: tuple[tuple[str, str, str], ...],
+    ) -> bool:
+        """Return whether an accepted passed receipt binds the given source artifacts.
+
+        Each source is `(path, sha256, mime)`. Used to detect "same artifacts are
+        re-compared" without blocking the next round when an earlier comparison
+        bound a different set of artifacts. The receipt stores its source artifacts
+        under the ``inputs`` field (see ``Receipt.to_dict``); the visual-judge
+        evidence envelope stores the same pair under ``source_artifacts``.
+
+        This predicate does NOT call ``verify_chain``: callers may legitimately
+        invoke it while a receipt chain is mid-edit (for example, when an earlier
+        round's artifacts have been replaced with new bytes for the next round),
+        and the predicate's job is purely to detect a binding match, not to police
+        chain integrity.
+        """
+
+        if not expected_sources:
+            return False
+        expected = set(expected_sources)
+        receipts_dir = run.path / "receipts"
+        if not receipts_dir.is_dir():
+            return False
+        for receipt_path in receipts_dir.glob("*.json"):
+            try:
+                payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if payload.get("step") != step or payload.get("result") != "passed":
+                continue
+            bound = payload.get("inputs") or []
+            bound_set = {
+                (item.get("path"), item.get("sha256"), item.get("mime"))
+                for item in bound
+                if isinstance(item, dict)
+            }
+            if bound_set == expected:
                 return True
         return False
 

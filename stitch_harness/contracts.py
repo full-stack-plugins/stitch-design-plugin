@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
-
 PAGE_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SUPPORTED_ASSERTIONS = {"dom-style"}
 CANVAS_DEVICES = ("MOBILE", "DESKTOP", "TABLET", "AGNOSTIC")
@@ -44,6 +43,7 @@ class Comparison:
     critical_copy_recall: float
     layout_score_min: float
     visual_quality_score_min: int
+    max_rounds: int = 3
 
 
 @dataclass(frozen=True)
@@ -70,7 +70,7 @@ class PageSpec:
     source: dict[str, Any]
 
     @classmethod
-    def load(cls, path: Path) -> "PageSpec":
+    def load(cls, path: Path) -> PageSpec:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
@@ -78,7 +78,7 @@ class PageSpec:
         return cls.from_dict(payload)
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "PageSpec":
+    def from_dict(cls, payload: dict[str, Any]) -> PageSpec:
         if not isinstance(payload, dict):
             raise ContractError("page specification must be an object")
         _reject_extra_keys(
@@ -139,7 +139,7 @@ class PageSpec:
         comparison_data = _required(payload, "comparison", dict)
         _reject_extra_keys(
             comparison_data,
-            {"critical_copy_recall", "layout_score_min", "visual_quality_score_min"},
+            {"critical_copy_recall", "layout_score_min", "visual_quality_score_min", "max_rounds"},
             "comparison",
         )
         critical = comparison_data.get("critical_copy_recall")
@@ -151,7 +151,10 @@ class PageSpec:
             raise ContractError("layout_score_min must be between 0 and 1")
         if isinstance(quality, bool) or not isinstance(quality, int) or not 1 <= quality <= 5:
             raise ContractError("visual_quality_score_min must be between 1 and 5")
-        comparison = Comparison(float(critical), float(layout), quality)
+        max_rounds = comparison_data.get("max_rounds", 3)
+        if isinstance(max_rounds, bool) or not isinstance(max_rounds, int) or max_rounds < 1:
+            raise ContractError("max_rounds must be a positive integer")
+        comparison = Comparison(float(critical), float(layout), quality, max_rounds)
 
         archive = _required(payload, "archive", str)
         archive_path = PurePosixPath(archive)

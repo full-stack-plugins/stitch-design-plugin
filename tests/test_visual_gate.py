@@ -5,8 +5,11 @@ from unittest import mock
 
 from stitch_harness.contracts import PageSpec
 from stitch_harness.evidence import ExternalEvidence
-from stitch_harness.visual_gate import DimensionMismatch, compare_images, validate_visual_scores
-
+from stitch_harness.visual_gate import (
+    DimensionMismatch,
+    compare_images,
+    validate_visual_scores,
+)
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -118,6 +121,91 @@ class VisualGateTests(unittest.TestCase):
 
         self.assertFalse(result.passed)
         self.assertIn("density", " ".join(result.failures))
+
+    def test_has_accepted_receipt_for_artifacts_matches_only_on_full_source_set(self):
+        """Regression: visual-judge lock must compare the full (path, sha256, mime) set."""
+        import shutil
+        import tempfile
+        from datetime import UTC, datetime
+        from pathlib import Path
+
+        from stitch_harness.orchestrator import Harness
+        from stitch_harness.state import RunState
+        from stitch_harness.storage import ArtifactRecord, Receipt
+
+        fixture = Path("tests/fixtures/page-spec.json")
+        fixed_time = datetime(2026, 9, 14, 0, 0, tzinfo=UTC)
+        temp = tempfile.TemporaryDirectory()
+        try:
+            project = Path(temp.name)
+            specs = project / ".stitch" / "specs"
+            specs.mkdir(parents=True)
+            shutil.copy2(fixture, specs / "login.json")
+            harness = Harness(preflight=lambda _project: ())
+            started = harness.start(project, "login", now=fixed_time)
+            run = harness.store.load(project, started.run_id)
+
+            (run.path / "artifacts").mkdir(parents=True, exist_ok=True)
+            art_path = run.path / "artifacts/art.png"
+            stitch_path = run.path / "artifacts/stitch-final.png"
+            art_path.write_bytes(b"art")
+            stitch_path.write_bytes(b"stitch")
+            art_record = ArtifactRecord.from_path(run.path, art_path, "image/png")
+            stitch_record = ArtifactRecord.from_path(run.path, stitch_path, "image/png")
+
+            comparison_paths = (
+                "comparison/side-by-side.png",
+                "comparison/overlay.png",
+                "comparison/diff-heatmap.png",
+            )
+            for relative in comparison_paths:
+                (run.path / relative).parent.mkdir(parents=True, exist_ok=True)
+                (run.path / relative).write_bytes(b"cmp")
+
+            run = harness.store.update_state(run, RunState.STITCH_GENERATED)
+            run = harness.store.update_state(run, RunState.SOURCE_ACCEPTED)
+            run = harness.store.update_state(run, RunState.AWAITING_ART_DECISION)
+            run = harness.store.update_state(run, RunState.ART_ENHANCEMENT_APPROVED)
+            run = harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "imagegen", outputs=[art_record]))
+            run = harness.store.update_state(run, RunState.ART_GENERATED)
+            run = harness.store.update_state(run, RunState.ART_ACCEPTED)
+            run = harness.store.update_state(run, RunState.SEMANTIC_NORMALIZED)
+            (run.path / "artifacts/stitch.html").write_text("<html><body>ok</body></html>", encoding="utf-8")
+            roundtrip = [
+                ArtifactRecord.from_path(run.path, run.path / "artifacts/stitch.html", "text/html"),
+                stitch_record,
+            ]
+            run = harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "stitch.roundtrip", outputs=roundtrip))
+            run = harness.store.update_state(run, RunState.ROUNDTRIPPED)
+            run = harness.store.append_receipt(run, Receipt.passed(run.run_id, run.page_id, "editability"))
+            run = harness.store.update_state(run, RunState.EDITABILITY_VERIFIED)
+            comparisons = [ArtifactRecord.from_path(run.path, run.path / relative, "image/png") for relative in comparison_paths]
+            run = harness.store.append_receipt(
+                run,
+                Receipt.passed(
+                    run.run_id, run.page_id, "visual-judge",
+                    inputs=[art_record, stitch_record],
+                    outputs=comparisons,
+                ),
+            )
+
+            matched = (
+                (art_record.path, art_record.sha256, art_record.mime),
+                (stitch_record.path, stitch_record.sha256, stitch_record.mime),
+            )
+            self.assertTrue(harness.store.has_accepted_receipt_for_artifacts(run, "visual-judge", matched))
+
+            # Hash mismatch: must NOT match (artifacts changed for a new round).
+            different_art_path = run.path / "artifacts/art.png"
+            different_art_path.write_bytes(b"art-v2")
+            different_art = ArtifactRecord.from_path(run.path, different_art_path, "image/png")
+            self.assertFalse(harness.store.has_accepted_receipt_for_artifacts(
+                run, "visual-judge",
+                ((different_art.path, different_art.sha256, different_art.mime),
+                 (stitch_record.path, stitch_record.sha256, stitch_record.mime)),
+            ))
+        finally:
+            temp.cleanup()
 
 
 if __name__ == "__main__":

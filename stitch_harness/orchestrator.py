@@ -5,25 +5,61 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 from .contracts import PageSpec
-from .evidence import EvidenceArtifact, EvidenceError, ExternalEvidence, reject_sensitive_content
 from .device_gate import validate_screen_device
+from .evidence import (
+    EvidenceArtifact,
+    EvidenceError,
+    ExternalEvidence,
+    reject_sensitive_content,
+)
 from .html_gate import validate_html
 from .ocr_gate import validate_ocr
 from .preflight import default_preflight
-from .state import InvalidTransition, RunState
 from .semantic_normalizer import normalize_purposes
-from .storage import ArtifactRecord, Receipt, Run, RunStore, _atomic_json, _sorted_receipt_paths, sha256_file
+from .state import InvalidTransition, RunState
+from .storage import (
+    ArtifactRecord,
+    Receipt,
+    Run,
+    RunStore,
+    _atomic_json,
+    _sorted_receipt_paths,
+    sha256_file,
+)
 from .visual_gate import validate_visual_scores
 
 
 class ApprovalRequired(ValueError):
     """Only an explicit human decision can approve a run."""
+
+
+class RunBlockedAfterStall(RuntimeError):
+    """The convergence loop stalled and the next redo cannot proceed.
+
+    Raised by ``Harness.redo_art`` when the run is already stalled (round totals
+    did not improve a full point, or the same gap id appeared in two consecutive
+    verdicts) and the caller has not declared a structural rework. Also raised
+    when a structural rework was already performed and the next round still
+    stalls, at which point the run is moved to ``BLOCKED`` and the user must
+    weigh in.
+    """
+
+
+@dataclass(frozen=True)
+class RoundResult:
+    """Outcome of recording one convergence round's visual judgment."""
+
+    round_index: int
+    total_score: int
+    gap_ids: tuple[str, ...]
+    stalled: bool
+    stall_reason: dict[str, Any] | None
 
 
 @dataclass(frozen=True)
@@ -270,7 +306,11 @@ class Harness:
             RunState.SEMANTIC_NORMALIZED: (RunState.ROUNDTRIPPED,),
             RunState.ROUNDTRIPPED: (RunState.EDITABILITY_VERIFIED,),
             RunState.STITCH_ONLY_SELECTED: (RunState.AWAITING_USER_APPROVAL,),
-            RunState.EDITABILITY_VERIFIED: (RunState.COMPARISON_ACCEPTED, RunState.AWAITING_USER_APPROVAL),
+            RunState.EDITABILITY_VERIFIED: (
+                RunState.COMPARISON_ACCEPTED,
+                RunState.AWAITING_USER_APPROVAL,
+            ),
+            RunState.COMPARISON_ACCEPTED: (RunState.AWAITING_USER_APPROVAL,),
         }.get(state, ())
 
     def decide_art(
@@ -282,6 +322,123 @@ class Harness:
         run = self.store.load(project_root, run_id)
         if run.state != RunState.AWAITING_ART_DECISION:
             raise InvalidTransition("run is not awaiting an art enhancement decision")
+        return self._apply_art_decision(run, decision, allow_redo=False)
+
+    def redo_art(
+        self,
+        project_root: Path,
+        run_id: str,
+        decision: ArtEnhancementDecision,
+        *,
+        structural_rework: bool = False,
+    ) -> RunStatus:
+        """Apply an enhance decision on the convergence return path.
+
+        The first enhance is recorded with a fresh ``art-decision`` receipt at
+        ``AWAITING_ART_DECISION`` via ``decide_art``; every subsequent enhance
+        (after the user rejected a previous candidate) is recorded with this
+        entry point so the receipt contract stays aligned with the current state.
+
+        ``structural_rework`` must be ``True`` when the latest ``visual_history``
+        entry shows a stall; the orchestrator refuses the redo with
+        ``RunBlockedAfterStall`` otherwise. If a previous structural rework was
+        already performed and this redo also stalls, the run is moved to
+        ``BLOCKED`` and the user must weigh in.
+        """
+        run = self.store.load(project_root, run_id)
+        if run.state != RunState.ART_GENERATED:
+            raise InvalidTransition("run is not on a convergence return path")
+        if decision.user_response != "enhance":
+            raise ApprovalRequired(
+                "the convergence return path only supports the enhance response; "
+                "keep_stitch and cancel are handled at AWAITING_ART_DECISION"
+            )
+        manifest = self._manifest(run)
+        history = list(manifest.get("visual_history") or [])
+        stalled_now = bool(manifest.get("convergence_stalled"))
+        rework_done = bool(manifest.get("structural_rework_done"))
+        if stalled_now and not structural_rework:
+            raise RunBlockedAfterStall(
+                "convergence loop stalled; redo_art requires structural_rework=True"
+            )
+        if stalled_now and structural_rework and rework_done:
+            # Two structural reworks have failed: stop and hand back.
+            self.store.update_state(run, RunState.BLOCKED)
+            manifest = self._manifest(run)
+            manifest["blocked_reason"] = (
+                "structural rework did not break the stall; handing back to the user"
+            )
+            _atomic_json(run.path / "manifest.json", manifest)
+            raise RunBlockedAfterStall(manifest["blocked_reason"])
+        return self._apply_art_decision(run, decision, allow_redo=True, structural_rework=structural_rework)
+
+    def record_round_result(
+        self,
+        project_root: Path,
+        run_id: str,
+        *,
+        total_score: int,
+        gap_ids: list[str] | tuple[str, ...],
+        structural_rework: bool = False,
+    ) -> RoundResult:
+        """Append one convergence round to the run manifest and detect stall.
+
+        The Skill calls this after each visual-judge evidence is accepted. The
+        helper is idempotent against manifest shape: it appends to
+        ``visual_history`` and, when a stall is detected on the latest pair of
+        rounds, records ``convergence_stalled`` and ``stall_reason``.
+        """
+        if not 0 <= total_score <= 25:
+            raise ValueError("total_score must be within 0..25 (5 axes x 1..5)")
+        normalized_gap_ids = tuple(str(gap_id) for gap_id in gap_ids if gap_id)
+        run = self.store.load(project_root, run_id)
+        manifest = self._manifest(run)
+        history = list(manifest.get("visual_history") or [])
+        round_index = len(history) + 1
+        entry = {
+            "round": round_index,
+            "total_score": int(total_score),
+            "gap_ids": list(normalized_gap_ids),
+            "structural_rework": bool(structural_rework),
+        }
+        history.append(entry)
+        stalled = False
+        stall_reason: dict[str, Any] | None = None
+        if len(history) >= 2:
+            previous, latest = history[-2], history[-1]
+            score_gain = latest["total_score"] - previous["total_score"]
+            if score_gain < 1:
+                stalled = True
+                stall_reason = {"type": "no_progress", "score_gain": score_gain}
+            else:
+                previous_gaps = set(previous["gap_ids"])
+                repeated = [gap for gap in latest["gap_ids"] if gap in previous_gaps]
+                if repeated:
+                    stalled = True
+                    stall_reason = {"type": "repeated_gap", "gap_id": repeated[0]}
+        manifest["visual_history"] = history
+        if stalled:
+            manifest["convergence_stalled"] = True
+            manifest["stall_reason"] = stall_reason
+        if structural_rework:
+            manifest["structural_rework_done"] = True
+        _atomic_json(run.path / "manifest.json", manifest)
+        return RoundResult(
+            round_index=round_index,
+            total_score=int(total_score),
+            gap_ids=normalized_gap_ids,
+            stalled=stalled,
+            stall_reason=stall_reason,
+        )
+
+    def _apply_art_decision(
+        self,
+        run: Run,
+        decision: ArtEnhancementDecision,
+        *,
+        allow_redo: bool,
+        structural_rework: bool = False,
+    ) -> RunStatus:
         targets = {
             "enhance": RunState.ART_ENHANCEMENT_APPROVED,
             "keep_stitch": RunState.STITCH_ONLY_SELECTED,
@@ -293,6 +450,32 @@ class Harness:
                 "user response must be exactly enhance, keep_stitch, or cancel; "
                 "ambiguous confirmation must not be inferred"
             )
+        manifest_updates: dict[str, Any] = {}
+        spec = PageSpec.load(run.path / "spec.json")
+        previous_imagegen = self._count_accepted_receipts(run, "imagegen")
+        if target is RunState.ART_ENHANCEMENT_APPROVED:
+            rounds_used = previous_imagegen + 1
+            if rounds_used > spec.comparison.max_rounds:
+                run = self.store.update_state(run, RunState.BLOCKED)
+                manifest = self._manifest(run)
+                manifest["blocked_reason"] = (
+                    f"visual delivery budget exhausted after {spec.comparison.max_rounds} rounds"
+                )
+                _atomic_json(run.path / "manifest.json", manifest)
+                return RunStatus(run.run_id, run.state, 1, _ACTIONS[run.state], errors=(manifest["blocked_reason"],))
+            manifest_updates["delivery_rounds"] = rounds_used
+        if allow_redo:
+            # Skip the art-decision receipt: the redo entry point already implies
+            # an explicit user response, and the next receipt is imagegen.
+            redo_updates = {"art_mode": decision.user_response, **manifest_updates}
+            if structural_rework:
+                redo_updates["structural_rework_done"] = True
+            committed = self.store.update_states(
+                run,
+                (target,),
+                manifest_updates=redo_updates,
+            )
+            return RunStatus(run.run_id, committed.state, 0, _ACTIONS[committed.state])
         run = self.store.append_receipt(
             run,
             Receipt.passed(
@@ -305,9 +488,24 @@ class Harness:
         run = self.store.update_states(
             run,
             (target,),
-            manifest_updates={"art_mode": decision.user_response},
+            manifest_updates={"art_mode": decision.user_response, **manifest_updates},
         )
-        return RunStatus(run_id, run.state, 0, _ACTIONS[run.state])
+        return RunStatus(run.run_id, run.state, 0, _ACTIONS[run.state])
+
+    @staticmethod
+    def _count_accepted_receipts(run: Run, step: str) -> int:
+        receipts_dir = run.path / "receipts"
+        if not receipts_dir.is_dir():
+            return 0
+        total = 0
+        for receipt_path in receipts_dir.glob("*.json"):
+            try:
+                payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if payload.get("step") == step and payload.get("result") == "passed":
+                total += 1
+        return total
 
     @staticmethod
     def _matching_receipt_hash(
@@ -379,7 +577,11 @@ class Harness:
         targets = self._target_states(effective_state)
         if not targets:
             return RunStatus(run.run_id, run.state, 1, _ACTIONS[run.state], ("unsupported evidence transition",))
-        committed = self.store.update_states(shadow, targets, manifest_updates=manifest_updates)
+        committed = self.store.update_states(
+            shadow,
+            targets,
+            manifest_updates=manifest_updates if manifest_updates else None,
+        )
         return RunStatus(run.run_id, committed.state, 0, _ACTIONS[committed.state])
 
     def _validate_reconciliation_probes(

@@ -16,7 +16,6 @@ from stitch_harness.orchestrator import Harness
 from stitch_harness.state import RunState
 from stitch_harness.storage import ArtifactRecord, Receipt
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FIXED = datetime(2026, 9, 14, tzinfo=UTC)
 
@@ -616,7 +615,9 @@ class Harness060Tests(unittest.TestCase):
 
     def test_compare_can_replace_unaccepted_outputs_but_not_accepted_visual_receipt(self):
         harness, run = self.comparison_ready_run()
-        arguments = ["compare", "--project", str(self.project), "--run", run.run_id]
+        scores = self.project / "scores.json"
+        scores.write_text(json.dumps({name: 5 for name in ("hierarchy", "density", "color", "component_quality", "completion")}), encoding="utf-8")
+        arguments = ["compare", "--project", str(self.project), "--run", run.run_id, "--scores", str(scores)]
         self.assertEqual(main(arguments), 0)
         first_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in (run.path / "comparison").glob("*.png")}
         self.assertEqual(main(arguments), 0)
@@ -638,7 +639,9 @@ class Harness060Tests(unittest.TestCase):
 
     def test_compare_lock_uses_visual_receipt_even_when_state_update_was_interrupted(self):
         harness, run = self.comparison_ready_run()
-        arguments = ["compare", "--project", str(self.project), "--run", run.run_id]
+        scores = self.project / "scores.json"
+        scores.write_text(json.dumps({name: 5 for name in ("hierarchy", "density", "color", "component_quality", "completion")}), encoding="utf-8")
+        arguments = ["compare", "--project", str(self.project), "--run", run.run_id, "--scores", str(scores)]
         self.assertEqual(main(arguments), 0)
         evidence = ExternalEvidence.load(run.path / "evidence/visual-judge.json", "visual-judge")
         receipt = Receipt.passed(

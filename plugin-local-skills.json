@@ -1,5 +1,5 @@
 {
   "version": 1,
   "dest": "skills/",
-  "skills": ["stitch-harness"]
+  "skills": ["stitch-harness", "stitch-visual-judge"]
 }

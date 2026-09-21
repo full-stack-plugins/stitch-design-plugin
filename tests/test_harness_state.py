@@ -1,14 +1,13 @@
 import json
 import tempfile
 import unittest
-from unittest import mock
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest import mock
 
 from stitch_harness.contracts import PageSpec
 from stitch_harness.state import InvalidTransition, RunState, transition
 from stitch_harness.storage import ArtifactRecord, Receipt, RunStore, sha256_file
-
 
 FIXTURE = Path(__file__).parent / "fixtures" / "page-spec.json"
 FIXED_TIME = datetime(2026, 9, 13, 15, 30, tzinfo=UTC)
@@ -37,6 +36,39 @@ class RunStateTests(unittest.TestCase):
         )
         with self.assertRaises(InvalidTransition):
             transition(RunState.ART_ACCEPTED, RunState.ROUNDTRIPPED)
+
+    def test_art_generated_can_return_to_art_enhancement_approved(self):
+        """Convergence loop: a candidate rejected downstream may be re-enhanced.
+
+        Path: user rejects at AWAITING_USER_APPROVAL → ART_GENERATED →
+        ART_ENHANCEMENT_APPROVED (this edge) so the next decide_art("enhance")
+        starts a new ImageGen round. The user-rejection edge
+        AWAITING_USER_APPROVAL → ART_GENERATED already exists in the base graph;
+        this regression locks in the second leg of the return path.
+        """
+        self.assertEqual(
+            transition(RunState.ART_GENERATED, RunState.ART_ENHANCEMENT_APPROVED),
+            RunState.ART_ENHANCEMENT_APPROVED,
+        )
+
+    def test_return_path_is_only_legal_from_art_generated(self):
+        """Conservative scoping: only ART_GENERATED may return to ART_ENHANCEMENT_APPROVED.
+
+        Other post-imagegen states (ART_ACCEPTED, ROUNDTRIPPED, EDITABILITY_VERIFIED,
+        COMPARISON_ACCEPTED) cannot jump straight back; the operator must first
+        walk the run through ART_GENERATED via the existing user-rejection edge,
+        preserving the gate-by-gate re-run invariant.
+        """
+        for state in (
+            RunState.ART_ACCEPTED,
+            RunState.ROUNDTRIPPED,
+            RunState.EDITABILITY_VERIFIED,
+            RunState.COMPARISON_ACCEPTED,
+            RunState.AWAITING_USER_APPROVAL,
+        ):
+            with self.subTest(state=state):
+                with self.assertRaises(InvalidTransition):
+                    transition(state, RunState.ART_ENHANCEMENT_APPROVED)
 
 
 class RunStoreTests(unittest.TestCase):

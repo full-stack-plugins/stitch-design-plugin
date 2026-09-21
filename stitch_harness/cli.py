@@ -10,9 +10,14 @@ from pathlib import Path
 
 from .archive import ArchiveManager
 from .contracts import ContractError, PageSpec
-from .orchestrator import ArtEnhancementDecision, ApprovalDecision, ApprovalRequired, Harness
-from .state import RunState
 from .evidence_writer import EvidenceWriter
+from .orchestrator import (
+    ApprovalDecision,
+    ApprovalRequired,
+    ArtEnhancementDecision,
+    Harness,
+)
+from .state import RunState
 from .visual_gate import compare_images
 
 
@@ -98,21 +103,37 @@ def main(arguments: list[str] | None = None) -> int:
             run = harness.store.load(args.project, args.run)
             if run.state != RunState.EDITABILITY_VERIFIED:
                 raise ValueError("compare requires the current run to be EDITABILITY_VERIFIED")
-            if harness.store.has_accepted_receipt(run, "visual-judge"):
-                raise ValueError("compare cannot overwrite an accepted visual-judge receipt")
             art, stitch = harness.store.required_comparison_artifacts(run)
+            expected_sources = (
+                (art.path, art.sha256, art.mime),
+                (stitch.path, stitch.sha256, stitch.mime),
+            )
+            if harness.store.has_accepted_receipt_for_artifacts(run, "visual-judge", expected_sources):
+                raise ValueError("compare cannot overwrite an accepted visual-judge receipt for the same artifacts")
+            if args.scores is None:
+                raise ValueError("compare requires --scores <scores.json> with the five 1-5 ratings")
+            scores = json.loads(args.scores.read_text(encoding="utf-8"))
+            required_axes = ("hierarchy", "density", "color", "component_quality", "completion")
+            missing_axes = [
+                axis for axis in required_axes
+                if not isinstance(scores.get(axis), (int, float)) or scores.get(axis) < 1 or scores.get(axis) > 5
+            ]
+            if missing_axes:
+                raise ValueError(
+                    "compare scores missing or out of range for: " + ", ".join(missing_axes)
+                )
             comparison = compare_images(
                 run.path / stitch.path,
                 run.path / art.path,
                 run.path / "comparison",
                 replace_existing=True,
             )
-            scores = json.loads(args.scores.read_text(encoding="utf-8")) if args.scores else {}
             evidence = EvidenceWriter(run.path).visual_review(
                 artifact_paths=comparison.review_files,
                 source_artifact_paths=(run.path / art.path, run.path / stitch.path),
                 layout_score=comparison.layout_score,
                 scores=scores,
+                algorithm_version=comparison.algorithm_version,
             )
             print(json.dumps({"layout_score": comparison.layout_score, "evidence": str(evidence), "files": [str(path) for path in comparison.review_files]}, separators=(",", ":")))
             return 0
