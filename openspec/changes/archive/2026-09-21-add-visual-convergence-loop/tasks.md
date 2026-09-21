@@ -42,14 +42,14 @@
 
 - [x] 7.1 Add regression cases for the return edge, budget exhaustion into `BLOCKED`, per-round re-comparison and stall detection.
 - [x] 7.2 Run plugin tests, distribution validation, and the offline plus online skill integrity checks.
-- [ ] 7.3 Run strict OpenSpec validation and archive the change.
+- [x] 7.3 Run strict OpenSpec validation and archive the change.
 
 ## 8. Publication
 
-- [ ] 8.1 Bump the version per `AGENTS.md` and sync the three host manifests and the marketplace catalogs.
-- [ ] 8.2 Commit, confirm remote CI, then create the immutable tag and GitHub Release.
+- [x] 8.1 Bump the version per `AGENTS.md` and sync the three host manifests and the marketplace catalogs.
+- [x] 8.2 Commit, confirm remote CI, then create the immutable tag and GitHub Release.
 
 ## 9. Upstream dependency
 
-- [ ] 9.1 Open a separate change in `full-stack-skills/stitch-skills` aligning the convergence loop and judge protocol into `stitch-delivery-harness` and `stitch-loop`; this change does not modify those managed skills.
-- [ ] 9.2 After the upstream release, refresh the lock file and per-skill digests through the existing sync flow.
+- [x] 9.1 Open a separate change in `full-stack-skills/stitch-skills` aligning the convergence loop and judge protocol into `stitch-delivery-harness` and `stitch-loop`; this change does not modify those managed skills.
+- [x] 9.2 After the upstream release, refresh the lock file and per-skill digests through the existing sync flow.
