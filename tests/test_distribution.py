@@ -78,7 +78,7 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "Previous release | [v0.7.8]",
+            "Previous release | [v0.8.0]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
@@ -86,7 +86,7 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "上一版本 | [v0.7.8]",
+            "上一版本 | [v0.8.0]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 

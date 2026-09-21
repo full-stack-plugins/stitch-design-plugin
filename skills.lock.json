@@ -4,8 +4,8 @@
     {
       "package": "stitch-skills",
       "repo": "https://github.com/full-stack-skills/stitch-skills.git",
-      "ref": "v1.1.1",
-      "sha": "7b622798f160741298c02c886653348b7416308f",
+      "ref": "v1.2.0",
+      "sha": "3295d9d5fb164dfe7540f54b50e1a3f7120e1cb0",
       "skills": [
         "stitch-code-to-design",
         "stitch-delete-project",
@@ -55,13 +55,13 @@
       "sha256": {
         "stitch-code-to-design": "add210c6672c40d2e01ef14062b93cd8587b9ef6ab86a5f104ee00b5c2df61df",
         "stitch-delete-project": "2a16e951d2289aa8bdb7decb008236a6a328f49d657a346129f05d7a67808fb0",
-        "stitch-delivery-harness": "036af640ca72aa5df251fcc1ed40f3487e214c39e555bca1f9b79ab9e5f56fa8",
+        "stitch-delivery-harness": "b14ad9234a80fe1b37cb80557d2ac089adfecc28833b8cd6615378d884d00ed7",
         "stitch-design-md": "147ff256f44713bf0eb787262d6754c558b36b88b64b4294f3c5abdca6d1ff5d",
         "stitch-design-use": "f90701779d52c4e8cc3202f1e56ff42ff03a37acf95eac87cdab72761661cb0e",
         "stitch-extract-design-md": "dbff02ba1736e6b949358e6941df9d6463d5ca6d4cb367d2a39aea95741cb5b4",
         "stitch-extract-static-html": "66de0bec9bd115b2ecac9bb9d624ed17f0f62eee78dd095c036e3cb50148c53a",
         "stitch-local-setup": "90891547ba0403662ba823c0d843efcdd234aaaacfdd3e66350a10557e154b28",
-        "stitch-loop": "feb466277dafa0fe560804e377d76eaab2914347f7b0c4607fe0cd28c14dbce4",
+        "stitch-loop": "16e0811c2f535c52b04707f00dd49377c118940d97a566acedb763487b69a199",
         "stitch-manage-design-system": "0c3b0991c3ffdbfe0753c65da40330b6d0b483a0049664b6ec2881d33afc6cad",
         "stitch-mcp-create-project": "27bdb70ddfd11511680c7fae6d1d076a501f3ab97ca88c4167501cae54a37f29",
         "stitch-mcp-generate-screen-from-text": "2b10e464cdeecf9bdadcb294380d38766567f6681398f79ec1055f1826810b25",

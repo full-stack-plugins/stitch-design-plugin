@@ -2,7 +2,7 @@
 
 > **Purpose:** Define the verified architecture, trust boundaries, lifecycle, failure semantics, and evolution constraints of Stitch Design.
 >
-> **Version:** 0.8.0 · **Status:** Release candidate · **Evidence date:** 2026-09-20
+> **Version:** 0.8.1 · **Status:** Release candidate · **Evidence date:** 2026-09-20
 
 [简体中文](Stitch-Design-Architecture.zh_CN.md) | [Technical solution](Stitch-Design-Technical-Solution.md) | [README](../README.md)
 
@@ -179,8 +179,8 @@ sequenceDiagram
     participant M as Marketplace / source
     participant P as Plugin
     U->>C: add marketplace and plugin
-    C->>M: resolve v0.8.0 for the release candidate
-    M-->>C: stitch-design 0.8.0 candidate
+    C->>M: resolve v0.8.1 for the release candidate
+    M-->>C: stitch-design 0.8.1 candidate
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -342,4 +342,4 @@ The manual live-canary workflow validates MCP lifecycle/catalog behavior plus pr
 
 ---
 
-**Document version:** 2.7.10 · **Status:** Aligned with the 0.8.0 release candidate · **Updated:** 2026-09-20
+**Document version:** 2.7.10 · **Status:** Aligned with the 0.8.1 release candidate · **Updated:** 2026-09-20

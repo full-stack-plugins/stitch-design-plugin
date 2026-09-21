@@ -36,7 +36,7 @@ license: Apache-2.0
 
 ## 工作流程
 
-当用户要求完整交付、闭环、高保真、可编辑 HTML 或正式归档时，必须转用 `stitch-delivery-harness`；本 Skill 只负责有限页面接力。不能以工具成功文本标记完成。
+当用户要求完整交付、闭环、高保真、可编辑 HTML 或正式归档时，必须转用 `stitch-delivery-harness`；本 Skill 只负责有限页面接力。不能以工具成功文本标记完成。交付的视觉收敛轮次受规格 `comparison.max_rounds` 约束（缺省 3），停滞后必须结构性重做，最终仍以用户明确批准为准。
 
 1. 读取 baton 的 page、SITE.md 的 sitemap/backlog 和实际文件；page 只允许安全 slug，不含斜杠或 ..。
 2. 选一个已授权待办；核对项目与当前系统，已有页面不重建，空 backlog 或达到轮次立即停止并记录。

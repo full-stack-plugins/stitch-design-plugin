@@ -5,7 +5,7 @@
     "en": "Google Stitch Design",
     "zh-CN": "Stitch UI 设计"
   },
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
   "description_i18n": {
     "en": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",

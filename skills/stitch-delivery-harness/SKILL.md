@@ -52,6 +52,10 @@ license: Apache-2.0
 6. 只执行 Harness 返回的 `next_action`；调用真实 Stitch、ImageGen、OCR 或视觉评估工具后，用 `stitch_harness.evidence_writer.EvidenceWriter` 的对应类型方法生成 evidence，再调用 `resume --evidence`。
 7. 选择 `enhance` 后，双图比较执行 `python scripts/setup_harness_runtime.py run compare ...`；输入只能从当前 run 的 imagegen 与 roundtrip receipts 派生。选择 `keep_stitch` 时不调用 ImageGen，直接对已接受的 Stitch HTML/render 做可逆编辑探针。
 8. `provider_generated` 严格核对 Provider 设备与缩放；`imported_editable_html` 仍要求一个与规格画布完全一致的真实 render artifact。OCR 报告任何 `observed_text_drift` 都失败。增强分支回灌前必须生成 `stitch.normalize` receipt，只允许声明的 `data-purpose` 一对一替换。
+9. 未收敛可重做：用户在 `AWAITING_USER_APPROVAL` 拒绝候选稿后，运行可经 `ART_GENERATED` 由 `redo_art`（仅 `enhance`）回到美术增强开始新一轮；每轮计入 `delivery_rounds`，上限为规格 `comparison.max_rounds`（缺省 3），耗尽进入 `BLOCKED` 并保留全部证据，不得自行扩轮。
+10. 视觉评分由独立裁判产出：五轴 `hierarchy`/`density`/`color`/`component_quality`/`completion` 各 1-5 分（允许一位小数），并附带稳定 id 的 gap 清单（含可归因描述与修复方向）。裁判必须处于新鲜上下文、独立于被评分的执行者，且适用反棘轮规则（无涨分义务，回归必须给更低分）。评分缺轴或越界时比较环节快速失败，不产出可提交证据。
+11. 停滞判定：连续两轮五轴总分提升不满 1 分，或同一 gap id 连续两轮出现时，下一轮 `redo_art` 必须声明结构性重做；结构性重做后仍停滞则停止并交还用户，不再消耗轮次。
+12. 出处如实：视觉证据记录真实裁判的 provider/model，不得记为本地确定性工具；确定性布局分数单独标注算法名与版本，与裁判分数分开展示。任何自动门禁或裁判分数都不得替代用户明确批准。
 
 ## 硬门禁
 
