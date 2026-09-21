@@ -4,7 +4,7 @@
 
 > 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在受支持的编码智能体中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/release-0.7.12-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12)
+[![版本](https://img.shields.io/badge/release-0.8.0-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.0)
 [![测试](https://img.shields.io/badge/tests-222%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -38,7 +38,7 @@
 推荐显式跟踪本仓库 `main` 分支：
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.12
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.8.0
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -56,7 +56,7 @@ codex plugin add stitch-design@partme-ai-stitch
 使用完整 Git URL 并固定 `main`：
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.7.12
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.8.0
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -64,7 +64,7 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.7.12 \
+  --ref v0.8.0 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -177,8 +177,8 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前候选版本 | `0.7.12` |
-| 当前版本 | [v0.7.12](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12) |
+| 当前候选版本 | `0.8.0` |
+| 当前版本 | [v0.8.0](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.0) |
 | 上一版本 | [v0.7.8](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.8) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
@@ -296,7 +296,7 @@ git diff --check
 
 未知写入证据可以绑定 `target.project_id` 与 `target.expected_title`。完整 `list_screens` 证据必须绑定项目ID、完整性标记和规范化标题哈希清单；只有Harness自行计算出预期标题哈希不在清单中时，才允许把 `get_screen` 记录为 `skipped/no_candidate_id`。一旦发现候选，仍必须成功调用 `get_screen` 才能判定已应用。三轮上限、时间戳、哈希和防重复写保护保持不变。
 
-Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行一次 `always()` 清理后再只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)。
+Provider + asset 真实 smoke 已在本机通过：运行使用本机受限配置中的 Key、私有状态与脱敏输出，并在最后执行一次 `always()` 清理后再只读确认不存在。手动 workflow 仍只从 `STITCH_API_KEY` Repository Secret 取值；本机 smoke 不是 Harness 验收，完整 Harness 走[本地交互式控制器](docs/live-harness-controller.zh_CN.md)。详见 [真实 smoke 验收台账](docs/live-canary-acceptance.zh_CN.md)（已记录 v0.7.1 的 provider + asset smoke 与发布门禁）。
 
 ## 数据与状态
 

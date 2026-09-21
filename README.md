@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.7.12-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12)
+[![Version](https://img.shields.io/badge/release-0.8.0-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.0)
 [![Tests](https://img.shields.io/badge/tests-222%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -38,7 +38,7 @@ In Codex, the installed plugin exposes three ready-to-run prompts, one bundled S
 Recommended: track the repository's `main` branch explicitly.
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.7.12
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.8.0
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -46,17 +46,17 @@ Restart Codex or the ChatGPT desktop app, open a new task, and ask Stitch Design
 
 ### Other supported Marketplace sources
 
-GitHub shorthand pinned by the repository-local marketplace to `v0.7.12`:
+GitHub shorthand pinned by the repository-local marketplace to `v0.8.0`:
 
 ```bash
 codex plugin marketplace add full-stack-plugins/stitch-design-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
-Full Git URL pinned to immutable `v0.7.12`:
+Full Git URL pinned to immutable `v0.8.0`:
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.7.12
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.8.0
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -64,7 +64,7 @@ Sparse Git checkout when only Marketplace metadata is needed:
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.7.12 \
+  --ref v0.8.0 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -182,8 +182,8 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.7.12` |
-| Current release | [v0.7.12](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.12) |
+| Current candidate | `0.8.0` |
+| Current release | [v0.8.0](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.0) |
 | Previous release | [v0.7.8](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.7.8) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
@@ -312,7 +312,7 @@ Version 0.7.8 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads o
 
 Unknown-write reconciliation may bind `target.project_id` and `target.expected_title`. When a complete `list_screens` read succeeds, its evidence binds the project ID, completeness flag and normalized title-hash inventory. Only when the Harness derives that the expected-title hash is absent may `get_screen` be recorded as `skipped` with reason `no_candidate_id`; an applied or discovered candidate still requires a successful `get_screen`. Attempt limits, timestamps, hashes, and duplicate-write protection remain enforced.
 
-Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md).
+Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md), which records the v0.7.1 provider + asset smoke and release gates.
 
 ## Data and state
 
