@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sys
+from contextlib import suppress
 from pathlib import Path
 
 
@@ -22,18 +23,14 @@ def main() -> int:
 
     lines.append("Stitch 凭据: 首次使用时按 Skill 指引完成 OAuth/登录")
 
-    try:
+    with suppress(OSError):
         sys.stdin.read()
-    except Exception:
-        pass
 
     print("Stitch 插件环境：" + "；".join(lines))
     return 0
 
 
 if __name__ == "__main__":
-    try:
+    with suppress(OSError, ValueError):
         json.load(sys.stdin)
-    except Exception:
-        pass
     sys.exit(main())

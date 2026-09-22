@@ -18,7 +18,8 @@ INTENT_RE = re.compile(
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
-    except Exception:
+    except (OSError, ValueError):
+        # Unreadable or non-JSON hook payload: this hook is advisory only.
         payload = {}
 
     prompt = ""
