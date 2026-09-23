@@ -23,6 +23,12 @@ jobs:
         run: python3 scripts/vendor/skill_vendor.py check
       - name: Exercise vendor and manifest behavior
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Run vendored skill-local test suites
+        # Skills carry their own offline suites next to their scripts; the root
+        # discovery in tests/ does not reach into skills/.
+        run: |
+          python3 -m unittest discover -s skills/stitch-upload-to-stitch/tests -p 'test_*.py' -v
+          python3 -m unittest discover -s skills/stitch-react-native/tests -p 'test_*.py' -v
       - name: Reject direct edits to externally managed skills
         if: github.event_name == 'pull_request'
         run: |

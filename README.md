@@ -4,7 +4,7 @@
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.8.4-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.4)
+[![Version](https://img.shields.io/badge/release-0.8.5-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.5)
 [![Tests](https://img.shields.io/badge/tests-379%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -38,7 +38,7 @@ In Codex, the installed plugin exposes three ready-to-run prompts, one bundled S
 Recommended: track the repository's `main` branch explicitly.
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.8.4
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.8.5
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -46,17 +46,17 @@ Restart Codex or the ChatGPT desktop app, open a new task, and ask Stitch Design
 
 ### Other supported Marketplace sources
 
-GitHub shorthand pinned by the repository-local marketplace to `v0.8.4`:
+GitHub shorthand pinned by the repository-local marketplace to `v0.8.5`:
 
 ```bash
 codex plugin marketplace add full-stack-plugins/stitch-design-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
-Full Git URL pinned to immutable `v0.8.4`:
+Full Git URL pinned to immutable `v0.8.5`:
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.8.4
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.8.5
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -64,7 +64,7 @@ Sparse Git checkout when only Marketplace metadata is needed:
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.8.4 \
+  --ref v0.8.5 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -182,9 +182,9 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.8.4` |
-| Current release | [v0.8.4](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.4) |
-| Previous release | [v0.8.3](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.3) |
+| Current candidate | `0.8.5` |
+| Current release | [v0.8.5](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.5) |
+| Previous release | [v0.8.4](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.4) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
 | License | Apache-2.0 |
