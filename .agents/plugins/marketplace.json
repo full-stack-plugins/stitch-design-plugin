@@ -15,7 +15,7 @@
         "installation": "AVAILABLE",
         "authentication": "ON_USE"
       },
-      "category": "Creativity",
+      "category": "Design Tools",
       "version": "0.8.6",
       "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
       "icon": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.8.6/assets/official-logo.png",
