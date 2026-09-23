@@ -45,6 +45,20 @@ def fake_codex_command(platform_name: str) -> tuple[str, str]:
     )
 
 
+def fake_python_command(platform_name: str, executable: str) -> tuple[str, str]:
+    if platform_name == "nt":
+        return (
+            "python.cmd",
+            "@echo off\r\n"
+            f'"{executable}" %*\r\n',
+        )
+    return (
+        "python",
+        "#!/bin/sh\n"
+        f'exec "{executable}" "$@"\n',
+    )
+
+
 class DistributionContractTests(unittest.TestCase):
     def test_release_version_is_consistent_across_active_surfaces(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -78,7 +92,7 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "Previous release | [v0.8.1]",
+            "Previous release | [v0.8.2]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
@@ -86,7 +100,7 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "上一版本 | [v0.8.1]",
+            "上一版本 | [v0.8.2]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 
@@ -315,7 +329,7 @@ class DistributionContractTests(unittest.TestCase):
             "--sparse .agents/plugins",
             "codex plugin marketplace add ./partme-stitch-plugin",
             "codex plugin add stitch-design@partme-ai-stitch",
-            "tests-222%20passing",
+            "tests-350%20passing",
             "MCP%20tools-17",
             "assets/stitch-hero.png",
         )
@@ -365,17 +379,23 @@ class DistributionContractTests(unittest.TestCase):
         if shell is None:
             self.skipTest("POSIX-compatible shell is not available")
         secret = "test-secret-must-not-appear"
-        result = subprocess.run(
-            [shell, str(script), "check"],
-            env={
-                "PATH": os.environ.get("PATH", ""),
-                "STITCH_API_KEY": secret,
-                "STITCH_DISABLE_ADC": "1",
-            },
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            shim_name, shim_body = fake_python_command(os.name, sys.executable)
+            shim = Path(directory) / shim_name
+            shim.write_text(shim_body, encoding="utf-8")
+            if os.name != "nt":
+                shim.chmod(0o755)
+            result = subprocess.run(
+                [shell, str(script), "check"],
+                env={
+                    "PATH": os.pathsep.join((directory, os.environ.get("PATH", ""))),
+                    "STITCH_API_KEY": secret,
+                    "STITCH_DISABLE_ADC": "1",
+                },
+                capture_output=True,
+                text=True,
+                check=False,
+            )
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("STITCH_API_KEY is available", result.stdout)
@@ -393,6 +413,11 @@ class DistributionContractTests(unittest.TestCase):
             fake_codex.write_text(command_body, encoding="utf-8")
             if os.name != "nt":
                 fake_codex.chmod(0o755)
+            shim_name, shim_body = fake_python_command(os.name, sys.executable)
+            shim = Path(directory) / shim_name
+            shim.write_text(shim_body, encoding="utf-8")
+            if os.name != "nt":
+                shim.chmod(0o755)
             environment = {
                 "PATH": os.pathsep.join((directory, os.environ.get("PATH", ""))),
                 "STITCH_API_KEY": secret,

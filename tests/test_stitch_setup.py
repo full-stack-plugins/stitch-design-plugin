@@ -112,6 +112,7 @@ class CredentialTests(unittest.TestCase):
                 return 3
 
         with patch.object(setup, "GcloudAdcAuth", return_value=FailingAdc()), \
+             contextlib.redirect_stdout(io.StringIO()), \
              contextlib.redirect_stderr(io.StringIO()) as errors:
             result = setup.main(["gcloud"])
 
@@ -124,6 +125,7 @@ class CredentialTests(unittest.TestCase):
                 raise setup.GcloudAuthError("could not run gcloud")
 
         with patch.object(setup, "GcloudAdcAuth", return_value=BrokenAdc()), \
+             contextlib.redirect_stdout(io.StringIO()), \
              contextlib.redirect_stderr(io.StringIO()) as errors:
             result = setup.main(["gcloud"])
 

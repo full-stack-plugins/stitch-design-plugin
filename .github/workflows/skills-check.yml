@@ -47,3 +47,23 @@ jobs:
               print("Edit stitch-skills, release a new tag, then run scripts/vendor/skill_vendor.py update.")
               sys.exit(1)
           PY
+
+  skill-node-tests:
+    # The TS skill ships its own node:test suites (skills/stitch-extract-static-html/tests).
+    # They import .ts sources through a tsx runtime resolved via STITCH_TSX_CLI and never
+    # install dependencies themselves, so the runtime is provisioned here instead.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install tsx test runtime
+        run: |
+          mkdir -p "$RUNNER_TEMP/stitchfix"
+          cd "$RUNNER_TEMP/stitchfix"
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund tsx @babel/parser @babel/traverse
+          PUPPETEER_SKIP_DOWNLOAD=1 npm install --no-audit --no-fund puppeteer
+      - name: Run skill Node test suites
+        env:
+          STITCH_TSX_CLI: ${{ runner.temp }}/stitchfix/node_modules/tsx/dist/cli.mjs
+        run: node --import "$RUNNER_TEMP/stitchfix/node_modules/tsx/dist/loader.mjs" --test tests/*.test.mjs
+        working-directory: skills/stitch-extract-static-html

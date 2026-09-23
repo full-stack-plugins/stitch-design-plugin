@@ -9,20 +9,20 @@
       "source": {
         "source": "url",
         "url": "https://github.com/full-stack-plugins/stitch-design-plugin.git",
-        "ref": "v0.8.2"
+        "ref": "v0.8.3"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_USE"
       },
       "category": "Creativity",
-      "version": "0.8.2",
+      "version": "0.8.3",
       "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
-      "icon": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.8.2/assets/official-logo.png",
+      "icon": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.8.3/assets/official-logo.png",
       "interface": {
         "displayName": "Google Stitch Design",
         "shortDescription": "Design and build with Google Stitch",
-        "logo": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.8.2/assets/official-logo.png"
+        "logo": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.8.3/assets/official-logo.png"
       }
     }
   ]

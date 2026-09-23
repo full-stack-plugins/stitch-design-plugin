@@ -33,9 +33,6 @@ from stitch_harness.setup_trigger import _launch_detached  # noqa: E402
 SETUP_ASSETS = PLUGIN_ROOT / "assets" / "setup"
 
 
-def config_path() -> Path:
-    return default_config_path()
-
 
 def save_key(key: str, provider: SecretProvider | None = None) -> None:
     value = key.strip()
