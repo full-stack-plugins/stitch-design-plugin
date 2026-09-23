@@ -1,6 +1,6 @@
 {
   "name": "stitch-design",
-  "version": "0.8.3+codex.20260923",
+  "version": "0.8.4+codex.20260923",
   "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
   "author": {
     "name": "Full Stack Skills / PartMe.AI",

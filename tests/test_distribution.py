@@ -92,7 +92,7 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "Previous release | [v0.8.2]",
+            "Previous release | [v0.8.3]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
@@ -100,7 +100,7 @@ class DistributionContractTests(unittest.TestCase):
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "上一版本 | [v0.8.2]",
+            "上一版本 | [v0.8.3]",
             (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
         )
 
@@ -329,7 +329,7 @@ class DistributionContractTests(unittest.TestCase):
             "--sparse .agents/plugins",
             "codex plugin marketplace add ./partme-stitch-plugin",
             "codex plugin add stitch-design@partme-ai-stitch",
-            "tests-350%20passing",
+            "tests-379%20passing",
             "MCP%20tools-17",
             "assets/stitch-hero.png",
         )

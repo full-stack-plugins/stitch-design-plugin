@@ -2,7 +2,7 @@
 
 > **Purpose:** Define the verified architecture, trust boundaries, lifecycle, failure semantics, and evolution constraints of Stitch Design.
 >
-> **Version:** 0.8.3 · **Status:** Release candidate · **Evidence date:** 2026-09-20
+> **Version:** 0.8.4 · **Status:** Release candidate · **Evidence date:** 2026-09-20
 
 [简体中文](Stitch-Design-Architecture.zh_CN.md) | [Technical solution](Stitch-Design-Technical-Solution.md) | [README](../README.md)
 
@@ -179,8 +179,8 @@ sequenceDiagram
     participant M as Marketplace / source
     participant P as Plugin
     U->>C: add marketplace and plugin
-    C->>M: resolve v0.8.3 for the release candidate
-    M-->>C: stitch-design 0.8.3 candidate
+    C->>M: resolve v0.8.4 for the release candidate
+    M-->>C: stitch-design 0.8.4 candidate
     C->>P: load manifest, Skills, MCP config
     P-->>C: capabilities registered
 ```
@@ -330,7 +330,7 @@ ADR summary:
 | Tool surface | 17 tools | 15 upstream plus 2 local, and the local pair is never presented as upstream |
 | Download allowlist | Stitch's own web domain plus reviewed hosts | Lookalike hosts and unsafe URLs are rejected |
 | Run approval | Explicit human approval only | A gate cannot be passed by a model decision |
-| Offline suite | 350 tests, no external network | The suite must run in the same environment that runs the plugin |
+| Offline suite | 379 tests, no external network | The suite must run in the same environment that runs the plugin |
 
 ## 12. Verification evidence
 
@@ -342,4 +342,4 @@ The manual live-canary workflow validates MCP lifecycle/catalog behavior plus pr
 
 ---
 
-**Document version:** 2.7.10 · **Status:** Aligned with the 0.8.3 release candidate · **Updated:** 2026-09-20
+**Document version:** 2.7.10 · **Status:** Aligned with the 0.8.4 release candidate · **Updated:** 2026-09-20
