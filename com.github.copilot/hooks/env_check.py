@@ -18,7 +18,7 @@ def main() -> int:
     if sys.version_info[:2] < (3, 11):
         lines.append("Stitch MCP proxy: 需要 Python 3.11+，当前解释器过低——MCP 服务器将无法启动")
     else:
-        proxy = Path(__file__).resolve().parents[1] / "scripts" / "stitch_mcp_proxy.py"
+        proxy = next((c for c in Path(__file__).resolve().parents if (c / "plugin.json").is_file()), Path(__file__).resolve().parents[1]) / "scripts" / "stitch_mcp_proxy.py"
         lines.append("Stitch MCP proxy: 就绪" if proxy.is_file() else "Stitch MCP proxy: 脚本缺失")
 
     lines.append("Stitch 凭据: 首次使用时按 Skill 指引完成 OAuth/登录")
