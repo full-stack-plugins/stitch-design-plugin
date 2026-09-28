@@ -15,6 +15,28 @@ EXPECTED_REPOSITORY = "https://github.com/full-stack-plugins/stitch-design-plugi
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
+
+def validate_portable_surface(root):
+    """Check the portable Agent Plugins v1.0.0 surface.
+
+    Migrated 2026-09-28: root `plugin.json` and `mcp.json` are the portable
+    manifest surface, so this gate validates them with the shared spec validator
+    rather than forbidding them. The local stdio proxy carries no credential, so
+    the portable-auth gate that used to block activation no longer applies to it;
+    a remote Stitch server would still be rejected (no credential headers are
+    expressible portably). See docs/portable-migration.md.
+    """
+    import importlib.util
+
+    target = root / "scripts" / "validate_portable_plugin.py"
+    if not target.is_file():
+        return ["missing scripts/validate_portable_plugin.py"]
+    spec = importlib.util.spec_from_file_location("validate_portable_plugin", target)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.validate(root).errors
+
+
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -77,8 +99,7 @@ def validate(root: Path) -> list[str]:
         if entry.get("policy") != {"installation": "AVAILABLE", "authentication": "ON_USE"}:
             errors.append("repository marketplace policy mismatch")
 
-    if (root / "plugin.json").exists() or (root / "mcp.json").exists():
-        errors.append("portable root manifests must remain inactive until portable auth exists")
+    errors.extend(validate_portable_surface(root))
 
     skill_dirs = sorted(path for path in (root / "skills").iterdir() if path.is_dir())
     if len(skill_dirs) != expected_skills:

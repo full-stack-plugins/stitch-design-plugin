@@ -292,11 +292,21 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(manifest["version"], CODEX_VERSION)
         self.assertEqual(manifest["interface"]["displayName"], "Google Stitch Design")
 
-    def test_portable_files_are_not_activated_without_portable_auth(self) -> None:
-        self.assertFalse((ROOT / "plugin.json").exists())
-        self.assertFalse((ROOT / "mcp.json").exists())
-        migration = (ROOT / "docs" / "portable-migration.md").read_text(encoding="utf-8")
+    def test_portable_files_are_active_and_remote_auth_stays_gated(self) -> None:
+        # Migrated 2026-09-28: the local stdio proxy is portable (it resolves
+        # its own credential via stitch_harness.secrets, so no credential is in
+        # the package). A *remote* Stitch server would need a credential header,
+        # which Agent Plugins forbids portably — that gate stays shut.
+        self.assertTrue((ROOT / "plugin.json").is_file(), "missing portable manifest")
+        self.assertTrue((ROOT / "mcp.json").is_file(), "missing portable mcp.json")
 
+        mcp = json.loads((ROOT / "mcp.json").read_text(encoding="utf-8"))
+        for name, server in mcp["mcpServers"].items():
+            self.assertEqual(server["type"], "stdio", f"{name} must be a local stdio proxy")
+            self.assertNotIn("url", server, f"{name} must not declare a remote endpoint")
+            self.assertNotIn("headers", server, f"{name} must not carry credentials")
+
+        migration = (ROOT / "docs" / "portable-migration.md").read_text(encoding="utf-8")
         self.assertIn("plugin_asdk_app", migration)
         self.assertIn("MUST NOT perform placeholder", migration)
 
