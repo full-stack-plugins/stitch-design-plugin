@@ -4,7 +4,7 @@
 
 > 通过 46 个面向工作流的 Agent Skills 和证据驱动 Harness，在受支持的编码智能体中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/release-0.8.6-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.6)
+[![版本](https://img.shields.io/badge/release-0.9.0-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.9.0)
 [![测试](https://img.shields.io/badge/tests-388%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -13,7 +13,9 @@
 
 ## Codex 宿主示例
 
-![Codex 中的 Stitch Design 插件详情，包含快捷提示、MCP 服务器和 46 个 Skills](assets/readme/stitch-design-plugin-overview.png)
+![Codex 中的 Stitch Design 插件详情，包含快捷提示、MCP 服务器和技能列表](assets/readme/stitch-design-plugin-overview.png)
+
+> 上图取自 v0.8.x 的插件页，早于 v1.3.0 的技能改名：当前为 46 个技能，图中技能名已迁至 `stitch-ui-*` 命名族。
 
 在 Codex 中，安装后的插件会展示三个可运行提示、一个内置 Stitch MCP 服务器、46 个工作流 Skills 和安全的本地 Token 设置。ZCode 与 Kimi 通过各自宿主清单加载同一公开插件身份。
 
@@ -38,7 +40,7 @@
 推荐显式跟踪本仓库 `main` 分支：
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.8.6
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.9.0
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -56,7 +58,7 @@ codex plugin add stitch-design@partme-ai-stitch
 使用完整 Git URL 并固定 `main`：
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.8.6
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.9.0
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -64,7 +66,7 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.8.6 \
+  --ref v0.9.0 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -202,9 +204,9 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前候选版本 | `0.8.6` |
-| 当前版本 | [v0.8.6](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.6) |
-| 上一版本 | [v0.8.5](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.5) |
+| 当前候选版本 | `0.9.0` |
+| 当前版本 | [v0.9.0](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.9.0) |
+| 上一版本 | [v0.8.6](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.6) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |

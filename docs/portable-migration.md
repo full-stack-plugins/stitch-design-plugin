@@ -119,7 +119,7 @@ fails if a mirror drifts from its root copy.
   `extensions["com.openai"]["interface"]`, a reverse-domain client extension
   namespace (§8).
 - `name` is `stitch-design`, satisfying §5.5.
-- `version` is the **base** version `0.8.6`. The `+codex.<stamp>` build metadata
+- `version` is the **base** version `0.9.0`. The `+codex.<stamp>` build metadata
   in `.codex-plugin/plugin.json` describes that compatibility channel's build,
   not the portable plugin, so it stays there.
 

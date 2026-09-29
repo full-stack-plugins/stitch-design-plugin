@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import json
 import os
 import shutil
@@ -80,29 +81,46 @@ class DistributionContractTests(unittest.TestCase):
             ROOT / "docs" / "Stitch-Design-Architecture.zh_CN.md",
             ROOT / "docs" / "Stitch-Design-Technical-Solution.md",
             ROOT / "docs" / "Stitch-Design-Technical-Solution.zh_CN.md",
-            ROOT / "stitch_harness" / "preflight.py",
         )
         for path in active_version_surfaces:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path.relative_to(ROOT)):
                 self.assertIn(RELEASE_VERSION, text)
 
+        # preflight.py deliberately carries no literal: it derives the version
+        # from the manifests, so a hardcoded string there would drift on every
+        # release (and nothing else pinned it). Assert the derivation instead —
+        # that keeps the consistency guarantee and removes the drift class.
+        sys.path.insert(0, str(ROOT))
+        try:
+            from stitch_harness import preflight as preflight_module
+            self.assertEqual(preflight_module.plugin_version(), RELEASE_VERSION)
+        finally:
+            sys.path.remove(str(ROOT))
+
         self.assertIn(
             f"Current release | [v{RELEASE_VERSION}]",
             (ROOT / "README.md").read_text(encoding="utf-8"),
         )
-        self.assertIn(
-            "Previous release | [v0.8.5]",
-            (ROOT / "README.md").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            f"当前版本 | [v{RELEASE_VERSION}]",
-            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
-        )
-        self.assertIn(
-            "上一版本 | [v0.8.5]",
-            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
-        )
+        # The previous-release row rolls on every release, so pinning it would
+        # freeze the test at v0.8.5 forever. Assert the structural contract
+        # instead: the row exists in both languages and names a DIFFERENT tag
+        # than the current release.
+        for name, current_row, previous_row in (
+            ("README.md", "Current release", "Previous release"),
+            ("README.zh-CN.md", "当前版本", "上一版本"),
+        ):
+            readme = (ROOT / name).read_text(encoding="utf-8")
+            self.assertIn(f"{current_row} | [v{RELEASE_VERSION}]", readme)
+            previous = [
+                line.strip() for line in readme.splitlines()
+                if line.strip().startswith(f"| {previous_row} |")
+            ]
+            self.assertEqual(len(previous), 1, f"{name}: exactly one {previous_row} row")
+            match = re.search(r"\[v(\d+\.\d+\.\d+)\]", previous[0])
+            self.assertIsNotNone(match, f"{name}: previous row must link a tag")
+            self.assertNotEqual(match.group(1), RELEASE_VERSION,
+                                f"{name}: previous release must differ from current")
 
     def test_validate_workflow_covers_cross_platform_offline_gates(self) -> None:
         workflow_path = ROOT / ".github" / "workflows" / "validate.yml"

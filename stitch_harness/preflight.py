@@ -51,6 +51,25 @@ _SECRET_ENVIRONMENT_MARKERS = (
 )
 
 
+def plugin_version() -> str:
+    """Read the plugin version from the manifests.
+
+    Derived rather than hardcoded: a literal here drifts on every release, and
+    nothing in the test suite pins it. Falls back to "0.0.0" only if the
+    manifests are unreadable, which keeps preflight advisory instead of fatal.
+    """
+    root = Path(__file__).resolve().parents[1]
+    for rel in (".codex-plugin/plugin.json", ".zcode-plugin/plugin.json", "kimi.plugin.json"):
+        try:
+            with (root / rel).open(encoding="utf-8") as handle:
+                value = json.load(handle).get("version")
+        except (OSError, ValueError):
+            continue
+        if isinstance(value, str) and value:
+            return value.split("+", 1)[0]
+    return "0.0.0"
+
+
 def _codex_cli_environment() -> dict[str, str]:
     environment: dict[str, str] = {}
     for name, value in os.environ.items():
@@ -164,7 +183,7 @@ def stitch_read_probe(session: McpHttpSession) -> tuple[str, ...]:
                 "params": {
                     "protocolVersion": PROTOCOL_VERSION,
                     "capabilities": {},
-                    "clientInfo": {"name": "stitch-delivery-harness", "version": "0.8.6"},
+                    "clientInfo": {"name": "stitch-design", "version": plugin_version()},
                 },
             }
         )
