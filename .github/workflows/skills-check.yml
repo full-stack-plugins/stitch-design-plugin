@@ -27,8 +27,8 @@ jobs:
         # Skills carry their own offline suites next to their scripts; the root
         # discovery in tests/ does not reach into skills/.
         run: |
-          python3 -m unittest discover -s skills/stitch-upload-to-stitch/tests -p 'test_*.py' -v
-          python3 -m unittest discover -s skills/stitch-react-native/tests -p 'test_*.py' -v
+          python3 -m unittest discover -s skills/stitch-upload/tests -p 'test_*.py' -v
+          python3 -m unittest discover -s skills/stitch-ui-react-native-components/tests -p 'test_*.py' -v
       - name: Reject direct edits to externally managed skills
         if: github.event_name == 'pull_request'
         run: |

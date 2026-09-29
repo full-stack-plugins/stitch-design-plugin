@@ -21,7 +21,7 @@ description: "Stitch calling spec: the local stdio MCP proxy (Python 3.11+ hard 
 ## 3. 标准工作流
 
 1. `probe` 确认代理与凭据就绪。
-2. 生成/编辑走 `stitch-ui-designer`；设计↔代码走 `stitch-code-to-design` /
+2. 生成/编辑走 `stitch-ui-execute`；设计↔代码走 `stitch-code-to-design` /
    `stitch-extract-static-html`；设计系统走 `stitch-manage-design-system`。
 3. 交付：产物链接/导出文件 + 所用工具 + 未验证项。
 

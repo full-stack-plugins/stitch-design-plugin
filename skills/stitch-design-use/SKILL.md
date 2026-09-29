@@ -18,18 +18,19 @@ description: Stitch Design 根路由；当用户要用 Stitch 完成从认证、
 
 | 意图 | 选择 |
 | --- | --- |
+| 仅本地设计规格、模块提示词、模糊需求润色 | `stitch-design-spec` |
 | 首次使用、缺凭据、认证失败 | `stitch-local-setup` |
 | 列项目 | `stitch-mcp-list-projects` |
 | 读项目详情 | `stitch-mcp-get-project` |
 | 列屏幕 | `stitch-mcp-list-screens` |
 | 读单屏详情/资源 | `stitch-mcp-get-screen` |
-| 创建、生成、编辑、变体 | `stitch-ui-designer` |
+| 创建、生成、编辑、变体 | `stitch-ui-execute` |
 | 创建、更新、列出或应用设计系统 | `stitch-manage-design-system` |
 | 本地准备 HTML/图片，不发送远程请求 | `stitch-extract-static-html` 或目标转换 Skill |
-| 明确上传已审核 HTML/图片或 DESIGN.md | `stitch-upload-to-stitch` |
+| 明确上传已审核 HTML/图片或 DESIGN.md | `stitch-upload` |
 | 明确下载单屏 HTML/截图 | `stitch-mcp-get-screen` 获取 URL，再按授权保存到指定目录 |
 | 删除远程项目 | `stitch-delete-project` |
-| 规格、双图比较、批准、归档的完整交付 | `stitch-delivery-harness` |
+| 规格、双图比较、批准、归档的完整交付 | `stitch-design-harness` |
 
 ## 能力边界说明
 
@@ -47,13 +48,13 @@ description: Stitch Design 根路由；当用户要用 Stitch 完成从认证、
 
 ### ❌ 不适用场景及交接
 
-- 仅讨论通用 UI 原则 → `stitch-ued-guide`。
+- 仅讨论通用 UI 原则 → `stitch-ui-guide`。
 - 仅实现已有设计的前端代码 → 对应框架转换 Skill。
 - ChatGPT 网页连接器任务 → 使用该环境授权的连接器流程，本地 setup 不适用。
 
 ## 工作方式
 
-先执行 `scripts/stitch_setup.py check`；缺失时转 `stitch-local-setup`，不从环境变量是否存在推断整体配置。一次选择一个主路由；读取可直接执行，远程写入沿用用户当前明确授权，删除必须由专用 Skill 再确认。未知写结果先读取对账，不盲目重试。
+先判定意图。仅本地规格/提示词直接转 `stitch-design-spec`，不执行认证或 setup；缺失时仅说明依赖，安装说明：`npx skills add full-stack-skills/stitch-skills --skill stitch-design-spec`。其他需要远程连接的任务执行 `scripts/stitch_setup.py check`；缺失时转 `stitch-local-setup`，不从环境变量是否存在推断整体配置。一次选择一个主路由；读取可直接执行，远程写入沿用用户当前明确授权，删除必须由专用 Skill 再确认。未知写结果先读取对账，不盲目重试。
 
 ## FAQ
 
@@ -63,7 +64,7 @@ description: Stitch Design 根路由；当用户要用 Stitch 完成从认证、
 
 **Q3：缺少凭据怎么办？** 转 `stitch-local-setup`，执行配置检查与隐藏输入流程。
 
-**Q4：本地资产任务会自动上传吗？** 不会。本地准备走提取或转换 Skill；只有用户明确上传并给出目标项目时才进入 `stitch-upload-to-stitch`。Markdown 由该 Skill 转到远程 `upload_design_md`。
+**Q4：本地资产任务会自动上传吗？** 不会。本地准备走提取或转换 Skill；只有用户明确上传并给出目标项目时才进入 `stitch-upload`。Markdown 由该 Skill 转到远程 `upload_design_md`。
 
 **Q5：何时用 Harness？** 用户要求从规格到比较、批准和归档的完整可验证交付时。
 

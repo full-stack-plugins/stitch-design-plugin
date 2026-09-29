@@ -52,34 +52,34 @@ After retrieving the screen details (HTML code), check if the user's request imp
 **Logic:**
 1.  **Identify Framework**: Look for specific keywords in user input (e.g., "uView", "uViewPro", "Vue", "React", "Flutter").
 2.  **Locate Skill**: Search for and read the corresponding skill definition file to understand the "Design Contract" or conversion rules.
-    *   **uViewPro / uni-app**: If user mentions "uView", "uViewPro" or "UniApp", you **MUST** load and reference the complete context from the `stitch-uviewpro-components` skill to ensure accurate code generation.
-        *   **References**: Read `skills/stitch-uviewpro-components/references/` (especially `contract.md` and `tailwind-to-uviewpro.md`) for core mapping rules.
-        *   **API**: Read `skills/stitch-uviewpro-components/api/component-api.md` for component props and event definitions.
-        *   **Examples**: Read `skills/stitch-uviewpro-components/examples/usage.md` for correct implementation patterns.
-        *   **Resources**: Read `skills/stitch-uviewpro-components/resources/architecture-checklist.md` for design compliance.
+    *   **uViewPro / uni-app**: If user mentions "uView", "uViewPro" or "UniApp", you **MUST** load and reference the complete context from the `stitch-ui-uviewpro-components` skill to ensure accurate code generation.
+        *   **References**: Read `skills/stitch-ui-uviewpro-components/references/` (especially `contract.md` and `tailwind-to-uviewpro.md`) for core mapping rules.
+        *   **API**: Read `skills/stitch-ui-uviewpro-components/api/component-api.md` for component props and event definitions.
+        *   **Examples**: Read `skills/stitch-ui-uviewpro-components/examples/usage.md` for correct implementation patterns.
+        *   **Resources**: Read `skills/stitch-ui-uviewpro-components/resources/architecture-checklist.md` for design compliance.
 
-    *   **uView (Standard)**: If user mentions "uView" (without "Pro") or "uView 2.0", load `stitch-uview-components`.
-        *   **Context**: Read `references/` (contract, tailwind-to-uview), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-uview-components`.
+    *   **uView (Standard)**: If user mentions "uView" (without "Pro") or "uView 2.0", load `stitch-ui-uview2-components`.
+        *   **Context**: Read `references/` (contract, tailwind-to-uview), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-ui-uview2-components`.
 
-    *   **Element Plus**: If user mentions "Element Plus", "Element", "Vue Desktop", load `stitch-vue-element-components`.
-        *   **Context**: Read `references/` (contract, tailwind-to-element-plus), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-vue-element-components`.
+    *   **Element Plus**: If user mentions "Element Plus", "Element", "Vue Desktop", load `stitch-ui-vue-element-plus-components`.
+        *   **Context**: Read `references/` (contract, tailwind-to-element-plus), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-ui-vue-element-plus-components`.
 
-    *   **Vant UI**: If user mentions "Vant", "Vue Mobile", load `stitch-vue-vant-components`.
-        *   **Context**: Read `references/` (contract, tailwind-to-vant), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-vue-vant-components`.
+    *   **Vant UI**: If user mentions "Vant", "Vue Mobile", load `stitch-ui-vue-vant-components`.
+        *   **Context**: Read `references/` (contract, tailwind-to-vant), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-ui-vue-vant-components`.
 
-    *   **Layui Vue**: If user mentions "Layui", load `stitch-vue-layui-components`.
-        *   **Context**: Read `references/` (contract, tailwind-to-layui), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-vue-layui-components`.
+    *   **Layui Vue**: If user mentions "Layui", load `stitch-ui-vue-layui-components`.
+        *   **Context**: Read `references/` (contract, tailwind-to-layui), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-ui-vue-layui-components`.
 
-    *   **Bootstrap Vue**: If user mentions "Bootstrap", load `stitch-vue-bootstrap-components`.
-        *   **Context**: Read `references/` (contract, tailwind-to-bootstrap), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-vue-bootstrap-components`.
+    *   **Bootstrap Vue**: If user mentions "Bootstrap", load `stitch-ui-vue-bootstrap-components`.
+        *   **Context**: Read `references/` (contract, tailwind-to-bootstrap), `api/component-api.md`, `examples/usage.md`, `resources/architecture-checklist.md` from `stitch-ui-vue-bootstrap-components`.
 
-    *   **React / Tailwind**: If user mentions "React" (standard), load `stitch-react-components`.
-        *   **Context**: Hand off to **`stitch-react-components`**. Install: `npx skills add full-stack-skills/stitch-skills --skill stitch-react-components`.
+    *   **React / Tailwind**: If user mentions "React" (standard), load `stitch-ui-react-components`.
+        *   **Context**: Hand off to **`stitch-ui-react-components`**. Install: `npx skills add full-stack-skills/stitch-skills --skill stitch-ui-react-components`.
 
-    *   **Shadcn UI**: If user mentions "Shadcn", "Next.js", "Radix", load `stitch-shadcn-ui`.
-        *   **Context**: Hand off to **`stitch-shadcn-ui`**. Install: `npx skills add full-stack-skills/stitch-skills --skill stitch-shadcn-ui`.
+    *   **Shadcn UI**: If user mentions "Shadcn", "Next.js", "Radix", load `stitch-ui-shadcn-components`.
+        *   **Context**: Hand off to **`stitch-ui-shadcn-components`**. Install: `npx skills add full-stack-skills/stitch-skills --skill stitch-ui-shadcn-components`.
 
-    *   **Other Frameworks**: Search for matching `stitch-*-components` skills and load their respective `api`, `examples`, and `references` directories.
+    *   **Other Frameworks**: Search for matching `stitch-ui-*-components` skills and load their respective `api`, `examples`, and `references` directories.
 3.  **Apply Constraints**: Use the rules defined in that framework's skill (e.g., component mappings, slot usage, unit conversion) to transform the raw HTML from Stitch into the target framework code.
 
 **Example Flow:**
@@ -87,7 +87,7 @@ After retrieving the screen details (HTML code), check if the user's request imp
 *   Agent:
     1.  Call `get_screen` to get HTML.
     2.  Detect intent: "uViewPro".
-    3.  **Load Context**: Read `contract.md`, `component-api.md`, `usage.md`, and `architecture-checklist.md` from `stitch-uviewpro-components`.
+    3.  **Load Context**: Read `contract.md`, `component-api.md`, `usage.md`, and `architecture-checklist.md` from `stitch-ui-uviewpro-components`.
     4.  Generate code by applying uViewPro rules to the Stitch HTML.
 
 ## Usage Example

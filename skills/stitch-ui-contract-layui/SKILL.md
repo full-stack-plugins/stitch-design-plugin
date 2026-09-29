@@ -1,0 +1,163 @@
+---
+name: stitch-ui-contract-layui
+license: Apache-2.0
+description: Layui-Vue design spec for Stitch. Outputs hard-constraints prefix or selector JSON and assembled prompt.
+---
+# Layui Design Spec (Layui-Vue / Vue 3.0)
+
+**Constraint**: Only use this skill when the user explicitly mentions "Stitch".
+
+## Contract ownership
+
+本技能维护目标框架的组件、token 和状态契约，用于生成设计前的约束输入；不生成业务页面代码。产品规格和最终提示词模式由 `stitch-design-spec` 统一维护。下方 prefix/selector 的拼装提示是框架示例，必须由统一入口结合当前页面与 inline/applied-system/targeted-edit 模式编译，不直接覆盖已应用系统或局部修改范围。
+
+按名称使用 `stitch-design-spec`；安装说明：`npx skills add full-stack-skills/stitch-skills --skill stitch-design-spec`，不自动安装。真实代码转换使用对应 components 技能，不能以框架风格设计图代替代码验证。
+
+## Purpose
+
+This skill makes the Layui-Vue design spec executable in two modes:
+
+1) **Prefix mode**: output a paste-ready **Hard constraints prefix** for Stitch `[Context]`.
+2) **Selector mode**: output `CONTRACT_SELECTION_JSON_V1` and then an assembled Stitch prompt that injects only the required component/state snippets.
+
+## Trigger Keywords
+
+Prefer this skill when the user request includes any of:
+
+- `layui`, `layui-vue`, `layui vue`
+
+Chinese trigger keywords (only for triggering):
+
+- `layui 风格`
+- `layui admin`
+
+## Source of Truth
+
+- `references/contract.md`
+- `references/examples.md`
+- `references/official.md`
+
+## Output (STRICT)
+
+Decide the mode by the user intent:
+
+- If the user asks for **beautify/polish/refine an existing screen**, or asks for **selector / JSON / contracts.include / states.include** → use **Selector mode**.
+- Otherwise → use **Prefix mode**.
+
+### Prefix mode
+
+Return exactly one code block:
+
+```text
+[Hard constraints prefix]
+- Framework: Layui-Vue (Vue 3).
+- Design Tokens:
+  - Colors: Primary=#16baaa (Cyan-Green), Secondary=#16b777, Nav-bg=#393D49.
+  - Functional: Success=#16b777, Warning=#FFB800, Danger=#FF5722, Info=#31BDEC.
+  - Spacing: 10px / 15px grid system.
+  - Radius: Small=2px (Classic Layui), Medium=4px. No large radius.
+  - Typography: Base size 14px. Titles font-weight 500.
+- Component Contracts:
+  - Buttons: layui-btn (Height 38px, Radius 2px).
+  - Inputs: layui-input (Height 38px, Border #e2e2e2).
+  - Cards: layui-card (White bg, Header border-bottom #f6f6f6).
+  - Tables: layui-table (Header #f2f2f2, Border #e2e2e2).
+  - Others: <lay-page-header>, <lay-result>, <lay-skeleton>, <lay-timeline>, <lay-space>.
+- Layout Invariants:
+  - Style: Minimalist, Flat, Clean, "Classic Admin Design".
+  - Keep logo placement and alignment exactly as-is.
+```
+
+### Selector mode
+
+Return exactly two code blocks, in this order, with no extra prose:
+
+1) Contract selection JSON:
+
+```json
+{
+  "version": "CONTRACT_SELECTION_JSON_V1",
+  "designSystem": "layui-vue",
+  "mode": "selector",
+  "contracts": { "include": [] },
+  "states": { "include": [] }
+}
+```
+
+2) Final Stitch prompt:
+
+```text
+[Context]
+(Paste Hard Constraints Prefix here)
+(Add "Layout Invariants" from contract.md if beautifying)
+
+[Layout]
+(Describe the macro layout structure, e.g., "Admin Layout with Sidebar and Header")
+
+[Components]
+(Inject component snippets matching the JSON selection above)
+```
+
+## References
+
+- [Contract](references/contract.md)
+- [Examples](references/examples.md)
+- [Official Docs](references/official.md)
+
+<!-- QUALITY_BASELINE_V1 -->
+## When to use（什么时候使用）
+
+当用户需要 **为当前请求选择并执行可验证、可恢复的专业工作流** 时加载本技能。先从请求中提取目标、输入、约束、交付格式和验收标准；描述摘要为：Layui-Vue design spec for Stitch. Outputs hard-constraints prefix or selector JSON and assembled prompt.。
+
+## Rules
+
+- 先读后写：先确认当前状态与真实能力，再执行会改变外部状态的动作。
+- 权限最小化：只使用完成当前步骤所需的文件、工具、账户与网络范围。
+- 证据优先：运行结果、资源 ID、版本、哈希或测试输出缺失时，明确标记为 `NOT_VERIFIED`。
+- 幂等优先：保留请求标识与阶段状态；结果不明确时先查询，不进行盲目重试。
+- 隐私安全：日志、示例、回执和错误信息不得包含 token、cookie、密钥或个人敏感数据。
+
+## Workflow
+
+### Step 1：澄清意图
+
+确认本技能是否匹配目标；若只是相邻需求，交给更精确的技能。
+### Step 2：执行预检
+
+确认目标、输入、约束、可用工具、成功标准和失败边界；任一关键条件未知时停止在只读阶段。
+### Step 3：形成计划
+
+列出将调用的工具、会改变的对象、成功标准以及失败后的安全退出方式。
+### Step 4：执行动作
+
+按最小充分步骤执行，并在关键状态变化处记录证据；每个外部调用均保留可关联的状态或回执。
+### Step 5：验证交付
+
+输出结果、验证证据、未完成项、风险和明确的下一步，并把事实、推断和未验证项分开陈述。
+
+## Validation checklist
+
+- [ ] 技能触发条件与用户意图一致，没有把相邻任务误路由到本技能。
+- [ ] 输入、目标对象、版本和输出位置均已明确，且没有使用猜测值替代必填值。
+- [ ] 所有写入、付费、发布或不可逆动作都在用户授权范围内。
+- [ ] 结果已用独立检查验证；仅有“命令成功”或“文件存在”不算完整验收。
+- [ ] 输出包含实际证据、失败/跳过项、剩余风险和可执行的下一步。
+
+## Gotchas
+
+1. **把计划当结果**：文档或提示词不等于真实执行；必须标明实际运行层级。
+2. **错误重试**：超时或响应丢失可能已经产生远端状态，先查询再决定是否重试。
+3. **隐式扩大范围**：批量、全量、发布、覆盖和付费不是普通读写的自然延伸。
+4. **版本漂移**：引用外部资源时记录版本、tag 或提交；不要把可变分支当发布证据。
+5. **证据过期**：缓存、旧截图和历史测试不能证明当前环境；在交付前刷新关键证据。
+
+## 不适用与边界
+
+不超出用户给定范围；写入、付费、发布和不可逆动作需要明确授权。 如果请求需要别的技能，不复制其正文；按技能名称进行交接，并保留当前任务上下文。
+
+## Progressive disclosure
+
+- 需要确定输入/输出、状态和授权点时，读取 `references/workflow-contract.md`。
+- 需要交付前自检时，读取 `references/validation-checklist.md`。
+- 遇到超时、部分成功或恢复场景时，读取 `references/error-recovery.md`。
+- 首次运行、拒绝越权和失败恢复分别参考 `examples/happy-path.md`、`examples/boundary-refusal.md`、`examples/failure-recovery.md`。

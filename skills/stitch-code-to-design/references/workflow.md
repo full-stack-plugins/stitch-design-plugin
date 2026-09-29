@@ -7,7 +7,7 @@ Transform your existing frontend code (React + Vite, Next.js, Angular, Vue, etc.
 This skill orchestrates three other skills in sequence:
 1. `stitch-extract-static-html`: Extract a single self-contained HTML file from your build output or running dev server (e.g., Vite dev server or Angular CLI `ng serve`).
 2. `stitch-extract-design-md`: Analyze the source code (including Angular `angular.json`, external `.html` templates, theme files, and components) to create a design system (DESIGN.md).
-3. `stitch-upload-to-stitch`: Upload that HTML file and the design system to your Stitch project.
+3. `stitch-upload`: Upload that HTML file and the design system to your Stitch project.
 
 ## Workflow
 
@@ -51,8 +51,8 @@ and schema requirements. Pass
 
 #### 5. Upload HTML to Stitch
 
-Use the same `stitch-upload-to-stitch` skill's script to upload the extracted HTML file.
-Install it when absent: `npx skills add full-stack-skills/stitch-skills --skill stitch-upload-to-stitch`.
+Use the same `stitch-upload` skill's script to upload the extracted HTML file.
+Install it when absent: `npx skills add full-stack-skills/stitch-skills --skill stitch-upload`.
 
 You will need:
 - The path to the standalone HTML file generated in Step 1.

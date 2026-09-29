@@ -1,10 +1,5 @@
-# UI 规格反模式
+# 兼容资源已迁移
 
-| 错误做法 | 正确处理 |
-| --- | --- |
-| 把本地 device 名称当 MCP enum | 调用前读取实时 schema |
-| 固定一张旧 modelId/font 清单 | 只用当前 schema 暴露值 |
-| 只有理想态页面 | 补齐空、错、加载、权限状态 |
-| 无来源却称品牌规范 | 标成建议并列待确认项 |
+本文件仅保留 `stitch-ui-design-spec-generator` 的历史资源路径。当前规则、模板、词汇库、示例及校验统一由 **stitch-design-spec** 维护；不得将本文件当作另一份实现。
 
-禁止写入真实客户数据、宣称远程系统已应用、用桌面成功外推移动端，或把好看的静态图当交互与无障碍验收。
+通过技能名称加载 `stitch-design-spec`，保留原请求、输入、目标与输出范围。新入口缺失时说明依赖，不自动安装；安装说明：`npx skills add full-stack-skills/stitch-skills --skill stitch-design-spec`。转交不产生远程写入，不证明任务已完成。

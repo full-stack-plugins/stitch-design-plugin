@@ -30,8 +30,8 @@ license: Apache-2.0
 
 ### ❌ 不适用场景及交接
 
-- 仅写或改提示词 → stitch-ui-prompt-architect。
-- 修改既有屏幕/生成变体 → stitch-ui-designer。
+- 仅写或改提示词 → stitch-design-spec。
+- 修改既有屏幕/生成变体 → stitch-ui-execute。
 - 输出可运行程序 → 对应组件转换技能，交付实际屏幕HTML。
 
 ## 工作流程
@@ -59,7 +59,7 @@ license: Apache-2.0
 
 **Q1：交付的主要结果是什么？** 本地输入 projectId='123'、Tablet 768x1024、三段预约提示 → 只含 projectId/prompt 的待调用参数草案；没有工具回执则 screenId 未确认，不虚构。
 
-**Q2：什么时候应换用其他入口？** 仅写或改提示词 → stitch-ui-prompt-architect；修改既有屏幕/生成变体 → stitch-ui-designer；输出可运行程序 → 对应组件转换技能，交付实际屏幕HTML。
+**Q2：什么时候应换用其他入口？** 仅写或改提示词 → stitch-design-spec；修改既有屏幕/生成变体 → stitch-ui-execute；输出可运行程序 → 对应组件转换技能，交付实际屏幕HTML。
 
 **Q3：缺少输入会怎样？** 先给明确标记的本地假设草案，并列出“需要补充：真实纯 projectId 字符串；结构明确且无敏感内容的 prompt；目标 viewport 与当前实时 schema”。依赖这些输入的写操作不执行。
 

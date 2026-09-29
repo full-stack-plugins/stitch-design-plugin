@@ -31,7 +31,7 @@ license: Apache-2.0
 ### ❌ 不适用场景及交接
 
 - 只看截图提炼语义 → stitch-design-md。
-- 创建全新视觉风格 → stitch-taste-design。
+- 创建全新视觉风格 → stitch-ui-style。
 - 远程创建或应用系统 → stitch-manage-design-system，交付 DESIGN.md 作为输入。
 
 ## 工作流程
@@ -58,7 +58,7 @@ license: Apache-2.0
 
 **Q1：交付的主要结果是什么？** name: 门店预约；colors.primary: '#2563eb'（演示输入）；Source: src/theme.css 的 --brand-primary；氛围为源码推断，尚未渲染。
 
-**Q2：什么时候应换用其他入口？** 只看截图提炼语义 → stitch-design-md；创建全新视觉风格 → stitch-taste-design；远程创建或应用系统 → stitch-manage-design-system，交付 DESIGN.md 作为输入。
+**Q2：什么时候应换用其他入口？** 只看截图提炼语义 → stitch-design-md；创建全新视觉风格 → stitch-ui-style；远程创建或应用系统 → stitch-manage-design-system，交付 DESIGN.md 作为输入。
 
 **Q3：缺少输入会怎样？** 先给明确标记的本地假设草案，并列出“需要补充：前端源码根目录；主题、CSS 或组件文件；目标主题及是否需要上传兼容 YAML”。依赖这些输入的写操作不执行。
 

@@ -1,18 +1,5 @@
-# stitch-ui-design-spec-generator 验证清单
+# 兼容资源已迁移
 
-## 触发与范围
+本文件仅保留 `stitch-ui-design-spec-generator` 的历史资源路径。当前规则、模板、词汇库、示例及校验统一由 **stitch-design-spec** 维护；不得将本文件当作另一份实现。
 
-- 请求确实需要 `stitch-ui-design-spec-generator`，而非更窄或更安全的相邻技能。
-- 批量范围、资源 ID、版本、路径、平台与交付格式均已冻结。
-
-## 安全与授权
-
-- 没有在日志、命令、回执和示例中泄露凭据。
-- 外部写入、付费、发布、覆盖与删除都有当前授权证据。
-- 不超出用户给定范围；写入、付费、发布和不可逆动作需要明确授权。
-
-## 结果与证据
-
-- 使用真实运行结果或只读查询核对产物与远端状态。
-- 记录工具版本、输入摘要、输出标识以及失败/跳过原因。
-- 缺失证据明确标记 `SKIPPED`、`BLOCKED` 或 `NOT_VERIFIED`，不计为通过。
+通过技能名称加载 `stitch-design-spec`，保留原请求、输入、目标与输出范围。新入口缺失时说明依赖，不自动安装；安装说明：`npx skills add full-stack-skills/stitch-skills --skill stitch-design-spec`。转交不产生远程写入，不证明任务已完成。

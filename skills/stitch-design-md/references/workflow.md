@@ -124,15 +124,15 @@ This snapshot of official `design-md` provides a structure and semantic constrai
 2. Every color has a descriptive name, actual hex value and functional role; font weights, spacing, radii and shadows agree with cited source assets. Translate implementation classes into visual language.
 3. Document source paths or real project/screen IDs and observation limits. No invented tokens, credentials, signed download URLs, empty placeholders or claimed visual QA without an inspected image.
 4. Compare buttons/cards/inputs and responsive navigation against representative screens. Distinguish observed behavior from suggested hover/focus or breakpoint values.
-5. Read the completed DESIGN.md as input to `stitch-ui-prompt-architect`: verify it can recover palette roles and layout invariants without source code. A missing role, conflicting token or unexplained source difference fails lint; resolve it before claiming completion.
+5. Read the completed DESIGN.md as input to `stitch-design-spec`: verify it can recover palette roles and layout invariants without source code. A missing role, conflicting token or unexplained source difference fails lint; resolve it before claiming completion.
 
 On asset retrieval failure, preserve existing DESIGN.md, report the missing evidence and emit a clearly marked partial draft. Local lint is not proof of live rendering or accessibility compliance.
 
 ## Integration with This Repo
 
 - **First time:** Generate `DESIGN.md` with this skill from an existing Stitch screen.
-- **Multi-page:** Use `stitch-ui-prompt-architect` to inject DESIGN.md Section 6 into prompts; use `stitch-loop` for baton-based multi-page builds.
-- **Framework alignment:** For framework-specific constraints (Layui, Element Plus, uView, etc.), combine DESIGN.md with the corresponding `stitch-ui-design-spec-*` contract in the prompt.
+- **Multi-page:** Use `stitch-design-spec` to compile DESIGN.md Section 6: inline only without an applied system; otherwise keep visual tokens in the system handoff; use `stitch-ui-loop` for baton-based multi-page builds.
+- **Framework alignment:** For framework-specific constraints (Layui, Element Plus, uView, etc.), combine DESIGN.md with the corresponding `stitch-ui-contract-*` contract in the prompt.
 
 ## Best Practices
 

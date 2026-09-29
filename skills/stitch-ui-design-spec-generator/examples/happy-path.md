@@ -1,17 +1,5 @@
-# stitch-ui-design-spec-generator：正常路径示例
+# 兼容资源已迁移
 
-## 请求
+本文件仅保留 `stitch-ui-design-spec-generator` 的历史资源路径。当前规则、模板、词汇库、示例及校验统一由 **stitch-design-spec** 维护；不得将本文件当作另一份实现。
 
-用户给出明确目标、输入、交付格式与验收条件，希望使用 `stitch-ui-design-spec-generator` 完成一次有界任务。
-
-## 执行
-
-1. 识别触发条件与范围。
-2. 确认目标、输入、约束、可用工具、成功标准和失败边界。
-3. 展示计划和需要的授权点。
-4. 按最小充分步骤执行，并在关键状态变化处记录证据。
-5. 输出结果、验证证据、未完成项、风险和明确的下一步。
-
-## 期望输出
-
-返回 `COMPLETED`、真实证据与产物位置；任何未执行检查单独列在 `skipped` 中。
+通过技能名称加载 `stitch-design-spec`，保留原请求、输入、目标与输出范围。新入口缺失时说明依赖，不自动安装；安装说明：`npx skills add full-stack-skills/stitch-skills --skill stitch-design-spec`。转交不产生远程写入，不证明任务已完成。

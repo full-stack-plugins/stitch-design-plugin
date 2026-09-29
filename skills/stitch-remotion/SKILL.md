@@ -30,8 +30,8 @@ license: Apache-2.0
 
 ### ❌ 不适用场景及交接
 
-- 可点击 Web 应用 → stitch-react-components。
-- 重新生成 Stitch 页面 → stitch-ui-designer。
+- 可点击 Web 应用 → stitch-ui-react-components。
+- 重新生成 Stitch 页面 → stitch-ui-execute。
 - 真实业务操作录屏 → 使用已授权录屏流程，提供分镜清单。
 
 ## 工作流程
@@ -58,7 +58,7 @@ license: Apache-2.0
 
 **Q1：交付的主要结果是什么？** 演示输入 2×4秒、30fps、转场20帧 → durationInFrames=220；这是假设分镜计算，未声称已生成视频。
 
-**Q2：什么时候应换用其他入口？** 可点击 Web 应用 → stitch-react-components；重新生成 Stitch 页面 → stitch-ui-designer；真实业务操作录屏 → 使用已授权录屏流程，提供分镜清单。
+**Q2：什么时候应换用其他入口？** 可点击 Web 应用 → stitch-ui-react-components；重新生成 Stitch 页面 → stitch-ui-execute；真实业务操作录屏 → 使用已授权录屏流程，提供分镜清单。
 
 **Q3：缺少输入会怎样？** 先给明确标记的本地假设草案，并列出“需要补充：屏幕资产与实际尺寸；顺序、时长、帧率和输出比例；已有 Remotion 工程及可用依赖”。依赖这些输入的写操作不执行。
 

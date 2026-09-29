@@ -26,13 +26,13 @@ class SkillContractTests(unittest.TestCase):
             "stitch-mcp-get-screen": {"get_screen"},
             "stitch-mcp-list-projects": {"list_projects"},
             "stitch-mcp-list-screens": {"list_screens"},
-            "stitch-upload-to-stitch": {"upload_design_md"},
+            "stitch-upload": {"upload_design_md"},
             "stitch-manage-design-system": {
                 "apply_design_system", "create_design_system",
                 "create_design_system_from_design_md", "list_design_systems",
                 "update_design_system",
             },
-            "stitch-ui-designer": {"edit_screens", "generate_variants"},
+            "stitch-ui-execute": {"edit_screens", "generate_variants"},
         }
         for owner in ownership:
             skill_file = SKILLS / owner / "SKILL.md"
@@ -49,8 +49,8 @@ class SkillContractTests(unittest.TestCase):
         router = (SKILLS / "stitch-design-use" / "SKILL.md").read_text(encoding="utf-8")
         for route in (
             "stitch-local-setup", "stitch-mcp-list-projects", "stitch-mcp-get-project",
-            "stitch-mcp-list-screens", "stitch-mcp-get-screen", "stitch-ui-designer",
-            "stitch-manage-design-system", "stitch-upload-to-stitch", "stitch-delivery-harness",
+            "stitch-mcp-list-screens", "stitch-mcp-get-screen", "stitch-ui-execute",
+            "stitch-manage-design-system", "stitch-upload", "stitch-design-harness",
         ):
             self.assertIn(route, router)
         self.assertIn("本地准备", router)
@@ -98,7 +98,7 @@ class SkillContractTests(unittest.TestCase):
     def test_read_and_prompt_only_skills_do_not_claim_write_access(self):
         read_or_prompt = (
             "stitch-mcp-get-project", "stitch-mcp-get-screen", "stitch-mcp-list-projects",
-            "stitch-mcp-list-screens", "stitch-ued-guide", "stitch-ui-design-spec-generator",
+            "stitch-mcp-list-screens", "stitch-ui-guide", "stitch-ui-design-spec-generator",
         )
         for name in read_or_prompt:
             text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
@@ -108,10 +108,10 @@ class SkillContractTests(unittest.TestCase):
 
     def test_prompt_and_destructive_skills_do_not_preapprove_wildcard_mcp(self):
         no_preapproval = (
-            "stitch-delete-project", "stitch-design-use", "stitch-mcp-create-project", "stitch-ued-guide",
-            "stitch-ui-design-spec-generator", "stitch-ui-design-spec-layui",
-            "stitch-ui-design-spec-uview", "stitch-ui-design-spec-uviewpro",
-            "stitch-ui-design-spec-vant", "stitch-ui-design-variants",
+            "stitch-delete-project", "stitch-design-use", "stitch-mcp-create-project", "stitch-ui-guide",
+            "stitch-ui-design-spec-generator", "stitch-ui-contract-layui",
+            "stitch-ui-contract-uview2", "stitch-ui-contract-uviewpro",
+            "stitch-ui-contract-vant", "stitch-ui-variants",
         )
         for name in no_preapproval:
             frontmatter = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1]
@@ -126,10 +126,10 @@ class SkillContractTests(unittest.TestCase):
 
     def test_local_conversion_skills_do_not_preapprove_remote_tools(self):
         conversions = (
-            "stitch-uview-components", "stitch-uview-plus-components",
-            "stitch-uviewpro-components", "stitch-vue-bootstrap-components",
-            "stitch-vue-element-components", "stitch-vue-layui-components",
-            "stitch-vue-vant-components",
+            "stitch-ui-uview2-components", "stitch-ui-uview-plus-components",
+            "stitch-ui-uviewpro-components", "stitch-ui-vue-bootstrap-components",
+            "stitch-ui-vue-element-plus-components", "stitch-ui-vue-layui-components",
+            "stitch-ui-vue-vant-components",
         )
         for name in conversions:
             frontmatter = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1]

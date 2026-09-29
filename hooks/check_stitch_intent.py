@@ -32,8 +32,8 @@ def main() -> int:
     if INTENT_RE.search(prompt):
         print(
             "提示：该请求疑似 Stitch 相关。可用 /stitch 总入口或细分命令 "
-            "(/stitch-ui-designer /stitch-design-md /stitch-extract-static-html "
-            "/stitch-code-to-design /stitch-manage-design-system /stitch-loop "
+            "(/stitch-ui-execute /stitch-design-md /stitch-extract-static-html "
+            "/stitch-code-to-design /stitch-manage-design-system /stitch-ui-loop "
             "/stitch-local-setup /stitch-upload)；MCP 工具经 stitch 代理提供。"
         )
     return 0

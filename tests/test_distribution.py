@@ -472,8 +472,8 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("凭据仅来自当前进程或受限的用户配置文件", skill)
 
     def test_delivery_harness_skill_exposes_verified_handoff_contract(self) -> None:
-        skill = (ROOT / "skills" / "stitch-delivery-harness" / "SKILL.md").read_text(encoding="utf-8")
-        workflow = (ROOT / "skills" / "stitch-delivery-harness" / "references" / "workflow.md").read_text(encoding="utf-8")
+        skill = (ROOT / "skills" / "stitch-design-harness" / "SKILL.md").read_text(encoding="utf-8")
+        workflow = (ROOT / "skills" / "stitch-design-harness" / "references" / "workflow.md").read_text(encoding="utf-8")
 
         self.assertIn("scripts/stitch_harness.py", skill)
         self.assertIn("AWAITING_USER_APPROVAL", skill)
@@ -482,12 +482,12 @@ class DistributionContractTests(unittest.TestCase):
         positions = [workflow.index(value) for value in ordered]
         self.assertEqual(positions, sorted(positions))
 
-        loop = (ROOT / "skills" / "stitch-loop" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("stitch-delivery-harness", loop)
+        loop = (ROOT / "skills" / "stitch-ui-loop" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("stitch-design-harness", loop)
         self.assertIn("不能以工具成功文本标记完成", loop)
 
     def test_delivery_harness_documents_receipt_bound_compare_and_reconciliation(self) -> None:
-        skill_root = ROOT / "skills" / "stitch-delivery-harness"
+        skill_root = ROOT / "skills" / "stitch-design-harness"
         skill = (skill_root / "SKILL.md").read_text(encoding="utf-8")
         workflow = (skill_root / "references" / "workflow.md").read_text(encoding="utf-8")
         combined = skill + workflow

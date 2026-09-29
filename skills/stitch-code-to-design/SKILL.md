@@ -40,7 +40,7 @@ license: Apache-2.0
 2. 按 stitch-extract-static-html 生成每条路由的独立 HTML，先检查资产闭合与脱敏。
 3. 按 stitch-extract-design-md 从当前源码生成 .stitch/DESIGN.md，保留 YAML name/colors 和来源。
 4. 在已有上传授权范围内用 stitch-manage-design-system 建立项目系统，记录返回的 sourceScreen 与实例 id。
-5. 用 stitch-upload-to-stitch 上传 HTML，title 为路由，generated-by 为 stitch-extract-static-html；读取项目/屏幕确认，再报告文件、系统和屏幕映射。
+5. 用 stitch-upload 上传 HTML，title 为路由，generated-by 为 stitch-extract-static-html；读取项目/屏幕确认，再报告文件、系统和屏幕映射。
 
 按依赖排序：来源核对 → 本地产物 → 已授权外部操作 → 验证交接。多任务先做当前主路径；缺信息先输出假设草案，再精确列明缺少什么以及用途，不使用“请提供更多背景”的空泛提示。
 

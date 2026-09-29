@@ -31,7 +31,7 @@ description: 安全删除一个明确指定的 Stitch 项目；仅在用户明�
 ### ❌ 不适用场景及交接
 
 - 批量清空账号项目 → 拒绝批量执行，改为逐项目审核。
-- 用户只想归档本地 Harness 产物 → `stitch-delivery-harness`。
+- 用户只想归档本地 Harness 产物 → `stitch-design-harness`。
 - 用户只想删除本地文件 → 使用目标工作区的文件管理流程。
 
 ## 安全工作流

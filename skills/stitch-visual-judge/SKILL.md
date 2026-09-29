@@ -19,7 +19,7 @@ that the harness consumes as external evidence.
   scoring the rework.
 
 Do not use this skill to build, edit, or re-generate any artifact. If the work
-is construction, hand off to `stitch-delivery-harness`.
+is construction, hand off to `stitch-design-harness`.
 
 ## Independence rules (mandatory)
 

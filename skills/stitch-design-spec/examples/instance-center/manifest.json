@@ -1,0 +1,133 @@
+{
+  "version": "stitch-design-spec/v1",
+  "sources": [
+    {
+      "id": "S1",
+      "ref": "README.md#输入摘要与来源",
+      "status": "example"
+    },
+    {
+      "id": "S2",
+      "ref": "README.md#输入摘要与来源",
+      "status": "example"
+    },
+    {
+      "id": "S3",
+      "ref": "README.md#输入摘要与来源",
+      "status": "example"
+    }
+  ],
+  "pages": [
+    {
+      "id": "P01",
+      "file": "pages/P01.md",
+      "source_ids": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "offline",
+        "partial-data"
+      ]
+    },
+    {
+      "id": "P02",
+      "file": "pages/P02.md",
+      "source_ids": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "offline",
+        "partial-data"
+      ]
+    }
+  ],
+  "prompts": [
+    {
+      "id": "Q01",
+      "file": "prompts/Q01.md",
+      "page_id": "P01",
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "offline",
+        "partial-data"
+      ],
+      "mode": "inline"
+    },
+    {
+      "id": "Q02",
+      "file": "prompts/Q02.md",
+      "page_id": "P02",
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "offline",
+        "partial-data"
+      ],
+      "mode": "inline"
+    }
+  ],
+  "deferrals": [],
+  "tasks": [
+    {
+      "id": "T01",
+      "page_ids": [
+        "P01"
+      ],
+      "prompt_ids": [
+        "Q01"
+      ],
+      "depends_on": [],
+      "acceptance": "列表7态与三端保留关键信息"
+    },
+    {
+      "id": "T02",
+      "page_ids": [
+        "P02"
+      ],
+      "prompt_ids": [
+        "Q02"
+      ],
+      "depends_on": [
+        "T01"
+      ],
+      "acceptance": "详情部分失败不覆盖成功区块"
+    },
+    {
+      "id": "T03",
+      "page_ids": [
+        "P01",
+        "P02"
+      ],
+      "prompt_ids": [
+        "Q01",
+        "Q02"
+      ],
+      "depends_on": [
+        "T01",
+        "T02"
+      ],
+      "acceptance": "返回恢复搜索、筛选、页码、位置"
+    }
+  ]
+}

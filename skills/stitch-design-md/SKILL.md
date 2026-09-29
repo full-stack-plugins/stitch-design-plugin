@@ -35,7 +35,7 @@ license: Apache-2.0
 ### ❌ 不适用场景及交接
 
 - 精确框架源码 token 挖掘 → stitch-extract-design-md。
-- 新风格提案 → stitch-taste-design。
+- 新风格提案 → stitch-ui-style。
 - 将系统发布到项目 → stitch-manage-design-system。
 
 ## 工作流程
@@ -62,7 +62,7 @@ license: Apache-2.0
 
 **Q1：交付的主要结果是什么？** Source: demo/theme.css；主行动蓝 (#2563eb) 用于“确认预约”；布局为顶栏+预约列表；未观察的悬停状态标为建议。
 
-**Q2：什么时候应换用其他入口？** 精确框架源码 token 挖掘 → stitch-extract-design-md；新风格提案 → stitch-taste-design；将系统发布到项目 → stitch-manage-design-system。
+**Q2：什么时候应换用其他入口？** 精确框架源码 token 挖掘 → stitch-extract-design-md；新风格提案 → stitch-ui-style；将系统发布到项目 → stitch-manage-design-system。
 
 **Q3：缺少输入会怎样？** 先给明确标记的本地假设草案，并列出“需要补充：实际 HTML/截图或 Stitch 标识；主题与代表性页面范围；观察来源和希望输出的文件路径”。依赖这些输入的写操作不执行。
 

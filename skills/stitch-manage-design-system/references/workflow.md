@@ -28,7 +28,7 @@ If you need to extract a design system from existing screens, use the `stitch-de
 
 If there are no existing screens (new project), or the user provides a direct description (e.g., "dark theme, blue and purple, rounded, Inter font"):
 
-1. Map the user's vague terms to precise values using the design mappings (see `stitch-design-md` or `stitch-ui-prompt-architect`).
+1. Map the user's vague terms to precise values using the design mappings (see `stitch-design-md` or `stitch-design-spec`).
 2. Select concrete hex codes, font families, and roundness values.
 3. Generate the `DESIGN.md` file (refer to the `stitch-design-md` skill for structure).
 4. Proceed to the "Create or Update Design System in Stitch" step below.

@@ -18,7 +18,7 @@ If your client namespaces MCP tools, it may appear as `mcp__<serverName>__genera
 - Asks to "Design", "Generate", "Create", or "Make" a screen **using Stitch**.
 - Provides specific visual requirements ("Dark mode", "Blue button") for a Stitch generation.
 - Wants to visualize a wireframe or concept **via Stitch**.
-- Is in the **Step 5** of the `stitch-ui-designer` SOP workflow.
+- Is in the **Step 5** of the `stitch-ui-execute` SOP workflow.
 
 **Trigger phrases include:**
 - "Use Stitch to design a screen" (用 Stitch 设计一个页面)

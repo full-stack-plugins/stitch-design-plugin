@@ -43,7 +43,7 @@ class StitchIntentHookTests(unittest.TestCase):
                 result = run_hook(INTENT_HOOK, json.dumps({"prompt": f"帮我 {token} 一下"}))
                 self.assertEqual(result.returncode, 0)
                 self.assertIn("/stitch", result.stdout)
-                self.assertIn("/stitch-loop", result.stdout)
+                self.assertIn("/stitch-ui-loop", result.stdout)
 
     def test_unrelated_prompt_is_silent(self):
         for prompt in ("今天天气怎么样", "fix the login bug", ""):
@@ -53,7 +53,7 @@ class StitchIntentHookTests(unittest.TestCase):
                 self.assertEqual(result.stdout, "")
 
     def test_slash_command_is_silent(self):
-        for prompt in ("/stitch", "/stitch-ui-designer 设计系统", "/compact"):
+        for prompt in ("/stitch", "/stitch-ui-execute 设计系统", "/compact"):
             with self.subTest(prompt=prompt):
                 result = run_hook(INTENT_HOOK, json.dumps({"prompt": prompt}))
                 self.assertEqual(result.returncode, 0)

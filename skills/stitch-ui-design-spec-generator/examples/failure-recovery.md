@@ -1,16 +1,5 @@
-# stitch-ui-design-spec-generator：失败恢复示例
+# 兼容资源已迁移
 
-## 场景
+本文件仅保留 `stitch-ui-design-spec-generator` 的历史资源路径。当前规则、模板、词汇库、示例及校验统一由 **stitch-design-spec** 维护；不得将本文件当作另一份实现。
 
-外部调用在提交后超时，当前无法判断服务端是否已接受请求。
-
-## 正确行为
-
-1. 保留请求 ID、输入摘要、时间和幂等键。
-2. 不立即重试；先通过只读状态接口查询。
-3. 已成功则复用结果；明确失败且可安全重试时才提出重试方案。
-4. 状态仍未知则停止，报告潜在副作用和人工确认点。
-
-## 期望输出
-
-报告 `outcome_ambiguous: true`、查询证据、禁止自动重提的原因，以及下一次安全检查动作。
+通过技能名称加载 `stitch-design-spec`，保留原请求、输入、目标与输出范围。新入口缺失时说明依赖，不自动安装；安装说明：`npx skills add full-stack-skills/stitch-skills --skill stitch-design-spec`。转交不产生远程写入，不证明任务已完成。
