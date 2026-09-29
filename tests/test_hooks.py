@@ -73,19 +73,20 @@ class StitchIntentHookTests(unittest.TestCase):
 
 
 class EnvCheckHookTests(unittest.TestCase):
-    def test_reports_python_version_and_ready_proxy(self):
+    """env_check is a plugin self-integrity check: silent when intact,
+    one warning line when a shipped file is missing, exit 0 always."""
+
+    def test_intact_tree_is_silent(self):
         result = run_hook(ENV_HOOK, json.dumps({}))
         self.assertEqual(result.returncode, 0)
-        self.assertIn("Stitch 插件环境", result.stdout)
-        self.assertIn(f"python3: {sys.version.split()[0]}", result.stdout)
-        self.assertIn("Stitch MCP proxy: 就绪", result.stdout)
+        self.assertEqual(result.stdout, "")
 
-    def test_malformed_stdin_still_exits_zero(self):
+    def test_malformed_stdin_still_silent_and_exits_zero(self):
         for stdin_text in ("{broken", "", "null"):
             with self.subTest(stdin=repr(stdin_text)):
                 result = run_hook(ENV_HOOK, stdin_text)
                 self.assertEqual(result.returncode, 0)
-                self.assertIn("Stitch 插件环境", result.stdout)
+                self.assertEqual(result.stdout, "")
 
     def test_reports_missing_proxy_script(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -94,7 +95,7 @@ class EnvCheckHookTests(unittest.TestCase):
             shutil.copy2(ENV_HOOK, copied)
             result = run_hook(copied, json.dumps({}))
         self.assertEqual(result.returncode, 0)
-        self.assertIn("Stitch MCP proxy: 脚本缺失", result.stdout)
+        self.assertIn("MCP proxy 脚本缺失", result.stdout)
 
     def test_warns_when_python_below_311(self):
         spec = importlib.util.spec_from_file_location("env_check", ENV_HOOK)

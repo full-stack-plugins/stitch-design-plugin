@@ -1,36 +1,41 @@
 #!/usr/bin/env python3
-"""SessionStart hook: report Stitch proxy readiness for this plugin.
+"""SessionStart hook: plugin self-integrity check (advisory).
 
-Advisory only — always exits 0. The stdio proxy requires Python 3.11+.
+Contract, identical to the sibling check_*_intent / check_closeout hooks:
+only verifies files shipped with this package (and the interpreter version
+the hook itself needs); external apps, third-party CLIs and credentials are
+first-use setup owned by the skills. Everything intact -> print nothing,
+exit 0. Something missing -> one warning line, still exit 0. Any stdin
+(including malformed) is tolerated and never blocks a session.
 """
 from __future__ import annotations
 
 import json
 import sys
-from contextlib import suppress
 from pathlib import Path
+
+ROOT = next((c for c in Path(__file__).resolve().parents if (c / "plugin.json").is_file()), Path(__file__).resolve().parents[1])
 
 
 def main() -> int:
-    lines: list[str] = []
-    lines.append(f"python3: {sys.version.split()[0]}")
-
+    problems: list[str] = []
     if sys.version_info[:2] < (3, 11):
-        lines.append("Stitch MCP proxy: 需要 Python 3.11+，当前解释器过低——MCP 服务器将无法启动")
-    else:
-        proxy = next((c for c in Path(__file__).resolve().parents if (c / "plugin.json").is_file()), Path(__file__).resolve().parents[1]) / "scripts" / "stitch_mcp_proxy.py"
-        lines.append("Stitch MCP proxy: 就绪" if proxy.is_file() else "Stitch MCP proxy: 脚本缺失")
-
-    lines.append("Stitch 凭据: 首次使用时按 Skill 指引完成 OAuth/登录")
-
-    with suppress(OSError):
+        problems.append("需要 Python 3.11+——Stitch MCP proxy 将无法启动")
+    if not (ROOT / "scripts" / "stitch_mcp_proxy.py").is_file():
+        problems.append("MCP proxy 脚本缺失（包不完整）")
+    if problems:
+        print("Stitch 环境告警：" + "；".join(problems))
+    # Drain the hook payload so the host never sees a broken pipe.
+    try:
         sys.stdin.read()
-
-    print("Stitch 插件环境：" + "；".join(lines))
+    except (OSError, ValueError, UnicodeDecodeError):
+        pass
     return 0
 
 
 if __name__ == "__main__":
-    with suppress(OSError, ValueError):
+    try:
         json.load(sys.stdin)
+    except (ValueError, OSError):
+        pass
     sys.exit(main())
