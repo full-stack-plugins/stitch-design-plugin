@@ -2,7 +2,7 @@
 
 ![Google Stitch Design — Turn ideas into editable interfaces](assets/stitch-hero.png)
 
-> Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 43 workflow-oriented Agent Skills and an evidence-driven Harness.
+> Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 46 workflow-oriented Agent Skills and an evidence-driven Harness.
 
 [![Version](https://img.shields.io/badge/release-0.8.6-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.6)
 [![Tests](https://img.shields.io/badge/tests-388%20passing-18a957)](#development-and-verification)
@@ -13,15 +13,15 @@
 
 ## Codex host example
 
-![Stitch Design plugin details in Codex, including starter prompts, MCP server, and 43 Skills](assets/readme/stitch-design-plugin-overview.png)
+![Stitch Design plugin details in Codex, including starter prompts, MCP server, and 46 Skills](assets/readme/stitch-design-plugin-overview.png)
 
-In Codex, the installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP server, 43 workflow Skills, and a secure local Token setup. ZCode and Kimi load the same public plugin identity through their host manifests.
+In Codex, the installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP server, 46 workflow Skills, and a secure local Token setup. ZCode and Kimi load the same public plugin identity through their host manifests.
 
 ## Positioning
 
 `stitch-design` turns product ideas and existing interfaces into editable Google Stitch screens, then carries those artifacts into production frontend workflows. It combines live Stitch generation and editing, design-system operations, code-to-design, local asset import/export, framework conversion, and an evidence-driven Delivery Harness.
 
-| 43 workflow Skills | 17 MCP tools | 15+ frontend targets | 3 verified viewports |
+| 46 workflow Skills | 17 MCP tools | 15+ frontend targets | 3 verified viewports |
 |:---:|:---:|:---:|:---:|
 | Design, safety, conversion, delivery | 15 Google Stitch + 2 local asset tools | React, Vue, mobile and more | Desktop, tablet, mobile |
 
@@ -163,12 +163,38 @@ The setup page listens only on `127.0.0.1`, loads bundled assets, validates Orig
 
 The plugin does not host Stitch or bundle a shared key. Ambiguous writes are reconciled with read operations before any retry.
 
+## Slash commands
+
+Every command is a thin entry point that routes to the narrowest skill for the
+job. Start with `/stitch` when you are not sure which one applies.
+
+| Command | What it does |
+|:---|:---|
+| `/stitch` | Total entry point; routes by capability |
+| `/stitch-ui-execute` | Create, import, edit or variant a Stitch screen |
+| `/stitch-design-spec` | Turn a PRD or feature into per-page specs and prompts |
+| `/stitch-ui-style` | A DESIGN.md proposal with a distinct visual direction |
+| `/stitch-site-md` | Site identity, navigation and page priorities |
+| `/stitch-ui-loop` | Relay iteration from SITE.md / DESIGN.md / next-prompt.md |
+| `/stitch-design-harness` | Carry one screen to a verified high-fidelity delivery |
+| `/stitch-remotion` | Compose screens into a Remotion walkthrough video |
+| `/stitch-design-md` | Export or extract a structured DESIGN.md |
+| `/stitch-extract-static-html` | Static HTML with inlined assets |
+| `/stitch-code-to-design` | Import an existing frontend into Stitch |
+| `/stitch-manage-design-system` | Tokens, components, consistency |
+| `/stitch-upload` | Upload approved local assets to a project |
+| `/stitch-local-setup` | One-time local MCP proxy, credentials and self-check |
+
+Framework specialists (`stitch-ui-contract-*`, `stitch-ui-*-components`), the
+MCP primitives and the compatibility aliases are reached through `/stitch` or
+the skill that needs them, rather than as separate commands.
+
 ## Package self-check against OpenAI guidance
 
 | Official requirement | Current repository | Result |
 |:---|:---|:---:|
 | Stable plugin identity and metadata | `.codex-plugin/plugin.json`, `stitch-design`, publisher and URLs | Pass |
-| Skills at the plugin root | `skills/` with 43 validated Skills | Pass |
+| Skills at the plugin root | `skills/` with 46 validated Skills | Pass |
 | Bundled MCP configuration | `.mcp.json` compatibility mapping to the local stdio proxy | Pass for Codex compatibility |
 | Visual install metadata | Logo, composer icon, default prompts and README screenshot | Pass |
 | Marketplace policy metadata | Installation, `ON_USE` authentication and `Creativity` category | Pass |
@@ -292,7 +318,7 @@ Codex owns plugin loading and approvals. Google Stitch owns remote design data a
 | `stitch_harness/orchestrator.py` | The evidence-driven Harness state machine | Remote execution |
 | `stitch_harness/storage.py` | Atomic run files and receipt chaining | Rendering |
 | `scripts/stitch_setup.py` | The loopback Token screen and the status check | Design work |
-| `skills/` (43) | Routing, design, conversion, and delivery instructions | Runtime enforcement |
+| `skills/` (46) | Routing, design, conversion, and delivery instructions | Runtime enforcement |
 
 ## Development and verification
 
@@ -354,6 +380,6 @@ Open functional issues at <https://github.com/full-stack-plugins/stitch-design-p
 
 ## Source and license
 
-All 43 Skill bodies are vendored verbatim from [full-stack-skills/stitch-skills](https://github.com/full-stack-skills/stitch-skills), the single source of truth, and pinned by `skills.lock.json` (source repo, ref, commit, and per-skill digests). Refresh them with `python3 scripts/vendor/skill_vendor.py update`; never edit `skills/` directly. Official adapted material traces to `google-labs-code/stitch-skills` commit `0337446dadde6f8c94210444e2aa9d546126480f`.
+All 44 Skill bodies are vendored verbatim from [full-stack-skills/stitch-skills](https://github.com/full-stack-skills/stitch-skills), the single source of truth, and pinned by `skills.lock.json` (source repo, ref, commit, and per-skill digests). Refresh them with `python3 scripts/vendor/skill_vendor.py update`; never edit `skills/` directly. Official adapted material traces to `google-labs-code/stitch-skills` commit `0337446dadde6f8c94210444e2aa9d546126480f`.
 
 See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -2,7 +2,7 @@
 
 ![Google Stitch Design——把想法转化为可编辑界面](assets/stitch-hero.png)
 
-> 通过 43 个面向工作流的 Agent Skills 和证据驱动 Harness，在受支持的编码智能体中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
+> 通过 46 个面向工作流的 Agent Skills 和证据驱动 Harness，在受支持的编码智能体中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
 [![版本](https://img.shields.io/badge/release-0.8.6-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.8.6)
 [![测试](https://img.shields.io/badge/tests-388%20passing-18a957)](#开发与验证)
@@ -13,15 +13,15 @@
 
 ## Codex 宿主示例
 
-![Codex 中的 Stitch Design 插件详情，包含快捷提示、MCP 服务器和 43 个 Skills](assets/readme/stitch-design-plugin-overview.png)
+![Codex 中的 Stitch Design 插件详情，包含快捷提示、MCP 服务器和 46 个 Skills](assets/readme/stitch-design-plugin-overview.png)
 
-在 Codex 中，安装后的插件会展示三个可运行提示、一个内置 Stitch MCP 服务器、43 个工作流 Skills 和安全的本地 Token 设置。ZCode 与 Kimi 通过各自宿主清单加载同一公开插件身份。
+在 Codex 中，安装后的插件会展示三个可运行提示、一个内置 Stitch MCP 服务器、46 个工作流 Skills 和安全的本地 Token 设置。ZCode 与 Kimi 通过各自宿主清单加载同一公开插件身份。
 
 ## 项目定位
 
 `stitch-design` 把产品想法和现有界面转化为可编辑的 Google Stitch 屏幕，并继续交付到生产前端工作流。它组合了 Stitch 实时生成与编辑、设计系统操作、code-to-design、本地资产导入导出、框架转换和证据驱动 Delivery Harness。
 
-| 43 个工作流 Skills | 17 个 MCP 工具 | 15+ 前端目标 | 3 种验证视口 |
+| 46 个工作流 Skills | 17 个 MCP 工具 | 15+ 前端目标 | 3 种验证视口 |
 |:---:|:---:|:---:|:---:|
 | 设计、安全、转换、交付 | 15 个 Google Stitch + 2 个本地资产工具 | React、Vue、移动端等 | Desktop、Tablet、Mobile |
 
@@ -158,12 +158,37 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 
 插件不托管 Stitch，不内置共享 Key。写操作结果不明时，必须先读取远端状态再决定是否重试。
 
+## 斜杠命令
+
+每个命令都是一个薄入口，会路由到完成该任务所需的最窄技能。不确定用哪个时从
+`/stitch` 开始。
+
+| 命令 | 作用 |
+|:---|:---|
+| `/stitch` | 总入口，按能力路由 |
+| `/stitch-ui-execute` | 新建、导入、编辑或生成变体屏幕 |
+| `/stitch-design-spec` | 把 PRD 或功能转成逐页规格与提示词 |
+| `/stitch-ui-style` | 产出有明确视觉取向的 DESIGN.md 提案 |
+| `/stitch-site-md` | 站点身份、导航与页面优先级 |
+| `/stitch-ui-loop` | 按 SITE.md / DESIGN.md / next-prompt.md 接力迭代 |
+| `/stitch-design-harness` | 把一个屏幕交付为经校验的高保真成品 |
+| `/stitch-remotion` | 把屏幕编排成 Remotion 走查视频 |
+| `/stitch-design-md` | 导出或提取结构化 DESIGN.md |
+| `/stitch-extract-static-html` | 提取内联资产的静态 HTML |
+| `/stitch-code-to-design` | 把现有前端反向同步进 Stitch |
+| `/stitch-manage-design-system` | 令牌、组件与一致性 |
+| `/stitch-upload` | 把已授权的本地资产上传到项目 |
+| `/stitch-local-setup` | 一次性配置本地 MCP 代理、凭据与自检 |
+
+框架专项（`stitch-ui-contract-*`、`stitch-ui-*-components`）、MCP 原语与
+兼容别名由 `/stitch` 或需要它们的技能调用，不单独做成命令。
+
 ## 对照 OpenAI 官方规范的包自检
 
 | 官方要求 | 当前仓库 | 结果 |
 |:---|:---|:---:|
 | 稳定插件身份与元数据 | `.codex-plugin/plugin.json`、`stitch-design`、开发者与 URL | 通过 |
-| 根目录 Skills | `skills/` 中 43 个已验证 Skills | 通过 |
+| 根目录 Skills | `skills/` 中 46 个已验证 Skills | 通过 |
 | 内置 MCP 配置 | `.mcp.json` 兼容映射到本地 stdio 代理 | Codex 兼容模式通过 |
 | 安装面视觉元数据 | Logo、composer icon、默认提示与 README 截图 | 通过 |
 | Marketplace 策略元数据 | 安装策略、`ON_USE` 认证和 `Creativity` 分类 | 通过 |
@@ -276,7 +301,7 @@ Codex 负责插件加载和审批；Google Stitch 负责远程设计数据和工
 | `stitch_harness/orchestrator.py` | 证据驱动的 Harness 状态机 | 远端执行 |
 | `stitch_harness/storage.py` | 原子运行文件与回执链 | 渲染 |
 | `scripts/stitch_setup.py` | 回环 Token 页面与状态检查 | 设计工作 |
-| `skills/`（43 个） | 路由、设计、转换与交付指令 | 运行时强制 |
+| `skills/`（46 个） | 路由、设计、转换与交付指令 | 运行时强制 |
 
 ## 开发与验证
 
@@ -338,6 +363,6 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ## 来源与许可
 
-全部 43 个 Skill 本体从 [full-stack-skills/stitch-skills](https://github.com/full-stack-skills/stitch-skills)（单一事实源）逐字 vendor，由 `skills.lock.json` 钉住来源仓库、ref、commit 与逐技能摘要。刷新请运行 `python3 scripts/vendor/skill_vendor.py update`；切勿直接编辑 `skills/`。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
+全部 44 个 Skill 本体从 [full-stack-skills/stitch-skills](https://github.com/full-stack-skills/stitch-skills)（单一事实源）逐字 vendor，由 `skills.lock.json` 钉住来源仓库、ref、commit 与逐技能摘要。刷新请运行 `python3 scripts/vendor/skill_vendor.py update`；切勿直接编辑 `skills/`。官方适配内容可追溯到 `google-labs-code/stitch-skills` 提交 `0337446dadde6f8c94210444e2aa9d546126480f`。
 
 详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

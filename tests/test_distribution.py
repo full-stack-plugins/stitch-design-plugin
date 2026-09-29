@@ -187,14 +187,21 @@ class DistributionContractTests(unittest.TestCase):
     def test_manifest_declares_official_stitch_brand_assets(self) -> None:
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         interface = manifest["interface"]
-        self.assertEqual(interface.get("logo"), "./assets/logo.png")
-        self.assertEqual(interface.get("logoDark"), "./assets/logo-dark.png")
-        self.assertEqual(interface.get("composerIcon"), "./assets/composer-icon.png")
-        for relative, expected_size in (("assets/logo.png", 512), ("assets/logo-dark.png", 512), ("assets/composer-icon.png", 256)):
-            data = (ROOT / relative).read_bytes()
-            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+        # Verify what the manifest DECLARES instead of pinning filenames. The
+        # brand assets were realigned to official-logo.png, and a hardcoded name
+        # goes stale silently — the same failure mode as a hardcoded skill count.
+        # Checking the declared path also closes a gap the old assertion had: it
+        # never verified that the manifest pointed at a file that exists.
+        for field, expected_size in (("logo", 512), ("logoDark", 512), ("composerIcon", 256)):
+            declared = interface.get(field)
+            self.assertTrue(declared, f"interface.{field} must be declared")
+            self.assertTrue(declared.startswith("./assets/"), f"{field}: {declared!r}")
+            path = ROOT / declared.removeprefix("./")
+            self.assertTrue(path.is_file(), f"interface.{field} points at a missing file: {declared}")
+            data = path.read_bytes()
+            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n", f"{field}: not a PNG")
             width, height = struct.unpack(">II", data[16:24])
-            self.assertEqual((width, height), (expected_size, expected_size))
+            self.assertEqual((width, height), (expected_size, expected_size), f"{field}: {declared}")
         notices = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
         self.assertIn("https://www.gstatic.com/labs-code/stitch/favicon-512x512.png", notices)
 
@@ -348,8 +355,27 @@ class DistributionContractTests(unittest.TestCase):
                 self.assertIn(value, readme)
 
     def test_bilingual_overview_counts_current_skill_inventory(self) -> None:
-        self.assertIn("43 workflow-oriented Agent Skills", (ROOT / "README.md").read_text(encoding="utf-8"))
-        self.assertIn("43 个面向工作流的 Agent Skills", (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"))
+        # Derive the number from the tree instead of hardcoding it. A hardcoded
+        # count freezes whatever was current when the test was written and lets
+        # both the README and this guard go stale together.
+        lock = json.loads((ROOT / "skills.lock.json").read_text(encoding="utf-8"))
+        local = json.loads((ROOT / "plugin-local-skills.json").read_text(encoding="utf-8"))
+        managed = sum(len(source["skills"]) for source in lock["sources"])
+        total = managed + len(local["skills"])
+        on_disk = len([p for p in (ROOT / "skills").iterdir() if p.is_dir()])
+        self.assertEqual(
+            on_disk, total,
+            "skills/ holds a different number of directories than the lockfile "
+            "plus the plugin-local inventory",
+        )
+        self.assertIn(
+            f"{total} workflow-oriented Agent Skills",
+            (ROOT / "README.md").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            f"{total} 个面向工作流的 Agent Skills",
+            (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"),
+        )
 
     def test_public_docs_remove_native_store_and_describe_403_without_replay(self) -> None:
         paths = (
