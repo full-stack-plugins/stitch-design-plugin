@@ -31,10 +31,12 @@ def main() -> int:
 
     if INTENT_RE.search(prompt):
         print(
-            "提示：该请求疑似 Stitch 相关。可用 /stitch 总入口或细分命令 "
-            "(/stitch-ui-execute /stitch-design-md /stitch-extract-static-html "
-            "/stitch-code-to-design /stitch-manage-design-system /stitch-ui-loop "
-            "/stitch-local-setup /stitch-upload)；MCP 工具经 stitch 代理提供。"
+            "提示：该请求疑似 Stitch 相关。用 /stitch 总入口按能力路由；"
+            "常用细分命令：/stitch-ui-execute（生成/编辑界面）、"
+            "/stitch-design-spec（页面规格与提示词）、/stitch-ui-loop（接力迭代）、"
+            "/stitch-design-harness（高保真交付）、/stitch-code-to-design（代码反向同步）、"
+            "/stitch-upload（上传资产）；其余能力见 /stitch。"
+            "MCP 工具经 stitch 代理提供。"
         )
     return 0
 
