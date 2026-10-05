@@ -1,5 +1,14 @@
 # Stitch Design
 
+## Plugin marketplaces
+
+This plugin belongs to **Full-stack development**.
+
+| Category | Marketplace | Purpose |
+| --- | --- | --- |
+| Full-stack development | [Full Stack Plugins](https://github.com/partme-ai/full-stack-plugins) | Architecture and UI design, code understanding, quality checks, code review, workflow governance, and server operations |
+| AIGC content creation | [Full AIGC Plugins](https://github.com/partme-ai/full-aigc-plugins) | Image, video, audio, music, 3D, and multimodal content creation |
+
 ![Google Stitch Design — Turn ideas into editable interfaces](assets/stitch-hero.png)
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 46 workflow-oriented Agent Skills and an evidence-driven Harness.
