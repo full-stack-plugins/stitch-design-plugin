@@ -42,3 +42,13 @@ git add -A && git commit -m "release: <插件id> <版本>" && git push
   它们只能由 `scripts/bump-plugin.mjs` 与 `plugins/scripts/sync-marketplaces.mjs` 生成
 - 版本号必须全链一致（catalog + 4 manifest），`sync-marketplaces` 校验会拦截不一致
 - 插件本体放本仓根目录；`plugins/` 市场仓只存元数据，绝不物理包含插件代码
+
+<!-- partme-agent-plugin-policy:v1 -->
+## Partme Agent Plugin Architecture Rules v1
+
+- 组织级架构规范（跨 `full-aigc-plugins` 与 `full-stack-plugins` 的唯一事实源）：[Partme Agent Plugin Architecture Rules v1](https://github.com/full-aigc-plugins/.github/blob/main/docs/standards/partme-agent-plugin-architecture-rules-v1.md)。
+- **Harness 可选**：默认直接使用 Skills + CLI/MCP；只有确有必要时才使用最多一个可发现的 `skills/*-harness/SKILL.md`，其中的 `scripts/harness.py` 同样可选。
+- 不重复开发宿主 Agent Runtime、原生 CLI/MCP 业务执行器、持久数据库或权威任务状态。正式功能必须具备可核验的 Agent → Skill/Command → Tool → Artifact 调用链。
+- 保留本仓库现有 OpenSpec、技能来源锁、安全门禁、版本发布及 CI 要求；静态检查不能替代真实宿主验收。
+- CI 复用组织级 [Partme Plugin Architecture 检查器](https://github.com/full-aigc-plugins/.github/blob/main/scripts/check_plugin_architecture.py)，不得复制独立实现。
+<!-- /partme-agent-plugin-policy:v1 -->
