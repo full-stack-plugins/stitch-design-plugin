@@ -1,0 +1,33 @@
+{
+  "name": "@partme-dsh/stitch-design",
+  "version": "0.10.0",
+  "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
+  "type": "module",
+  "main": "lib/index.js",
+  "icon": "./icon.png",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "lib/index.js",
+    "icon.svg",
+    "icon.png",
+    "README.md"
+  ],
+  "license": "Apache-2.0",
+  "keywords": [
+    "stitch",
+    "design",
+    "mcp",
+    "design-to-code",
+    "ui-generation"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
