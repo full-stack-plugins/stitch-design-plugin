@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "Google Stitch Design",
         "shortDescription": "Design and build with Google Stitch",
-        "logo": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.9.0/assets/official-logo.png"
+        "logo": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.10.0/assets/official-logo.png"
       }
     }
   ]
