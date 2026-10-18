@@ -1,5 +1,5 @@
 {
-  "name": "@partme-dsh/stitch-design",
+  "name": "stitch-design",
   "version": "0.10.0",
   "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
   "type": "module",
@@ -31,5 +31,6 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
-  }
+  },
+  "private": true
 }
