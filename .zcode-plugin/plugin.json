@@ -1,15 +1,13 @@
 {
   "name": "stitch-design",
-  "displayName": "Google Stitch Design",
+  "displayName": "UI Generation · Stitch Design",
   "displayName_i18n": {
-    "en": "Google Stitch Design",
-    "zh-CN": "Stitch UI 设计"
+    "en": "UI Generation · Stitch Design"
   },
   "version": "0.10.0",
-  "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
+  "description": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries.",
   "description_i18n": {
-    "en": "Google Stitch design and design-to-code workflows powered by the remote Stitch MCP server.",
-    "zh-CN": "由远程 Stitch MCP 驱动的 Google Stitch 设计与设计转代码工作流：生成/编辑界面、设计系统管理、前端组件产出。"
+    "en": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries."
   },
   "author": {
     "name": "Full Stack Skills / PartMe.AI",

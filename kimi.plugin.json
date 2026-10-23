@@ -1,7 +1,7 @@
 {
   "name": "stitch-design",
   "version": "0.10.0",
-  "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
+  "description": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries.",
   "author": {
     "name": "Full Stack Skills / PartMe.AI"
   },
@@ -13,8 +13,8 @@
     "design-to-code"
   ],
   "interface": {
-    "displayName": "Google Stitch Design",
-    "shortDescription": "Design and build with Google Stitch",
+    "displayName": "UI Generation · Stitch Design",
+    "shortDescription": "Page and design-system generation with multi-framework handoff",
     "longDescription": "Operate Google Stitch from your coding agent: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
     "developerName": "Full Stack Skills / PartMe.AI",
     "websiteURL": "https://github.com/full-stack-plugins/stitch-design-plugin"

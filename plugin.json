@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "stitch-design",
   "version": "0.10.0",
-  "description": "Create and edit Google Stitch screens, design systems, and frontend code through the remote Stitch MCP server.",
+  "description": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries.",
   "author": {
     "name": "Full Stack Skills / PartMe.AI",
     "url": "https://github.com/full-stack-plugins/stitch-design-plugin"
@@ -20,8 +20,8 @@
   "extensions": {
     "com.openai": {
       "interface": {
-        "displayName": "Google Stitch Design",
-        "shortDescription": "Design and build with Google Stitch",
+        "displayName": "UI Generation · Stitch Design",
+        "shortDescription": "Page and design-system generation with multi-framework handoff",
         "longDescription": "Operate Google Stitch from Codex: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
         "developerName": "Full Stack Skills / PartMe.AI",
         "category": "Creativity",
@@ -30,7 +30,7 @@
           "Read",
           "Write"
         ],
-        "websiteURL": "https://stitch.withgoogle.com",
+        "websiteURL": "https://github.com/full-stack-plugins/stitch-design-plugin",
         "privacyPolicyURL": "https://github.com/full-stack-plugins/stitch-design-plugin/blob/main/PRIVACY.md",
         "termsOfServiceURL": "https://github.com/full-stack-plugins/stitch-design-plugin/blob/main/TERMS.md",
         "defaultPrompt": [
@@ -39,10 +39,11 @@
           "Turn this Stitch design into production components"
         ],
         "brandColor": "#1A73E8",
-        "composerIcon": "./assets/composer-icon.png",
+        "composerIcon": "./assets/official-logo.png",
         "logo": "./assets/official-logo.png",
         "logoDark": "./assets/official-logo.png",
-        "screenshots": []
+        "screenshots": [],
+        "composerIconDark": "./assets/official-logo.png"
       }
     },
     "ai.nanoco.nanoclaw": {
