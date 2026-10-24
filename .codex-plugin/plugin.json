@@ -1,7 +1,7 @@
 {
   "name": "stitch-design",
   "version": "0.10.0",
-  "description": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries.",
+  "description": "通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。",
   "author": {
     "name": "Full Stack Skills / PartMe.AI",
     "url": "https://github.com/full-stack-plugins/stitch-design-plugin"
@@ -43,5 +43,12 @@
     "screenshots": [],
     "composerIconDark": "./assets/official-logo.png"
   },
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "displayName": "Stitch（界面生成）",
+  "displayName_i18n": {
+    "zh-CN": "Stitch（界面生成）"
+  },
+  "description_i18n": {
+    "zh-CN": "通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。"
+  }
 }
