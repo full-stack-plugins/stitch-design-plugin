@@ -1,8 +1,8 @@
 {
   "name": "stitch-design",
-  "displayName": "UI Generation · Stitch Design",
+  "displayName": "Stitch Design · UI Generation",
   "displayName_i18n": {
-    "en": "UI Generation · Stitch Design"
+    "en": "Stitch Design · UI Generation"
   },
   "version": "0.10.0",
   "description": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries.",

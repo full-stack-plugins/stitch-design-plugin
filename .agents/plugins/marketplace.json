@@ -1,7 +1,7 @@
 {
   "name": "partme-ai-stitch",
   "interface": {
-    "displayName": "UI Generation · Stitch Design"
+    "displayName": "Stitch Design · UI Generation"
   },
   "plugins": [
     {
@@ -20,7 +20,7 @@
       "description": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries.",
       "icon": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.10.0/assets/official-logo.png",
       "interface": {
-        "displayName": "UI Generation · Stitch Design",
+        "displayName": "Stitch Design · UI Generation",
         "shortDescription": "Page and design-system generation with multi-framework handoff",
         "logo": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.10.0/assets/official-logo.png"
       }

@@ -18,7 +18,7 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "UI Generation · Stitch Design",
+    "displayName": "Stitch Design · UI Generation",
     "shortDescription": "Page and design-system generation with multi-framework handoff",
     "longDescription": "Operate Google Stitch from Codex: generate and edit screens, manage design systems, run code-to-design workflows, and turn Stitch artifacts into frontend components.",
     "developerName": "Full Stack Skills / PartMe.AI",
