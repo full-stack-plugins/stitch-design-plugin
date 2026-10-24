@@ -23,7 +23,12 @@
         "displayName": "Stitch Design · UI Generation",
         "shortDescription": "Page and design-system generation with multi-framework handoff",
         "logo": "https://cdn.jsdelivr.net/gh/full-stack-plugins/stitch-design-plugin@v0.10.0/assets/official-logo.png"
-      }
+      },
+      "line": "full-stack",
+      "componentTypes": [
+        "skills",
+        "mcp"
+      ]
     }
   ]
 }
