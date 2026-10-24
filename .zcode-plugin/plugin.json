@@ -2,13 +2,11 @@
   "name": "stitch-design",
   "displayName": "Stitch（界面生成）",
   "displayName_i18n": {
-    "en": "Stitch Design · UI Generation",
     "zh-CN": "Stitch（界面生成）"
   },
   "version": "0.10.1",
   "description": "通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。",
   "description_i18n": {
-    "en": "Create and edit Google Stitch screens, design systems and frontend code, then hand off to React, Vue, uni-app and component libraries.",
     "zh-CN": "通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。"
   },
   "author": {

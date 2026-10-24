@@ -46,5 +46,6 @@
   },
   "description_i18n": {
     "zh-CN": "通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。"
-  }
+  },
+  "displayName": "Stitch（界面生成）"
 }
