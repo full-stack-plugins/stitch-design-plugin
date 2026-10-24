@@ -1,6 +1,6 @@
 {
   "name": "stitch-design",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。",
   "author": {
     "name": "Full Stack Skills / PartMe.AI",
