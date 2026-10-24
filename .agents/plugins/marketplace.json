@@ -1,7 +1,7 @@
 {
   "name": "partme-ai-stitch",
   "interface": {
-    "displayName": "Stitch Design · UI Generation"
+    "displayName": "Stitch（界面生成）"
   },
   "plugins": [
     {
