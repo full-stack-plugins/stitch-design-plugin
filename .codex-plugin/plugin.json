@@ -1,6 +1,6 @@
 {
   "name": "stitch-design",
-  "version": "0.10.1",
+  "version": "0.10.2+codex.20261031",
   "description": "通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。",
   "author": {
     "name": "Full Stack Skills / PartMe.AI",
@@ -37,11 +37,11 @@
       "Turn this Stitch design into production components"
     ],
     "brandColor": "#1A73E8",
-    "composerIcon": "./assets/official-logo.png",
+    "composerIcon": "./assets/composer-icon.png",
     "logo": "./assets/official-logo.png",
     "logoDark": "./assets/official-logo.png",
     "screenshots": [],
-    "composerIconDark": "./assets/official-logo.png"
+    "composerIconDark": "./assets/composer-icon.png"
   },
   "mcpServers": "./.mcp.json",
   "displayName": "Stitch（界面生成）",

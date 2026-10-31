@@ -2,7 +2,7 @@
 
 > Page and design-system generation with multi-framework handoff
 
-**Version**: 0.10.0 · **License**: Apache-2.0 · **Skills**: 45
+**Version**: 0.10.2 · **License**: Apache-2.0 · **Skills**: 45
 
 [简体中文](README.md) · [Install](#installation) · [Quick start](#quick-start) · [Project layout](#project-layout)
 

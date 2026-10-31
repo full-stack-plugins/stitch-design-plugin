@@ -67,8 +67,8 @@ def validate(root: Path) -> list[str]:
     if manifest.get("repository") != EXPECTED_REPOSITORY:
         errors.append("manifest repository mismatch")
     interface = manifest.get("interface", {})
-    if interface.get("displayName") != "Google Stitch Design":
-        errors.append("display name must be Google Stitch Design")
+    if interface.get("displayName") != "Stitch Design · UI Generation":
+        errors.append("Codex display name must be Stitch Design · UI Generation")
     for field in ("privacyPolicyURL", "termsOfServiceURL"):
         value = interface.get(field, "")
         if not value.startswith(EXPECTED_REPOSITORY + "/blob/main/"):
