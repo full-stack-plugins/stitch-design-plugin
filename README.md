@@ -13,7 +13,7 @@ This plugin belongs to **Full-stack development**.
 
 > Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 45 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-[![Version](https://img.shields.io/badge/release-0.10.2-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.2)
+[![Version](https://img.shields.io/badge/release-0.10.3-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.3)
 [![Tests](https://img.shields.io/badge/tests-388%20passing-18a957)](#development-and-verification)
 [![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -49,7 +49,7 @@ In Codex, the installed plugin exposes three ready-to-run prompts, one bundled S
 Recommended: track the repository's `main` branch explicitly.
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.10.2
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.10.3
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -57,17 +57,17 @@ Restart Codex or the ChatGPT desktop app, open a new task, and ask Stitch Design
 
 ### Other supported Marketplace sources
 
-GitHub shorthand pinned by the repository-local marketplace to `v0.10.2`:
+GitHub shorthand pinned by the repository-local marketplace to `v0.10.3`:
 
 ```bash
 codex plugin marketplace add full-stack-plugins/stitch-design-plugin
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
-Full Git URL pinned to immutable `v0.10.2`:
+Full Git URL pinned to immutable `v0.10.3`:
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.10.2
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.10.3
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -75,7 +75,7 @@ Sparse Git checkout when only Marketplace metadata is needed:
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.10.2 \
+  --ref v0.10.3 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -219,9 +219,9 @@ This repository intentionally remains a Codex compatibility package while the po
 | Property | Value |
 |:---|:---|
 | Plugin ID | `stitch-design` |
-| Current candidate | `0.10.2` |
-| Current release | [v0.10.2](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.2) |
-| Previous release | [v0.10.1](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.1) |
+| Current candidate | `0.10.3` |
+| Current release | [v0.10.3](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.3) |
+| Previous release | [v0.10.2](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.2) |
 | Marketplace | `partme-ai-stitch` |
 | Authentication | User-owned `STITCH_API_KEY`, requested on first use |
 | License | Apache-2.0 |

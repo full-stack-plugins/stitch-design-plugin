@@ -13,7 +13,7 @@
 
 > 通过 45 个面向工作流的 Agent Skills 和证据驱动 Harness，在受支持的编码智能体中设计、验证、美术增强并交付可编辑的 Google Stitch 项目。
 
-[![版本](https://img.shields.io/badge/release-0.10.2-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.2)
+[![版本](https://img.shields.io/badge/release-0.10.3-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.3)
 [![测试](https://img.shields.io/badge/tests-388%20passing-18a957)](#开发与验证)
 [![MCP 工具](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#可完成的工作)
 [![许可证](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
@@ -49,7 +49,7 @@
 推荐显式跟踪本仓库 `main` 分支：
 
 ```bash
-codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.10.2
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.10.3
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -67,7 +67,7 @@ codex plugin add stitch-design@partme-ai-stitch
 使用完整 Git URL 并固定 `main`：
 
 ```bash
-codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.10.2
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.10.3
 codex plugin add stitch-design@partme-ai-stitch
 ```
 
@@ -75,7 +75,7 @@ codex plugin add stitch-design@partme-ai-stitch
 
 ```bash
 codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
-  --ref v0.10.2 \
+  --ref v0.10.3 \
   --sparse .agents/plugins
 codex plugin add stitch-design@partme-ai-stitch
 ```
@@ -213,9 +213,9 @@ python C:\已安装插件路径\scripts\stitch_setup.py ui
 | 属性 | 值 |
 |:---|:---|
 | 插件 ID | `stitch-design` |
-| 当前候选版本 | `0.10.2` |
-| 当前版本 | [v0.10.2](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.2) |
-| 上一版本 | [v0.10.1](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.1) |
+| 当前候选版本 | `0.10.3` |
+| 当前版本 | [v0.10.3](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.3) |
+| 上一版本 | [v0.10.2](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.2) |
 | Marketplace | `partme-ai-stitch` |
 | 认证 | 用户自有 `STITCH_API_KEY`，首次使用时配置 |
 | 许可证 | Apache-2.0 |
