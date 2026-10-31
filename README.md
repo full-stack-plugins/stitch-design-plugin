@@ -1,160 +1,396 @@
-# Stitch（界面生成）
+# Stitch Design
 
-> 页面与设计系统生成，多框架代码落地
+## Plugin marketplaces
 
-**版本**：0.10.0 · **许可证**：Apache-2.0 · **技能**：45 个
+This plugin belongs to **Full-stack development**.
 
-[English](README.en.md) · [安装](#安装) · [快速开始](#快速开始) · [项目结构](#项目结构)
+| Category | Marketplace | Purpose |
+| --- | --- | --- |
+| Full-stack development | [Full Stack Plugins](https://github.com/partme-ai/full-stack-plugins) | Architecture and UI design, code understanding, quality checks, code review, workflow governance, and server operations |
+| AIGC content creation | [Full AIGC Plugins](https://github.com/partme-ai/full-aigc-plugins) | Image, video, audio, music, 3D, and multimodal content creation |
 
-## 项目定位
+![Google Stitch Design — Turn ideas into editable interfaces](assets/stitch-hero.png)
 
-通过远程 Stitch MCP 创建与编辑页面、设计系统与前端代码，可落地 React、Vue、uni-app 与多种组件库。
+> Design, verify, art-direct, and deliver editable Google Stitch projects from your supported coding agent through 45 workflow-oriented Agent Skills and an evidence-driven Harness.
 
-本插件属于研发工具线，面向需要在真实仓库或真实服务上完成操作、并保留可核验结果的用户。
+[![Version](https://img.shields.io/badge/release-0.10.3-1A73E8)](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.3)
+[![Tests](https://img.shields.io/badge/tests-388%20passing-18a957)](#development-and-verification)
+[![MCP tools](https://img.shields.io/badge/MCP%20tools-17-00A67E)](#what-you-can-build)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-## 一眼看懂
+[English](README.md) | [简体中文](README.zh-CN.md) · [Install](#installation) · [Quick start](#quick-start) · [Examples](#example-requests) · [Architecture](docs/Stitch-Design-Architecture.md) · [Troubleshooting](#troubleshooting)
 
-```text
-仓库 / 服务 / 配置 / 请求
-        │
-        ▼
-Stitch（界面生成） 技能（检查 → 计划 → 执行 → 核验）
-        │
-        ├── MCP 服务
-        └── 固定 CLI / API
-        │
-        ▼
-变更结果 + 证据 + 回退路径
+## Codex host example
+
+![Stitch Design plugin details in Codex, including starter prompts, MCP server, and the skill list](assets/readme/stitch-design-plugin-overview.png)
+
+> The screenshot above is from the v0.8.x plugin page and predates the v1.3.0 skill rename; the current inventory is 45 skills, and the names shown in it have since moved to the `stitch-ui-*` families.
+
+In Codex, the installed plugin exposes three ready-to-run prompts, one bundled Stitch MCP server, 45 workflow Skills, and a secure local Token setup. ZCode and Kimi load the same public plugin identity through their host manifests.
+
+## Positioning
+
+`stitch-design` turns product ideas and existing interfaces into editable Google Stitch screens, then carries those artifacts into production frontend workflows. It combines live Stitch generation and editing, design-system operations, code-to-design, local asset import/export, framework conversion, and an evidence-driven Delivery Harness.
+
+| 45 workflow Skills | 17 MCP tools | 15+ frontend targets | 3 verified viewports |
+|:---:|:---:|:---:|:---:|
+| Design, safety, conversion, delivery | 15 Google Stitch + 2 local asset tools | React, Vue, mobile and more | Desktop, tablet, mobile |
+
+## Installation
+
+### Prerequisites
+
+- Python 3.11 or newer on `PATH`.
+- A Google Stitch API key from <https://stitch.withgoogle.com/settings>.
+- Optional, for the Harness comparison workflow: `Pillow` from `requirements-harness.txt`.
+
+### From the plugin marketplace
+
+Recommended: track the repository's `main` branch explicitly.
+
+```bash
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin --ref v0.10.3
+codex plugin add stitch-design@partme-ai-stitch
 ```
 
-## 能力与边界
+Restart Codex or the ChatGPT desktop app, open a new task, and ask Stitch Design to list your projects.
 
-| 能力 | 说明 | 边界 |
+### Other supported Marketplace sources
+
+GitHub shorthand pinned by the repository-local marketplace to `v0.10.3`:
+
+```bash
+codex plugin marketplace add full-stack-plugins/stitch-design-plugin
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+Full Git URL pinned to immutable `v0.10.3`:
+
+```bash
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git --ref v0.10.3
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+Sparse Git checkout when only Marketplace metadata is needed:
+
+```bash
+codex plugin marketplace add https://github.com/full-stack-plugins/stitch-design-plugin.git \
+  --ref v0.10.3 \
+  --sparse .agents/plugins
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+Local checkout for development:
+
+```bash
+git clone https://github.com/full-stack-plugins/stitch-design-plugin.git
+codex plugin marketplace add ./partme-stitch-plugin
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+Confirm or refresh the installation:
+
+```bash
+codex plugin marketplace list
+codex plugin list
+codex plugin marketplace upgrade partme-ai-stitch
+```
+
+The Marketplace name is `partme-ai-stitch`; the install selector is `stitch-design@partme-ai-stitch`.
+
+### China mirror (AtomGit)
+
+If GitHub is slow or unreachable, install from the AtomGit mirror instead. The
+commands are identical apart from the marketplace URL — add the mirror first,
+then run the same `codex plugin add stitch-design@partme-ai-stitch` shown above:
+
+```bash
+codex plugin marketplace add https://atomgit.com/partme-ai/partme-stitch-plugin.git --ref main
+codex plugin add stitch-design@partme-ai-stitch
+```
+
+To install the whole partme-ai plugin catalog from the mirror in one step, add
+the marketplace repository instead:
+
+```bash
+codex plugin marketplace add https://atomgit.com/partme-ai/plugins.git
+codex plugin add stitch-design@partme-ai
+```
+
+Notes:
+
+- The AtomGit source and the GitHub source share marketplace names, so adding
+  one replaces the other. Switch back with
+  `codex plugin marketplace add https://github.com/partme-ai/plugins.git`.
+- For ZCode or Kimi, clone the mirror repository and register the local
+  directory in the respective marketplace configuration.
+
+## Quick start
+
+### First run: one local Token screen
+
+The plugin already bundles its MCP connection. The first Stitch request checks credentials and opens the local Token screen only when `STITCH_API_KEY` is missing.
+
+```mermaid
+flowchart LR
+    A[Install plugin] --> B[Restart and open a new task]
+    B --> C{Token available?}
+    C -->|No| D[Open local Token screen]
+    D --> E[Create key in Stitch Settings]
+    E --> F[Save to restricted user config]
+    C -->|Yes| G[Read-only project check]
+    F --> G
+    G --> H[Generate · edit · export]
+```
+
+On the first MCP request without a credential, or after a refreshed credential is still rejected with HTTP 401, the plugin automatically opens this local Token screen. A 10-minute cooldown prevents repeated windows while setup is in progress.
+
+1. Create your key in [Stitch Settings](https://stitch.withgoogle.com/settings).
+2. Paste it into the masked local field. Never paste it into chat.
+3. Return to Codex; start with a read-only request such as “List my Stitch projects.”
+
+Manual fallback if the browser does not open:
+
+```bash
+# macOS / Linux
+python /path/to/installed/plugin/scripts/stitch_setup.py ui
+
+# Windows
+python C:\path\to\installed\plugin\scripts\stitch_setup.py ui
+```
+
+The setup page listens only on `127.0.0.1`, loads bundled assets, validates Origin and CSRF, never logs the key, and clears the field after every response. The cooldown marker stores only a launch timestamp. The `python` command on PATH must resolve to Python 3.11 or newer.
+
+## What you can build
+
+| Workflow | Built-in path | Verifiable output |
+|:---|:---|:---|
+| Create and iterate | Generate, inspect, edit, variants | Bound project and screen identities |
+| Govern visual systems | Create, update, list, apply design systems | Design-system identity and version evidence |
+| Bring existing UI into Stitch | Upload reviewed HTML/images | Same-project screen resources |
+| Export for production | Download HTML, screenshots and referenced assets | Atomic files and SHA-256 manifest |
+| Generate frontend code | React, React Native, shadcn/ui, Vue, Vant, Element Plus, Bootstrap, Layui, uView | Editable component source |
+| Deliver with gates | Stitch → explicit art decision → optional ImageGen loop or Stitch-only validation → approval | Receipt chain and explicit human decisions |
+
+The plugin does not host Stitch or bundle a shared key. Ambiguous writes are reconciled with read operations before any retry.
+
+## Slash commands
+
+Every command is a thin entry point that routes to the narrowest skill for the
+job. Start with `/stitch` when you are not sure which one applies.
+
+| Command | What it does |
+|:---|:---|
+| `/stitch` | Total entry point; routes by capability |
+| `/stitch-ui-execute` | Create, import, edit or variant a Stitch screen |
+| `/stitch-design-spec` | Turn a PRD or feature into per-page specs and prompts |
+| `/stitch-ui-style` | A DESIGN.md proposal with a distinct visual direction |
+| `/stitch-site-md` | Site identity, navigation and page priorities |
+| `/stitch-ui-loop` | Relay iteration from SITE.md / DESIGN.md / next-prompt.md |
+| `/stitch-design-harness` | Carry one screen to a verified high-fidelity delivery |
+| `/stitch-remotion` | Compose screens into a Remotion walkthrough video |
+| `/stitch-design-md` | Export or extract a structured DESIGN.md |
+| `/stitch-extract-static-html` | Static HTML with inlined assets |
+| `/stitch-code-to-design` | Import an existing frontend into Stitch |
+| `/stitch-manage-design-system` | Tokens, components, consistency |
+| `/stitch-upload` | Upload approved local assets to a project |
+| `/stitch-local-setup` | One-time local MCP proxy, credentials and self-check |
+
+Framework specialists (`stitch-ui-contract-*`, `stitch-ui-*-components`), the
+MCP primitives and the compatibility aliases are reached through `/stitch` or
+the skill that needs them, rather than as separate commands.
+
+## Package self-check against OpenAI guidance
+
+| Official requirement | Current repository | Result |
+|:---|:---|:---:|
+| Stable plugin identity and metadata | `.codex-plugin/plugin.json`, `stitch-design`, publisher and URLs | Pass |
+| Skills at the plugin root | `skills/` with 45 validated Skills | Pass |
+| Bundled MCP configuration | `.mcp.json` compatibility mapping to the local stdio proxy | Pass for Codex compatibility |
+| Visual install metadata | Logo, composer icon, default prompts and README screenshot | Pass |
+| Marketplace policy metadata | Installation, `ON_USE` authentication and `Creativity` category | Pass |
+| Portable Agent Plugins root manifest | Root `plugin.json` and portable `mcp.json` | Not yet migrated |
+| Universal public Plugins Directory | Requires separate OpenAI submission and remote HTTPS MCP review | Not published |
+
+This repository intentionally remains a Codex compatibility package while the portable/public migration gate is open. See [Portable migration gate](docs/portable-migration.md).
+
+## Status and version
+
+| Property | Value |
+|:---|:---|
+| Plugin ID | `stitch-design` |
+| Current candidate | `0.10.3` |
+| Current release | [v0.10.3](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.3) |
+| Previous release | [v0.10.2](https://github.com/full-stack-plugins/stitch-design-plugin/releases/tag/v0.10.2) |
+| Marketplace | `partme-ai-stitch` |
+| Authentication | User-owned `STITCH_API_KEY`, requested on first use |
+| License | Apache-2.0 |
+
+## Example requests
+
+```text
+Read-only: List my Stitch projects and do not create anything.
+Generate: Create a responsive product screen in Stitch.
+Edit: Preserve the design system and only update the current screen.
+Convert: Turn this Stitch screen into production React components.
+```
+
+Remote writes require the target project and intended scope. If a write times out, do not immediately repeat it; inspect the project/screen state first.
+
+## MCP tools
+
+The bundled stdio proxy exposes 17 tools: 15 from the Google Stitch MCP server and 2 local asset tools added by this plugin.
+
+### Google Stitch tools (15)
+
+| Tool | Purpose |
+|---|---|
+| `create_project` | Create a Stitch project |
+| `list_projects` | List accessible projects |
+| `get_project` | Read one project |
+| `delete_project` | Delete a project |
+| `generate_screen_from_text` | Generate a screen from a text prompt |
+| `list_screens` | List screens in a project |
+| `get_screen` | Read one screen |
+| `edit_screens` | Edit an existing screen |
+| `generate_variants` | Generate design variants |
+| `create_design_system` | Create a design system |
+| `create_design_system_from_design_md` | Create a design system from a design document |
+| `update_design_system` | Update a design system |
+| `list_design_systems` | List design systems |
+| `apply_design_system` | Apply a design system to a screen |
+| `upload_design_md` | Upload a design document |
+
+### Local tools added here (2)
+
+| Tool | Purpose |
+|---|---|
+| `stitch_local_upload_asset` | Upload a reviewed local image or HTML file into the current project |
+| `stitch_local_download_assets` | Download screen HTML, screenshots, and referenced assets with an atomic write and SHA-256 manifest; `referencedAssetPolicy` defaults to `best_effort` and may be set to `strict` |
+
+### Error contract
+
+| Signal | Meaning | Next action |
 |---|---|---|
-| 检查 | 读取当前状态与配置 | 不修改未授权目标 |
-| 计划 | 说明将执行的步骤与影响 | 高风险操作需明确确认 |
-| 执行 | 通过 MCP 或固定工具完成操作 | 不绕过权限与审计 |
-| 核验 | 回读结果、日志与状态 | 命令成功不等于目标达成 |
-| 恢复 | 保留回退路径与证据 | 不确定时不自动重放 |
+| `ProxyError` | Sanitized proxy failure | Read the message; no automatic retry |
+| `UnknownWriteResult` | A write may have reached Stitch without a definitive response | Reconcile with read tools before retrying |
+| `ApprovalRequired` | A gate needs an explicit human decision | Approve or reject in the Harness |
+| `InvalidTransition` | A state change bypassed an approved gate | Re-run from the previous state |
+| `ContractError` | A page specification is unsafe or incomplete | Fix the specification |
+| `SecretStoreError` | The credential could not be read or written safely | Re-run the local setup |
 
-## 架构与核心流程
+Failures are returned as JSON-RPC errors with code `-32000` for a sanitized proxy failure and `-32001` for an unknown write result.
 
-```text
-宿主 / Agent
-   │  调用技能
-   ▼
-skills/stitch-design-*  ──►  MCP 服务 / 固定 CLI
-                              │
-                              ▼
-                     目标系统 / 仓库
-                              │
-                              ▼
-                     回读、核验、报告
+## Configuration
+
+`.mcp.json` starts the bundled proxy from the installed plugin root:
+
+```json
+{
+  "type": "stdio",
+  "command": "python",
+  "args": ["scripts/stitch_mcp_proxy.py"],
+  "cwd": "."
+}
 ```
 
-原则：
+Credential precedence:
 
-1. 先只读检查，再计划，再执行。
-2. 明确目标、范围、凭据和回退方式。
-3. 执行后回读真实现场，不只看退出码。
-4. 不确定时停止并报告，不自动重试有副作用的操作。
+1. `STITCH_API_KEY` in the current process.
+2. The current-user Stitch Design credential file.
+3. First-use setup.
 
-## 兼容性
+Default locations are `$XDG_CONFIG_HOME/stitch-design/credentials.json` (or `~/.config/...`) on Unix and `%APPDATA%\stitch-design\credentials.json` on Windows.
 
-| 项目 | 状态 |
-|---|---|
-| 宿主 | 支持 MCP 的宿主 |
-| 运行时 | 以插件清单与实际安装环境为准 |
-| 平台 | 以发行说明与目标系统为准 |
-
-## 安装
+Run a secret-free check:
 
 ```bash
-codex plugin marketplace add partme-ai/full-stack-plugins
-codex plugin add stitch-design@full-stack-plugins
+python scripts/stitch_setup.py check
 ```
 
-安装后重启宿主，先做只读检查。
+## Architecture and security
 
-## 快速开始
+Codex owns plugin loading and approvals. Google Stitch owns remote design data and tool execution. Stitch Design owns workflow instructions, package validation, local credential bootstrap, and error recovery. The authors do not receive MCP traffic.
 
-1. 确认目标、环境、权限和影响范围。
-2. 只读检查现状，记录基线。
-3. 执行一次有界变更。
-4. 回读目标状态、日志和关键指标。
-5. 保存证据；失败时按回退路径恢复。
+- [Architecture](docs/Stitch-Design-Architecture.md)
+- [Technical solution](docs/Stitch-Design-Technical-Solution.md)
+- [Portable migration gate](docs/portable-migration.md)
+- [Privacy](PRIVACY.md)
+- [Terms](TERMS.md)
 
-## 配置
+### Component responsibilities
 
-按插件文档配置 MCP 地址、认证方式和目标环境。不要把令牌、密码或私钥写入仓库。
+| Component | Owns | Does not own |
+|---|---|---|
+| `scripts/stitch_mcp_proxy.py` | The stdio entry point that starts the proxy | Credential storage |
+| `stitch_harness/mcp_proxy.py` | HTTP session handling, tool-list repair, and the write-result rules | Business approval |
+| `stitch_harness/secrets.py` | Credential lookup order and the restricted user config | Remote calls |
+| `stitch_harness/assets.py` | The two local asset tools | Upstream Stitch behaviour |
+| `stitch_harness/orchestrator.py` | The evidence-driven Harness state machine | Remote execution |
+| `stitch_harness/storage.py` | Atomic run files and receipt chaining | Rendering |
+| `scripts/stitch_setup.py` | The loopback Token screen and the status check | Design work |
+| `skills/` (45) | Routing, design, conversion, and delivery instructions | Runtime enforcement |
 
-## 扩展契约
-
-新增技能时应使用 `stitch-design-` 前缀，声明触发条件、权限边界和失败处理，通过 MCP 或固定工具执行，并在变更后回读核验。
-
-## 重试、幂等与恢复
-
-- 失败后先检查目标当前状态。
-- 不自动重放已产生副作用的操作。
-- 重试前确认幂等条件与回退路径。
-- 保留命令、日志和结果证据。
-
-## 数据与状态
-
-- 凭据只从安全配置读取。
-- 变更前后的状态分别记录。
-- 不把生产数据复制到不受控目录。
-
-## 安全
-
-- 遵循最小权限原则。
-- 高风险操作必须明确确认。
-- 发现凭据泄露先轮换，再清理痕迹。
-- 不绕过审计、权限或分支保护。
-
-## 可观测性与运行
-
-记录命令、目标、时间、结果和关键指标；交付前回读一次真实状态。
-
-## 开发与验证
+## Development and verification
 
 ```bash
-node --test
-python3 -m pytest
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests -v
+python scripts/validate_distribution.py .
+python scripts/validate_skills.py skills
+python scripts/validate_markdown_links.py .
+python scripts/scan_secrets.py .
+find scripts skills -type f -name '*.sh' -exec shellcheck {} +
+python -m compileall -q scripts stitch_harness skills
+git diff --check
 ```
 
-## 打包与发布
+Version 0.7.8 keeps Stitch's primary HTML, screenshot, and DESIGN.md downloads on the Google/Stitch allowlist, while HTML-referenced dependencies may come from any safe public HTTPS host such as `cdn.tailwindcss.com`. Referenced dependencies now default to `best_effort`: a safe dependency that is temporarily unavailable or has an unsupported response is skipped with a host-only warning while primary artifacts are still published. Set `referencedAssetPolicy: "strict"` to retain all-or-nothing export. Unsafe URLs, HTTP, credential-bearing URLs, localhost, local/internal names, IP literals, redirects, primary-artifact failures, path escapes, byte/file limits, and the independent 500-URL reference discovery budget remain blocked.
 
-版本与清单、市场、tag 一致；发布后重新安装并做一次只读检查。
+Unknown-write reconciliation may bind `target.project_id` and `target.expected_title`. When a complete `list_screens` read succeeds, its evidence binds the project ID, completeness flag and normalized title-hash inventory. Only when the Harness derives that the expected-title hash is absent may `get_screen` be recorded as `skipped` with reason `no_candidate_id`; an applied or discovered candidate still requires a successful `get_screen`. Attempt limits, timestamps, hashes, and duplicate-write protection remain enforced.
 
-## 升级与迁移
+Repository preparation for the provider + asset live smoke is complete: the manual-only workflow uses the `STITCH_API_KEY` repository secret, private runner state, sanitized output, and a final `always()` cleanup with read-back absence proof. It has not been run remotely and is not Harness acceptance. The full Harness remains an [interactive local controller path](docs/live-harness-controller.md). See the [live-smoke acceptance register](docs/live-canary-acceptance.md), which records the v0.7.1 provider + asset smoke and release gates.
 
-升级前备份配置与状态；确认兼容性；迁移后重新核验连接和权限。
+## Data and state
 
-## 故障排查
+| Data | Location | Lifecycle | Secrets |
+|---|---|---|---|
+| Credential | `$XDG_CONFIG_HOME/stitch-design/credentials.json`, or `%APPDATA%\stitch-design\credentials.json` on Windows | Until you rotate or delete it | Yes: the `STITCH_API_KEY` value |
+| Harness run files | `.stitch/` inside your project | Until you archive or delete them | No |
+| Receipt chain | Alongside each run | Tamper-evident; grows with each accepted gate | No |
+| Downloaded assets | Your chosen output directory | Until you delete them | No |
 
-| 现象 | 检查 |
-|---|---|
-| 连接失败 | 地址、网络、认证 |
-| 权限不足 | 账号角色与令牌范围 |
-| 操作无效果 | 回读目标状态与日志 |
-| 结果不确定 | 停止重试，先核对现场 |
+Run state machine: `DRAFT`, `PREFLIGHT_PASSED`, `STITCH_GENERATED`, `SOURCE_ACCEPTED`, `AWAITING_ART_DECISION`, `ART_ENHANCEMENT_APPROVED`, `STITCH_ONLY_SELECTED`, `ART_GENERATED`, `ART_ACCEPTED`, `SEMANTIC_NORMALIZED`, `ROUNDTRIPPED`, `EDITABILITY_VERIFIED`, `COMPARISON_ACCEPTED`, `AWAITING_USER_APPROVAL`, `APPROVED`, `ARCHIVED`, `CANCELLED`, `RECONCILING`, `BLOCKED`.
 
-## 项目结构
+Accepting a Stitch source never authorizes ImageGen. The Harness pauses and asks the user to reply with exactly `enhance`, `keep_stitch`, or `cancel`; only the exact `enhance` response can enter the ImageGen path. Ambiguous confirmations are not mapped, and the CLI exposes no self-asserted `--source user` override.
 
-```text
-stitch-design-plugin/
-├── .zcode-plugin/      # ZCode 清单
-├── .codex-plugin/      # Codex 清单
-├── skills/             # 45 个技能
-├── docs/               # 架构与验证记录
-└── assets/             # 图标与静态资源
+Specs may select strict `provider_generated` provenance or `imported_editable_html`. Imported HTML still requires an exact-canvas render artifact and full DOM/copy gates. Reported OCR drift fails closed, and enhanced delivery records a deterministic semantic-normalization receipt before Stitch upload/readback.
+
+Visual comparison uses coarse, canvas-relative edge geometry for layout scoring, while illustration texture, shadows, color, and component finish remain in the separate five-dimension quality review.
+
+## Troubleshooting
+
+| Symptom | Action |
+|:---|:---|
+| Stitch tools are missing | Confirm plugin status, restart Codex, open a new task |
+| Credentials are missing | Open `stitch_setup.py ui` |
+| Authentication fails | Replace the key, restart, run read-only `list_projects` |
+| A write times out | Read project/screen state; do not blindly resubmit |
+| ChatGPT web stalls | Treat the path as experimental; use local Codex |
+
+## Upgrade
+
+```bash
+codex plugin marketplace upgrade partme-ai-stitch
+codex plugin add stitch-design@partme-ai-stitch
 ```
 
-## 贡献与支持
+## Contributing and support
 
-提交问题时附上插件版本、宿主、目标环境、命令、日志和预期结果。不要附凭据或生产数据。
+Open functional issues at <https://github.com/full-stack-plugins/stitch-design-plugin/issues>. Before proposing a change, state the Stitch API surface you verified against, whether it alters the tool catalogue or the write-result rules, and include the affected validators.
 
-## 许可证
+## Source and license
 
-Apache-2.0，见 [LICENSE](LICENSE)。
+All 44 Skill bodies are vendored verbatim from [full-stack-skills/stitch-skills](https://github.com/full-stack-skills/stitch-skills), the single source of truth, and pinned by `skills.lock.json` (source repo, ref, commit, and per-skill digests). Refresh them with `python3 scripts/vendor/skill_vendor.py update`; never edit `skills/` directly. Official adapted material traces to `google-labs-code/stitch-skills` commit `0337446dadde6f8c94210444e2aa9d546126480f`.
+
+See [LICENSE](LICENSE), [NOTICE](NOTICE), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

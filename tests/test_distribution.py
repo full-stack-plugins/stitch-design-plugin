@@ -315,7 +315,7 @@ class DistributionContractTests(unittest.TestCase):
 
         self.assertEqual(manifest["name"], "stitch-design")
         self.assertEqual(manifest["version"], CODEX_VERSION)
-        self.assertEqual(manifest["interface"]["displayName"], "Google Stitch Design")
+        self.assertEqual(manifest["interface"]["displayName"], "Stitch Design · UI Generation")
 
     def test_portable_files_are_active_and_remote_auth_stays_gated(self) -> None:
         # Migrated 2026-09-28: the local stdio proxy is portable (it resolves

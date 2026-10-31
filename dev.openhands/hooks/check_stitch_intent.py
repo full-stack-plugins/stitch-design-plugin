@@ -42,4 +42,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Windows pipes use the active code page unless UTF-8 is selected explicitly.
+    sys.stdout.reconfigure(encoding="utf-8")
     sys.exit(main())
